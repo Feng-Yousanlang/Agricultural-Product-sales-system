@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>首页</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+<header class="topbar">
+    <div class="brand">三农服务平台</div>
+    <nav class="nav">
+        <a href="#news">新闻</a>
+        <a href="#products">金融产品</a>
+        <a href="#experts">专家</a>
+    </nav>
+    <div class="user">
+        <button id="btn-logout" class="btn">退出登录</button>
+    </div>
+  </header>
+
+<main class="container">
+    <section id="news" class="card">
+        <div class="card-header">
+            <h2>新闻轮播</h2>
+            <button id="news-refresh" class="btn btn-secondary">刷新</button>
+        </div>
+        <div class="carousel" id="news-carousel">
+            <div class="slides" id="news-slides"></div>
+            <div class="dots" id="news-dots"></div>
+        </div>
+        <div class="msg" id="msg-news"></div>
+    </section>
+
+    <section id="products" class="card">
+        <div class="card-header">
+            <h2>金融产品</h2>
+            <button id="products-refresh" class="btn btn-secondary">换一批</button>
+        </div>
+        <div class="grid" id="products-grid"></div>
+        <div class="msg" id="msg-products"></div>
+    </section>
+
+    <section id="experts" class="card">
+        <div class="card-header">
+            <h2>专家列表</h2>
+        </div>
+        <div class="list" id="experts-list"></div>
+        <div class="msg" id="msg-experts"></div>
+    </section>
+</main>
+
+<script src="index.js"></script>
+</body>
+</html>
+

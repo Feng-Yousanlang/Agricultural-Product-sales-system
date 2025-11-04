@@ -49,6 +49,35 @@
         <button type="submit" class="login-btn">登录</button>
         <div class="msg" id="msg-mail"></div>
     </form>
+
+    <!-- 用户注册表单 -->
+    <form id="form-register" autocomplete="off" style="margin-top:24px">
+        <div class="form-group">
+            <label for="reg-username">注册用户名</label>
+            <input type="text" id="reg-username" name="username" required>
+        </div>
+        <div class="form-group">
+            <label for="reg-password">密码</label>
+            <input type="password" id="reg-password" name="password" required>
+        </div>
+        <div class="form-group">
+            <label for="reg-passwordConfirm">确认密码</label>
+            <input type="password" id="reg-passwordConfirm" name="passwordConfirm" required>
+        </div>
+        <div class="form-group">
+            <label for="reg-identity">身份类型</label>
+            <select id="reg-identity" name="identity" required>
+                <option value="">请选择</option>
+                <option value="1">农户</option>
+                <option value="2">买家</option>
+                <option value="3">专家</option>
+                <option value="4">银行工作人员</option>
+                <option value="5">平台管理员</option>
+            </select>
+        </div>
+        <button type="submit" class="login-btn">注册</button>
+        <div class="msg" id="msg-register"></div>
+    </form>
 </div>
 <!-- 引入JS -->
 <script src="login.js"></script>

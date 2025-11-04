@@ -1,64 +1,123 @@
-一、接口 1：用户密码登录接口（接口编号：API-001）
-接口用途：用于用户通过 “用户名 + 密码 + 人机验证码” 的方式登录，验证信息合法性后返回身份令牌（Token）；
-请求信息：
-请求路径：/api/auth/login/pwd
-请求方式：POST
-必传请求参数（3 个）：
-username：字符串类型，代表用户名，为必填项；
-password：字符串类型，代表用户密码，为必填项；
-verification：字符串类型，代表人机验证码，为必填项；
-响应信息：
-响应参数（3 个）：
-code：整数类型，状态码（200 表示登录成功；400 表示参数错误；401 表示用户名或密码错误；500 表示服务器内部错误）；
-message：字符串类型，返回提示信息（如 “登录成功”“用户名或密码错误” 等）；
-token：字符串类型，仅登录成功（code=200）时返回，代表用户身份令牌。
-二、接口 2：用户邮箱登录接口（接口编号：API-002）
-接口用途：用于用户通过 “邮箱地址 + 邮箱验证码” 的方式登录，验证信息合法性后返回身份令牌（Token）；
-请求信息：
-请求路径：/api/auth/login/mail
-请求方式：POST
-必传请求参数（2 个）：
-email：字符串类型，代表用户邮箱地址，为必填项；
-verification：字符串类型，代表邮箱验证码，为必填项；
-响应信息：
-响应参数（3 个）：
-code：整数类型，状态码（200 表示登录成功；400 表示参数错误；500 表示服务器内部错误）；
-message：字符串类型，返回提示信息（如 “登录成功”“邮箱验证码错误” 等）；
-token：字符串类型，仅登录成功（code=200）时返回，代表用户身份令牌。
-三、接口 3：用户邮箱获取验证码接口（接口编号：API-003）
-接口用途：用于用户在 “邮箱登录” 或 “用户注册” 前，获取发送到指定邮箱的验证码（支撑 API-002、API-004 功能）；
-请求信息：
-请求路径：/api/auth/code
-请求方式：POST
-必传请求参数（1 个）：
-email：字符串类型，代表需要接收验证码的邮箱地址，为必填项；
-响应信息：
-响应参数（2 个）：
-code：整数类型，状态码（200 表示验证码发送成功；400 表示参数错误；500 表示服务器内部错误）；
-message：字符串类型，返回提示信息（如 “验证码已发送至您的邮箱”“邮箱格式错误” 等）。
-四、接口 4：用户注册接口（接口编号：API-004）
-接口用途：用于新用户申请账号，需提交 “用户名 + 密码 + 确认密码 + 邮箱 + 邮箱验证码”，完成注册（注册成功后可通过 API-001/API-002 登录）；
-请求信息：
-请求路径：/api/auth/register
-请求方式：POST
-必传请求参数（5 个）：
-username：字符串类型，代表待注册的用户名，为必填项；
-password：字符串类型，代表待注册的用户密码，为必填项；
-passwordConfirm：字符串类型，代表确认密码（需与 password 一致），为必填项；
-emailLocation：字符串类型，代表用户邮箱地址（文档标注为 “邮箱”），为必填项；
-verification：字符串类型，代表邮箱验证码（通过 API-003 获取），为必填项；
-响应信息：
-响应参数（2 个）：
-code：整数类型，状态码（200 表示注册成功；400 表示参数错误；401 表示邮箱错误；500 表示服务器内部错误）；
-message：字符串类型，返回提示信息（如 “注册成功”“两次密码不一致”“邮箱已被注册” 等）。
-五、接口 5：用户退出登录接口（接口编号：API-005）
-接口用途：用于已登录用户退出当前账号，清除登录状态；
-请求信息：
-请求路径：/api/auth/logout
-请求方式：POST
-必传请求参数（1 个）：
-username：字符串类型，代表当前登录的用户名，为必填项；
-响应信息：
-响应参数（2 个）：
-code：整数类型，状态码（200 表示退出成功；400 表示参数错误；500 表示服务器内部错误）；
-message：字符串类型，返回提示信息（如 “退出登录成功”“用户名不能为空” 等）。
+以下是接口API-001至API-011的完整文字内容提取，按接口编号依次呈现：
+
+### API-001：用户密码登录接口
+- 接口路径：/api/auth/login/pwd
+- 请求方式：POST
+- 接口说明：用于用户密码登录，验证用户名与密码、验证码并返回Token。
+- 请求参数：username（string，必填，用户名）、password（string，必填，密码）
+- 响应参数：code（int，状态码：200成功、400参数错误、401用户名或密码错误、500服务器内部错误）、message（string，返回信息）、token（string，登录成功的信息，1为成功，0为不成功）
+
+---
+
+### API-002：用户邮箱登录接口（后端之后再做）
+- 接口路径：/api/auth/login/mail
+- 请求方式：POST
+- 接口说明：用于用户邮箱登录，验证邮箱地址与验证码并返回Token。
+- 请求参数：email（string，必填，邮箱地址）、verification（string，必填，邮箱验证码）
+- 响应参数：code（int，状态码：200成功、400参数错误、500服务器内部错误）、message（string，返回信息）、token（string，登录成功返回的身份令牌）
+
+---
+
+### API-003：用户邮箱获取验证码（后端之后再做）
+- 接口路径：/api/auth/code
+- 请求方式：POST
+- 接口说明：用于用户邮箱验证码获取
+- 请求参数：email（string，必填，邮箱地址）
+- 响应参数：code（int，状态码：200成功、400参数错误、500服务器内部错误）、message（string，返回信息）
+
+---
+
+### API-004：用户注册接口
+- 接口路径：/api/auth/register
+- 请求方式：POST
+- 接口说明：用于用户注册，申请用户名与密码。
+- 请求参数：username（string，必填，用户名）、password（string，必填，密码）、passwordConfirm（string，必填，确认密码，若与第一个密码不一致前端报错）、identity（string，必填，1-农户、2-买家、3-专家、4-银行工作人员、5-平台管理员，前端通过下拉框选择并传对应值）
+- 响应参数：code（int，状态码：200成功、300两次输入密码不一致、400用户名已存在、500失败）、message（string，返回信息，见状态码说明）
+
+---
+
+### API-005：用户退出登录接口
+- 接口路径：/api/auth/logout
+- 请求方式：POST
+- 接口说明：用于用户退出登录。
+- 请求参数：username（string，必填，用户名）
+- 响应参数：code（int，状态码：200成功、300用户不存在、400参数错误、500服务器内部错误）、message（string，返回信息，见状态码说明）
+
+---
+
+### API-006：新闻轮播展示
+- 接口路径：/api/news
+- 请求方式：GET
+- 接口说明：展示最新相关的新闻报道
+- 请求参数：newsId（int，必填，新闻的id）、title（string，必填，新闻标题）、imgUrl（string，必填，新闻封面图片的url）、newsUrl（string，必填，新闻的url）
+- 响应参数：code（int，状态码：200成功、400参数错误、404资源丢失、500服务器内部错误）、message（string，返回信息）、newsList（List，包含newsId、title、imgUrl、newsUrl）
+- 实现效果：类似B站网页端左侧热门轮播，点击图片在浏览器新页面打开对应新闻链接；未手动切换时自动轮播，到底后返回第一页；切换至其他页面时结束轮播。
+
+---
+
+### API-007-1：金融产品展示
+- 接口路径：/api/financing/products/
+- 请求方式：GET
+- 接口说明：展示金融产品
+- 请求参数：fpId（int，必填，金融产品的id）、fpName（string，必填，金融产品的名称）、fpDescription（string，必填，简介）、annualRate（float，非必填，利率）、tags（string[]，必填，标签信息）
+- 响应参数：code（int，状态码：200成功、400参数错误、404资源丢失、500服务器内部错误）、message（string，返回信息）、products（List，包含fpId、fpName、fpDescription、annualRate、tags）
+
+---
+
+### API-007-2：金融产品详细展示
+- 接口路径：/api/financial/products/
+- 请求方式：POST
+- 接口说明：展示金融产品的详细信息，在原有基础上添加负责人信息、联系方式等
+- 请求参数：fpId（int，必填，金融产品Id）
+- 响应参数：code（int，状态码：200成功、300该金融产品不存在、400参数错误、500服务器内部错误）、message（string，返回信息，见状态码说明）、fpManagerName（string，负责人名字）、fpManagerPhone（string，管理人员电话）、fpManagerEmail（string，管理人员邮箱）
+- 实现效果：放置在新闻轮播图旁边；点击产品跳转至详情页；信息过长时缩略显示，鼠标悬停展示完整信息；可通过刷新按钮推荐其他金融产品。
+
+---
+
+### API-008-1：专家列表（展示专家）
+- 接口路径：/api/experts/
+- 请求方式：GET
+- 接口说明：展示专家
+- 请求参数：expertId（int，必填，专家的id）、expertName（string，必填，专家姓名）、field（string[]，必填，研究方向）、expertDescription（string，必填，简介）
+- 响应参数：code（int，状态码：200成功、400参数错误、404资源丢失、500服务器内部错误）、message（string，返回信息）、experts（List，所有专家的集合，包含expertId、expertName、field、expertDescription）
+- 实现效果：插入在金融产品和新闻轮播图下方；点击专家跳转至详情页；信息过长时缩略显示，鼠标悬停展示完整信息。
+
+---
+
+### API-008-2：专家列表（展示选中专家的详细信息）
+- 接口路径：/api/experts/{expertId}
+- 请求方式：GET
+- 接口说明：展示选中专家的详细信息
+- 请求参数：expertId（int，必填，专家的id）、expertName（string，必填，专家姓名）、field（string[]，必填，研究方向）、expertDescription（string，必填，简介）、expertImg（string，必填，专家的人头像URL）、example（string，必填，解决过哪些问题）、contact（string，必填，联系方式）
+- 响应参数：code（int，状态码：200成功、400参数错误、404资源丢失、500服务器内部错误）、message（string，返回信息）、expertId（int，专家的id）、expertName（string，专家姓名）、field（string[]，研究方向）、expertDescription（string，简介）、expertImg（string，专家的人头像URL）、example（string，解决过哪些问题）、expertPhone（string，专家电话）、expertEmail（string，专家邮箱）
+- 实现效果：展示专家简历形式的详细信息。
+
+---
+
+### API-009：助农电商（展示电商产品）
+- 接口路径：/api/agricultural/source
+- 请求方式：GET
+- 接口说明：展示电商产品
+- 请求参数：nums（int，必填，需要展示多少商品）、productId（int，必填，商品id）、productName（string，必填，商品名称）、price（float，必填，商品价格）、producer（string，必填，发售商）、salesVolume（int，必填，销售量）、ecommerceLink（string，必填，购买链接）、productImg（string，必填，商品封面url）
+- 响应参数：code（int，状态码：200成功、400参数错误、404资源丢失、500服务器内部错误）、message（string，返回信息）、products（List，商品的数组，包含productId、productName、price、producer、salesVolume、ecommerceLink、productImg）
+- 实现效果：类似淘宝的商品展示形式。
+
+---
+
+### API-010：助农电商（涉及评论区设计，暂未完善，后端没做）
+- 接口路径：/api/agricultural/source
+- 请求方式：GET
+- 接口说明：展示电商产品
+- 请求参数：nums（int，必填，需要展示多少商品）、productId（int，必填，商品id）、productName（string，必填，商品名称）、price（float，必填，商品价格）、producer（string，必填，发售商）、salesVolume（int，必填，销售量）、ecommerceLink（string，必填，购买链接）、productImg（string，必填，商品封面url）
+- 响应参数：code（int，状态码：200成功、400参数错误、404资源丢失、500服务器内部错误）、message（string，返回信息）、productId（int，商品id）、productName（string，商品名称）、price（float，商品价格）、producer（string，发售商）、salesVolume（int，销售量）、ecommerceLink（string，购买链接）、productImg（string，商品封面url）
+- 实现效果：类似淘宝的商品展示形式。
+
+---
+
+### API-011：助农电商（涉及评论区设计，暂未完善，后端没做）
+- 接口路径：/api/agricultural/source
+- 请求方式：GET
+- 接口说明：展示电商产品
+- 请求参数：nums（int，必填，需要展示多少商品）、productId（int，必填，商品id）、productName（string，必填，商品名称）、price（float，必填，商品价格）、producer（string，必填，发售商）、salesVolume（int，必填，销售量）、ecommerceLink（string，必填，购买链接）、productImg（string，必填，商品封面url）
+- 响应参数：code（int，状态码：200成功、400参数错误、404资源丢失、500服务器内部错误）、message（string，返回信息）、productId（int，商品id）、productName（string，商品名称）、price（float，商品价格）、producer（string，发售商）、salesVolume（int，销售量）、ecommerceLink（string，购买链接）、productImg（string，商品封面url）
+- 实现效果：类似淘宝的商品展示形式。
