@@ -121,3 +121,618 @@
 - 请求参数：nums（int，必填，需要展示多少商品）、productId（int，必填，商品id）、productName（string，必填，商品名称）、price（float，必填，商品价格）、producer（string，必填，发售商）、salesVolume（int，必填，销售量）、ecommerceLink（string，必填，购买链接）、productImg（string，必填，商品封面url）
 - 响应参数：code（int，状态码：200成功、400参数错误、404资源丢失、500服务器内部错误）、message（string，返回信息）、productId（int，商品id）、productName（string，商品名称）、price（float，商品价格）、producer（string，发售商）、salesVolume（int，销售量）、ecommerceLink（string，购买链接）、productImg（string，商品封面url）
 - 实现效果：类似淘宝的商品展示形式。
+
+
+
+以下是融资服务模块的完整文字内容提取，按功能子模块分类呈现：
+
+# 融资服务
+## 贷款产品管理（管理员/银行端）（后端已完成）
+### 新增贷款产品(后端已完成）
+- 接口: /api/loan/products
+- 请求方式: POST
+- 参数:
+  - name: 产品名称
+  - category: 产品类型
+  - maxAmount: 最大额度
+  - minAmount: 最小额度
+  - interestRate: 利率
+  - term: 贷款期限(单位：月）
+  - description: 产品描述
+- 返回示例:
+  - 返回中的数据为插入数据的 productId
+
+|JSON<br/>{ "code": 200, "message": "成功", "data": {"productId": 101} }|
+|---|
+
+### 获取贷款产品列表（后端已完成）
+- 接口: /api/loan/products
+- 请求方式: GET
+- 返回参数:见下
+- 返回示例:
+
+|JSON<br/>{ "code":200, <br/>"message":"成功"<br/>"data":<br/>[<br/><br/>{"fpId":1, <br/>"fpName":"农资贷",<br/>"fpDescription": "杨冕新", <br/>"annualRate":5.5, <br/>"tags":"111",<br/>"fpManagerName": "杨冕新",<br/>"maxAmount":50000, <br/>"minAmount":300,<br/>"term":12,<br/>"fpManagerPhone": "1111",<br/>"fpManagerEmail": "11"<br/><br/>}<br/>]<br/> <br/> }|
+|---|
+
+### 删除贷款产品(后端已完成)
+- 接口: /api/loan/products/{id}
+- 请求方式: DELETE
+- 参数: id
+- 返回示例:
+
+|JSON<br/>{ "code": 200, "message": "删除成功" }|
+|---|
+
+### 获取贷款产品详情（后端已完成）
+- 接口: /api/loan/products/{id}
+- 请求方式: GET
+- 参数: id
+- 返回示例:
+
+|JSON<br/>{ "code":0, "data": {"id":101, "name":"农资贷", "interestRate":5.5, "term":12, "repaymentMethod":"等额本息", "description":"适合小额农资贷款"}, "message":"成功" }|
+|---|
+
+## 贷款申请（用户端）(后端已完成）
+### 提交贷款申请(后端已完成）
+- 接口: /api/loan/apply
+- 请求方式: POST
+- 参数: userId, productId, amount, term, documents[]，documents中可上传文件，现在只能传一个文件，暂时不支持传多个文件，（过几天再写）
+- 返回示例:
+
+|JSON<br/>{ "code":200, "message":"申请成功","data": {"applicationId":1001} }|
+|---|
+
+### 获取用户贷款申请列表（后端已完成）
+- 接口: /api/loan/applications
+- 请求方式: GET
+- 参数: userId(必填）, status（可选）
+- 返回示例:
+
+|JSON<br/>{ "code":200,"message":"成功", "data":[{"applicationId":1001, "productName":"农资贷", "status":"待审批", "amount":20000, "term":12}],  }|
+|---|
+
+### 获取单笔贷款申请详情(后端已完成）
+- 接口: /api/loan/applications/{id}
+- 请求方式: GET
+- 参数: id
+- 返回示例:
+
+|JSON<br/>{ "code":200, "message":"成功","data": {"applicationId":1001, "productId":101, "amount":20000, "term":12, "status":"待审批", "approvalRecords":[]}  }|
+|---|
+
+## 贷款审批（银行/管理员端）（后端已完成)
+### 获取已提交的申请列表（后端已完成)
+- 接口: /api/loan/pending
+- 请求方式: GET
+- 返回所有status为1的申请列表
+- 返回示例:
+
+|JSON<br/>{ "code":200, "message":"成功","data":[{"applicationId":1001, "userId":501, "productName":"农资贷", "amount":20000,"term":20,"applyTime":"2025-11-01 09:00:00"}] }|
+|---|
+
+### 审批贷款申请(后端已完成）
+- 接口: /api/loan/approve
+- 请求方式: POST
+- 参数: applicationId, approverId，decision（1为通过/0为拒绝）, remark，状态有六种情况，见该表INSERT INTO loan_status (status_code, status_name, description) VALUES
+  - (1, '已提交', '用户已提交贷款申请'),
+  - (2, '已打回', '贷款申请被退回'),
+  - (3, '已审核', '审核通过，银行发放贷款'),
+  - (4, '已还款', '贷款已全部还清'),
+  - (5, '已逾期', '贷款超出还款期未还清');
+- 返回示例:
+
+|JSON<br/>{ "code":200, "message":"审批完成" }|
+|---|
+
+### 获取审批历史(后端已完成）
+- 接口: /api/loan/approvals
+- 请求方式: GET
+- 参数: applicationId
+- decision就是“通过”或“不通过”，后端已转化为汉字了
+- 返回示例:
+
+|JSON<br/>{ "code":200, "message":"成功","data":[{"approverId":301, "decision":"通过", "remark":"符合条件", "date":"2025-11-01 09:00:00"}], }|
+|---|
+
+## 贷款还款管理（用户端）（后端已完成）
+这三个接口我是这么处理的：我把分期数删掉了，当审核员审核通过后，自动生成一份还款计划，RemainAmout为贷款金额，用户可以自由选择还款,提交一次还款记录即为一次还款，RemainingAmout-=减少还款数，直到还清，然后用户可以查看自己的还款历史。
+
+![img](1.获取还款计划
+2.提交还款记录
+3.查看还款历史
+获取还款计划
+接口地址: GET /api/loan/repayment-plan
+申请ID:
+28
+查询还款计划
+期数
+到期日
+状态
+剩余金额(元)
+undefined
+2025-12-31
+undefined
+未还
+响应结果:
+"url": "http://localhost:8080/api /loan/repayment-plan?applicationId=28",
+"statusCode": 200,
+"response":
+"code":200,
+"message":"成功",
+"data":
+"dueDate":"2025-12-31",
+"RemainingAmout":33333.3,
+"status":"未还"
+⌜)
+
+![img](提交还款记录
+接口地址: POST /api/loan/repay
+申请ID:
+28
+还款金额:
+2000
+还款日期:
+2025/10/30
+提交还款
+响应结果:
+"url": "http://localhost:8080/api /loan/repay",
+"requestData":{
+"applicationId":"28",
+"amount":"2000",
+"payDate":"2025-10-30"
+"statusCode": 200,
+response":{
+"code":200,
+"message":"还款成功",
+"data":{
+"remainingAmount":31333.3)
+
+![img](1.获取还款计划
+2.提交还款记录
+3.查看还款历史
+查看还款历史
+接口地址: GET /api/loan/repayments
+用户ID:
+202
+查询还款历史
+申请ID
+还款金额(元)
+还款日期
+28
+2000
+2025-10-29
+响应结果:
+"url": "http://localhost:8080/api /loan/repayments?userId=202",
+"statusCode": 200,
+"response":
+"code":200,
+"message":"成功",
+"data":[
+"amount":2000,
+"applicationId": 28,
+"payDate":"2025-10-29")
+
+![img](获取还款计划
+接口地址: GET /api/loan/repayment-plan
+申请ID:
+28
+查询还款计划
+期数
+到期日
+剩余金额(元)
+2025-12-30
+undefined
+undefined
+响应结果:
+"url": "http://localhost: 8080/api /loan/repayment-plan?applicationId=28",
+"statusCode": 200,
+"response":{
+"code": 200,
+"message":"成功",
+"data":[
+"dueDate":"2025-12-30",
+"RemainingAmout":31333.3,
+"status":"未还")
+
+如图，这样用户就完成了一次2000元的还款,最开始的存款数为33333.3，还完后为31333.3
+
+如果用户在最后一次还款数大于剩余需还款数时，将剩余还款数置为0，同时将最后一次还款数记作最后一次还款。同时将状态标记为已还清。
+
+### 获取还款计划(后端已完成）
+- 接口: /api/loan/repayment-plan
+- 请求方式: GET
+- 参数: applicationId
+- 返回示例:
+
+|JSON<br/>{ "code":200, "message":"成功", "data":[{ "dueDate":"2025-11-30", "RemaininAmount":1700, "status":"未还"}] }|
+|---|
+
+### 提交还款记录（后端已完成）
+- 接口: /api/loan/repay
+- 请求方式: POST
+- 参数: applicationId, amount, payDate
+- 返回示例:
+
+|JSON<br/>{ "code":0, "message":"还款成功", "data": {"remainingAmount":18300} }|
+|---|
+
+### 查看还款历史(后端已完成）
+- 接口: /api/loan/repayments
+- 请求方式: GET
+- 参数: userId
+- 返回示例:
+
+|JSON<br/>{ "code":200,  "message":"成功", "data":[{"applicationId":1001, "amount":1700, "payDate":"2025-11-30"}]}|
+|---|
+
+## 贷款状态部分（后端已完成）
+### 数据库设计（表：loan_status）
+点击图片可查看完整电子表格
+
+### 示例数据
+INSERT INTO loan_status (status_code, status_name, description) VALUES
+(1, '已提交', '用户已提交贷款申请'),
+(2, '已打回', '贷款申请被退回'),
+(3, '已审核', '审核通过，银行发放贷款'),
+(4, '已还款', '贷款已全部还清'),
+(5, '已逾期', '贷款超出还款期未还清');
+
+### 接口设计
+#### 1️⃣ 获取所有贷款状态（后端已完成）
+- 接口：GET /api/loan/status
+- 功能：查询所有状态
+- 返回示例：
+{
+  "code": 200,
+  "message": "成功",
+  "data": [
+    {"status_id": 1, "status_code": 1, "status_name": "已提交", "description": "用户已提交贷款申请"},
+    {"status_id": 2, "status_code": 2, "status_name": "已打回", "description": "贷款申请被退回"}
+  ]
+}
+
+
+
+
+
+以下是可直接复制到 TXT 文档且能正常显示的“专家助力模块”内容：
+
+# 专家助力（严格按照功能模块图）
+ai聊天
+农业知识
+(sk-48a4f8621ae1456ea784d9bb521ef2cb)
+deepseek的api密钥,还有九毛钱可以用
+农业问答
+用户登录
+选择聊天对象
+进入聊天界面
+专家介绍
+专家预约
+专家交流
+
+## 农业知识
+如何获取？ 可以试试通过爬虫获取题目，再实现网页跳转https://www.moa.gov.cn/ztzl/zjyqwgz/kpxc/
+目前找不到合理方法得到纯文本录入数据库，不过这个是政府网站，爬取是否有风险尚未可知，可以找其他网站
+
+### 设想数据库结构（没有分类，设计上分类知识在用url跳转不可实现）
+|字段名|数据类型|长度/说明|示例|备注|
+|---|---|---|---|---|
+|id|INT|主键，自增|1|唯一标识|
+|title|VARCHAR|255|“稻田养蟹技术推广”|文章标题|
+|source|VARCHAR|255|“农业农村部科普栏目”|文章来源|
+|url|VARCHAR|255|“https://www.moa.gov.cn/xxx.html”|原文链接|
+|publish|DATETIME|—|2025-10-30 09:00:00|文章发布日期|
+
+### 1 获取农业知识列表（后端已完成）
+- 描述：获取最新的农业科普文章列表，可分页显示。
+- 接口：GET /api/knowledge/list
+- 请求参数：page、page_size
+- 返回示例：
+{
+  "code": 200,
+  "message": "success",
+  "data": [
+    {
+      "id": 1,
+      "title": "稻田养蟹技术推广",
+      "source": "农业农村部科普栏目",
+      "url": "https://www.moa.gov.cn/xxx.html",
+      "publish": "2025-10-30 09:00:00"
+    },
+    {
+      "id": 2,
+      "title": "小麦病虫害防治方法",
+      "source": "农业农村部科普栏目",
+      "url": "https://www.moa.gov.cn/yyy.html",
+      "publish": "2025-10-28 14:30:00"
+    }
+  ]
+}
+- 说明：
+  - 支持分页和分类筛选
+  - 可按发布日期倒序排序，展示最新文章
+
+### 2 检索农业知识（后端已完成）
+- 描述：根据关键词检索农业知识文章（标题匹配）。
+- 接口：GET /api/knowledge/search
+- 请求参数：
+|参数名|类型|必填|默认值|说明|
+|---|---|---|---|---|
+|q|STRING|是|—|检索关键词|
+|page|INT|否|1|页码|
+|page_size|INT|否|10|每页条数|
+- 返回示例：
+{
+  "code": 200,
+  "message": "success",
+  "data": [
+    {
+      "id": 3,
+      "title": "稻田养蟹技术推广与应用",
+      "source": "农业农村部科普栏目",
+      "url": "https://www.moa.gov.cn/zzz.html",
+      "publish": "2025-10-25 10:00:00"
+    },
+    {
+      "id": 7,
+      "title": "稻田养殖生态循环模式",
+      "source": "农业农村部科普栏目",
+      "url": "https://www.moa.gov.cn/abc.html",
+      "publish": "2025-10-20 11:30:00"
+    }
+  ]
+}
+- 说明：
+  - 检索支持模糊匹配标题
+  - 可以扩展为支持摘要或分类检索
+  - 返回分页信息，方便前端翻页展示
+
+## 农业问答（类比社交媒体的交流页面）
+这里要添加一项历史聊天记录的数据表，表结构为：
+|字段名|类型|是否为空|默认值|说明|
+|---|---|---|---|---|
+|id|BIGINT|否|自增|主键ID|
+|session_id|VARCHAR(64)|否|无|聊天会话ID（用于标识同一轮对话）|
+|sender_id|BIGINT|否|无|发送方用户ID|
+|receiver_id|BIGINT|否|无|接收方用户ID（专家或农户）|
+|message_type|ENUM('text','image','video','audio','file')|否|'text'|消息类型|
+|message_content|TEXT|是|NULL|消息内容（文本或文件路径）|
+|send_time|DATETIME|否|CURRENT_TIMESTAMP|发送时间|
+|is_read|TINYINT(1)|否|0|是否已读（0=未读，1=已读）|
+|role|ENUM('farmer','expert','admin','system')|否|'farmer'|发送方角色|
+|reply_to|BIGINT|是|NULL|引用的消息ID（用于多轮或上下文关联）|
+|status|ENUM('normal','deleted','retracted')|否|'normal'|消息状态|
+|create_time|DATETIME|否|CURRENT_TIMESTAMP|创建时间|
+|update_time|DATETIME|否|CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP|更新时间|
+
+## 专家介绍（类比个人主页）（后端已完成）
+### 1 获取专家列表（后端已完成）
+- 接口名称：专家列表
+- 接口路径：/api/experts/
+- 请求方式：GET
+- 接口说明：展示专家
+#### 请求参数：
+|参数名|类型|必填|说明|
+|---|---|---|---|
+|expertId|int|是|专家的id|
+|expertName|string|是|专家姓名|
+|field|string[]|是|研究方向|
+|expertDescription|string|是|简介|
+#### 响应参数：
+|参数名|类型|说明|
+|---|---|---|
+|code|int|状态码 200 表示成功 400 参数错误 404 资源丢失 500 服务器内部错误|
+|message|string|返回信息|
+|experts|List|所有专家的集合|
+|expertId|int|专家的id|
+|expertName|string|专家姓名|
+|field|string[]|研究方向|
+|expertDescription|string|简介|
+#### 示例：
+{
+  "experts": [
+    {
+      "expertId": "1", //id
+      "name": "伪王小唐", //姓名
+      "field": ["智慧农业", "养殖", ……] //研究方向（其实就是用来检索的tag
+      "expertDescription": "阿巴阿巴", //简介
+    }
+    … …
+  ]
+}
+
+### 2 获取专家详情（后端已完成）
+- 接口名称：专家列表
+- 接口路径：/api/experts/{expertId}
+- 请求方式：GET
+- 接口说明：展示选中专家的详细信息
+#### 请求参数：
+|参数名|类型|必填|说明|
+|---|---|---|---|
+|expertId|int|是|专家的id|
+|expertName|string|是|专家姓名|
+|field|string[]|是|研究方向|
+|expertDescription|string|是|简介|
+|expertImg|string|是|专家的人头像URL|
+|example|string|是|解决过哪些问题|
+|contact|string|是|联系方式|
+#### 响应参数：
+|参数名|类型|说明|
+|---|---|---|
+|code|int|状态码 200 表示成功 400 参数错误 404 资源丢失 500 服务器内部错误|
+|message|string|返回信息|
+|expertId|int|专家的id|
+|expertName|string|专家姓名|
+|field|string[]|研究方向|
+|expertDescription|string|简介|
+|expertImg|string|专家的人头像URL|
+|example|string|解决过哪些问题|
+|expertPhone|string|专家电话|
+|expertEmail|string|专家邮箱|
+#### 示例：
+{
+  "experts": [
+    {
+      "expertId": "1", //id
+      "name": "伪王小唐", //姓名
+      "field": ["智慧农业", "养殖", ……] //研究方向（其实就是用来检索的tag
+      "expertDescription": "阿巴阿巴", //简介
+      "expertImg": "https://icnd0yk23eui.feishu.cn/wiki/DxjWwQhYLixkzIkGARKcsVAKn2b", //图片url
+      "example": "我是问题", //解决过什么问题
+      "expertPhone" : "1111111111",
+      "expertEmail" : "23301012@bjtu.edu.cn"
+       //联系方式
+    }
+    … …
+  ]
+}
+#### 实现效果：
+简历
+
+### 3 搜索专家(后端已完成）
+- 接口：GET /api/experts/search
+- 参数：q（关键词，可匹配姓名、专业领域、机构）
+- 返回示例：
+{
+  "experts": [
+    {
+      "expertId": "1", //id
+      "name": "伪王小唐", //姓名
+      "field": ["智慧农业", "养殖", ……] 
+      "expertDescription": "阿巴阿巴", //简介
+    }
+    … …
+  ]
+}
+
+## 预约用户端接口（农户）
+### 一些数据库设计
+专家聊天记录表（点击图片可查看完整电子表格）
+
+### 1 提交预约申请(后端已完成）
+- 接口： POST /api/expert-appointment/create
+- 说明： 用户提交预约请求，由专家稍后审核。
+- 请求体参数：（点击图片可查看完整电子表格）
+- 返回示例：
+{
+  "code": 200,
+  "message": "预约申请已提交，等待专家确认",
+  "data": {
+    "appointment_id": 501,
+    "status": "pending"
+  }
+}
+
+### 2 查看我的预约记录(后端已完成）
+- 接口： GET /api/expert-appointment/user/list
+- 说明： 用户查看自己发起的所有预约。
+- 参数：（点击图片可查看完整电子表格）
+- 返回示例：
+{
+  "code": 200,
+  "data": [
+    {
+      "id": 501,
+      "expert": {
+        "id": 1,
+        "name": "李四",
+        "expertImg": "https://www.example.com/avatar.jpg",
+        "field": "智慧农业,养殖"
+      },
+      "date": "2025-11-20",
+      "time": "09:00-10:00",
+      "topic": "水稻病虫害防治咨询",
+      "status": "approved"
+    }
+  ]
+}
+
+### 3 取消预约(后端已完成）
+- 接口： POST /api/expert-appointment/cancel
+- 说明： 用户主动取消未开始的预约。
+- 请求体参数：（点击图片可查看完整电子表格）
+- 返回示例：
+{
+  "code": 200,
+  "message": "预约已取消"
+}
+
+## 专家端接口（专家操作）（后端已完成）
+### 4 获取待审核预约列表（后端已完成）
+- 接口： GET /api/expert-appointment/pending
+- 说明： 专家查看待审批的预约请求。
+- 参数：（点击图片可查看完整电子表格）
+- 返回示例：
+{
+  "code": 200,
+  "message":"成功",
+  "data": [
+    {
+      "id": 501,
+      "user": {
+        "id": 101,
+        "name": "张三",
+        "avatar": "https://example.com/u1.jpg"
+      },
+      "date": "2025-11-20",
+      "time": "09:00-10:00",
+      "topic": "病虫害防治咨询",
+      "remark": "希望能了解病害防治流程",
+      "status": "pending"
+    }
+  ]
+}
+
+### 5 审批预约（同意 / 拒绝）（后端已完成）
+- 接口： POST /api/expert-appointment/review
+- 说明： 专家审核预约请求。
+- 请求体参数：appointment_id、expert_id、action、comment（非必填）（点击图片可查看完整电子表格）
+- 返回示例：
+{
+  "code": 200,
+  "message": "预约已审批",
+  "data": {
+    "appointment_id": 501,
+    "status": "approved"
+  }
+}
+
+### 6 查看我的预约日程（后端已完成）
+- 接口： GET /api/expert-appointment/schedule
+- 说明： 专家查看自己的预约日程表（含待进行与已完成的预约）。
+- 参数：（点击图片可查看完整电子表格）
+- 返回示例：
+{
+  "code": 200,
+  "data": [
+    {
+      "id": 501,
+      "user_name": "张三",
+      "date": "2025-11-20",
+      "time": "09:00-10:00",
+      "topic": "稻田病虫害",
+      "status": "approved"
+    },
+    {
+      "id": 502,
+      "user_name": "王五",
+      "date": "2025-11-20",
+      "time": "10:00-11:00",
+      "topic": "农药使用建议",
+      "status": "pending"
+    }
+  ]
+}
+
+### 7 更新预约状态（专家执行后更新完成）（后端已完成）
+- 接口： POST /api/expert-appointment/update-status
+- 说明： 专家在咨询完成后更新状态。
+- 请求体参数：appointment_id、expert_id、status（status有两个状态completed和no_show）（点击图片可查看完整电子表格）
+- 返回示例：
+{
+  "code": 200,
+  "message": "状态已更新为 completed"
+}
+
+
+

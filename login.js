@@ -1,3 +1,6 @@
+// 后端API基础地址
+const API_BASE = 'http://10.61.194.227:8080';
+
 // 标签切换登录方式
 const tabPwd = document.getElementById('tab-pwd');
 const tabMail = document.getElementById('tab-mail');
@@ -22,7 +25,7 @@ tabMail.onclick = function() {
 function refreshCaptcha() {
     document.getElementById('captcha-img').innerText = '刷新成功';
     setTimeout(()=>{
-      document.getElementById('captcha-img').innerText = '点击刷新';
+        document.getElementById('captcha-img').innerText = '点击刷新';
     }, 900);
 }
 document.getElementById('captcha-img').onclick = refreshCaptcha;
@@ -40,15 +43,24 @@ formPwd.onsubmit = async function(e) {
         return;
     }
     try {
-        const res = await fetch('/api/auth/login/pwd', {
+        const res = await fetch(`${API_BASE}/api/auth/login/pwd`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
+        console.log('HTTP状态码:', res.status, res.statusText); // 调试信息
+        if (!res.ok) {
+            const text = await res.text();
+            console.error('响应错误:', text); // 调试信息
+            setMsg('pwd', `请求失败：${res.status} ${res.statusText}`);
+            return;
+        }
         const json = await res.json();
+        console.log('登录响应:', json); // 调试信息
         showLoginResult('pwd', json);
     } catch (err) {
-        setMsg('pwd', '网络错误！');
+        console.error('登录错误:', err); // 调试信息
+        setMsg('pwd', `网络错误：${err.message || '无法连接到服务器'}`);
     }
 }
 
@@ -64,14 +76,16 @@ formMail.onsubmit = async function(e) {
         return;
     }
     try {
-        const res = await fetch('/api/auth/login/mail', {
+        const res = await fetch(`${API_BASE}/api/auth/login/mail`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
         const json = await res.json();
+        console.log('邮箱登录响应:', json); // 调试信息
         showLoginResult('mail', json);
     } catch (err) {
+        console.error('邮箱登录错误:', err); // 调试信息
         setMsg('mail', '网络错误！');
     }
 }
@@ -96,7 +110,7 @@ formRegister.onsubmit = async function(e) {
         return;
     }
     try {
-        const res = await fetch('http://10.61.194.227:8080/api/auth/register', {
+        const res = await fetch(`${API_BASE}/api/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password, passwordConfirm, identity })
@@ -124,7 +138,7 @@ getCodeBtn.onclick = async function() {
     }
     getCodeBtn.disabled = true;
     try {
-        const res = await fetch('/api/auth/code', {
+        const res = await fetch(`${API_BASE}/api/auth/code`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email })
@@ -158,11 +172,30 @@ function countDown() {
 function showLoginResult(type, json) {
     if(type==='pwd') setMsg('pwd', json.message || '未知错误');
     if(type==='mail') setMsg('mail', json.message || '未知错误');
-    if(json.code===200 && json.token) {
+    
+    // 判断登录成功：根据文档，token字段值为"1"表示成功，"0"表示不成功
+    // 后端可能返回：{code: 200, token: '1'} 或 {code: 200, data: '1'}
+    const code = json.code;
+    const token = json.token || json.Token || json.accessToken || json.access_token || json.data;
+    // token为"1"或1表示成功，其他值表示失败
+    const tokenValue = String(token).trim();
+    const isSuccess = (code === 200 || code === '200') && (tokenValue === '1' || tokenValue === 'true');
+    
+    console.log('登录判断:', { code, token, tokenValue, isSuccess }); // 调试信息
+    
+    if (isSuccess) {
         setTimeout(()=>{
-            try { localStorage.setItem('auth_token', json.token); } catch {}
-            alert('登录成功！');
+            try { 
+                // 保存token值（可能是"1"或其他实际的token字符串）
+                localStorage.setItem('auth_token', tokenValue);
+                console.log('Token已保存，准备跳转'); // 调试信息
+            } catch (e) {
+                console.error('保存Token失败:', e);
+            }
+            window.location.href = 'index.html';
         }, 300);
+    } else {
+        console.log('登录未成功，不跳转'); // 调试信息
     }
 }
 function setMsg(type, msg) {
