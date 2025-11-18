@@ -94,10 +94,11 @@ formMail.onsubmit = async function(e) {
 formRegister.onsubmit = async function(e) {
     e.preventDefault();
     const username = document.getElementById('reg-username').value.trim();
+    const realName = document.getElementById('reg-name').value.trim();
     const password = document.getElementById('reg-password').value.trim();
     const passwordConfirm = document.getElementById('reg-passwordConfirm').value.trim();
     const identity = parseInt(document.getElementById('reg-identity').value, 10);
-    if (!username || !password || !passwordConfirm || Number.isNaN(identity)) {
+    if (!username || !realName || !password || !passwordConfirm || Number.isNaN(identity)) {
         setMsg('register', '请填写全部信息');
         return;
     }
@@ -109,11 +110,13 @@ formRegister.onsubmit = async function(e) {
         setMsg('register', '身份类型必须是1-5之间的整数');
         return;
     }
+    const payload = { username, name: realName, password, passwordConfirm, identity };
+    console.log('注册提交参数:', payload); // 调试信息，确认 name 参数已包含
     try {
         const res = await fetch(`${API_BASE}/api/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password, passwordConfirm, identity })
+            body: JSON.stringify(payload)
         });
         const json = await res.json();
         setMsg('register', json.message || (json.code===200? '注册成功' : '注册失败'));

@@ -207,13 +207,14 @@ async function fetchExperts(){
 }
 
 function renderExperts(list){
-  expertsList.innerHTML = list.map(e=>
-    `<div class="expert">
-       <div class="name">${e.expertName || e.name || '未命名'}</div>
-       <div class="fields">研究方向：${(e.field||[]).join('、')}</div>
-       <div class="desc">${e.expertDescription || e.description || ''}</div>
-     </div>`
-  ).join('');
+  expertsList.innerHTML = list.map(e=>{
+    const fieldsText = formatField(e.field);
+    return `<div class="expert">
+      <div class="name">${e.expertName || e.name || '未命名'}</div>
+      <div class="fields">研究方向：${fieldsText}</div>
+      <div class="desc">${e.expertDescription || e.description || ''}</div>
+    </div>`;
+  }).join('');
 }
 
 const btnSearchExperts = document.getElementById('btn-search-experts');
@@ -224,24 +225,34 @@ if (btnSearchExperts) {
     const keyword = document.getElementById('expert-search-keyword').value.trim();
     expertsSearchList.innerHTML = '';
     if (!keyword) {
-      msgExpertsSearch.textContent = '请输入关键词';
+      msgExpertsSearch.textContent = '请输入专家姓名';
       return;
     }
+    console.log('[专家搜索] 即将请求, 关键词:', keyword);
     msgExpertsSearch.textContent = '搜索中...';
     try {
       const res = await fetch(`${API_BASE}/api/experts/search?q=${encodeURIComponent(keyword)}`);
+      console.log('[专家搜索] 请求完成, 状态:', res.status, res.statusText);
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
       }
       const json = await res.json();
-      const list = Array.isArray(json?.experts) ? json.experts : (Array.isArray(json?.data) ? json.data : []);
-      expertsSearchList.innerHTML = list.map(e=>
-        `<div class="expert">
-           <div class="name">${e.expertName || e.name || '未命名'}</div>
-           <div class="fields">研究方向：${(e.field||[]).join('、')}</div>
-           <div class="desc">${e.expertDescription || e.description || ''}</div>
-         </div>`
-      ).join('');
+      console.log('[专家搜索] 原始响应:', json);
+      let list = extractExpertsFromResponse(json, 'search');
+      console.log('[专家搜索] 解析后的列表:', list);
+      if (!list.length) {
+        console.log('[专家搜索] 搜索接口为空，尝试从 /api/experts/ 过滤');
+        const all = await fetchAllExperts();
+        list = filterExpertsByName(all, keyword);
+      }
+      expertsSearchList.innerHTML = list.map(e=>{
+        const fieldsText = formatField(e.field);
+        return `<div class="expert">
+          <div class="name">${e.expertName || e.name || '未命名'}</div>
+          <div class="fields">研究方向：${fieldsText}</div>
+          <div class="desc">${e.expertDescription || e.description || ''}</div>
+        </div>`;
+      }).join('');
       msgExpertsSearch.textContent = list.length ? '' : (json?.message || '未搜索到专家');
     } catch (err) {
       expertsSearchList.innerHTML = '';
@@ -254,38 +265,123 @@ const formExpertDetail = document.getElementById('form-expert-detail');
 if (formExpertDetail) {
   formExpertDetail.addEventListener('submit', async (e)=>{
     e.preventDefault();
-    const expertId = parseInt(document.getElementById('expert-detail-id').value, 10);
+    const expertName = document.getElementById('expert-detail-name').value.trim();
     expertDetailBox.innerHTML = '';
-    if (!expertId) {
-      msgExpertDetail.textContent = '请输入专家ID';
+    if (!expertName) {
+      msgExpertDetail.textContent = '请输入专家姓名';
       return;
     }
-    msgExpertDetail.textContent = '加载详情...';
+    console.log('[专家详情] 搜索关键词:', expertName);
+    msgExpertDetail.textContent = '搜索专家...';
     try {
-      const res = await fetch(`${API_BASE}/api/experts/${expertId}`);
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
+      const searchRes = await fetch(`${API_BASE}/api/experts/search?q=${encodeURIComponent(expertName)}`);
+      console.log('[专家详情] 搜索请求完成, 状态:', searchRes.status);
+      if (!searchRes.ok) {
+        throw new Error(`HTTP ${searchRes.status}`);
       }
-      const json = await res.json();
-      const data = json?.data && !Array.isArray(json.data) ? json.data : json;
-      if (!data || Array.isArray(data)) {
-        throw new Error('未找到专家');
+      const searchJson = await searchRes.json();
+      console.log('[专家详情] 搜索原始响应:', searchJson);
+      let list = extractExpertsFromResponse(searchJson, 'detail');
+      console.log('[专家详情] 解析后的列表:', list);
+      if (!list.length) {
+        console.log('[专家详情] 搜索接口为空，尝试从 /api/experts/ 过滤');
+        const all = await fetchAllExperts();
+        list = filterExpertsByName(all, expertName);
       }
+      if (!list.length) {
+        msgExpertDetail.textContent = '未找到匹配的专家';
+        return;
+      }
+      let detailData = list[0];
+      const expertId = detailData.expertId || detailData.id;
+      if (expertId) {
+        try {
+          msgExpertDetail.textContent = '加载详情...';
+          const detailRes = await fetch(`${API_BASE}/api/experts/${expertId}`);
+          if (detailRes.ok) {
+            const detailJson = await detailRes.json();
+            const detailCandidates = extractExpertsFromResponse(detailJson, 'detail-fetch');
+            if (detailCandidates.length) {
+              detailData = detailCandidates[0];
+            } else {
+              const data = detailJson?.data && !Array.isArray(detailJson.data) ? detailJson.data : detailJson;
+              if (data && !Array.isArray(data)) {
+                detailData = data;
+              }
+            }
+          }
+        } catch (detailErr) {
+          console.warn('获取专家详情失败，使用搜索结果展示', detailErr);
+        }
+      }
+      console.log('[专家详情] 最终渲染数据:', detailData);
+      const detailFields = formatField(detailData.field) || '—';
       expertDetailBox.innerHTML = `
-        <div>姓名：${data.expertName || data.name || '—'}</div>
-        <div>研究方向：${Array.isArray(data.field) ? data.field.join('、') : (data.field || '—')}</div>
-        <div>简介：${data.expertDescription || data.description || '—'}</div>
-        <div>案例：${data.example || '—'}</div>
-        <div>联系方式：${data.contact || ''}</div>
-        <div>电话：${data.expertPhone || '—'}</div>
-        <div>邮箱：${data.expertEmail || '—'}</div>
+        <div>姓名：${detailData.expertName || detailData.name || '—'}</div>
+        <div>研究方向：${detailFields}</div>
+        <div>简介：${detailData.expertDescription || detailData.description || '—'}</div>
+        <div>案例：${detailData.example || '—'}</div>
+        <div>联系方式：${detailData.contact || ''}</div>
+        <div>电话：${detailData.expertPhone || '—'}</div>
+        <div>邮箱：${detailData.expertEmail || '—'}</div>
       `;
-      msgExpertDetail.textContent = json?.message || '';
+      msgExpertDetail.textContent = '';
     } catch (err) {
       expertDetailBox.innerHTML = '';
       msgExpertDetail.textContent = `加载失败：${err.message || '网络错误'}`;
     }
   });
+}
+
+async function fetchAllExperts(){
+  const res = await fetch(`${API_BASE}/api/experts/`);
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}`);
+  }
+  const json = await res.json();
+  const experts = extractExpertsFromResponse(json, 'all');
+  return experts;
+}
+
+function filterExpertsByName(list, keyword){
+  const kw = keyword.trim();
+  return list.filter(item=>{
+    const name = (item.expertName || item.name || '').trim();
+    return name && name.includes(kw);
+  });
+}
+
+function formatField(fieldValue){
+  if (!fieldValue) return '';
+  if (Array.isArray(fieldValue)) {
+    return fieldValue.filter(Boolean).join('、');
+  }
+  if (typeof fieldValue === 'string') {
+    return fieldValue.split(/[,，]/).map(s=>s.trim()).filter(Boolean).join('、');
+  }
+  return String(fieldValue);
+}
+
+function extractExpertsFromResponse(json, scene){
+  if (!json) return [];
+  const data = json.data;
+  if (data && Array.isArray(data.experts)) {
+    return data.experts;
+  }
+  if (Array.isArray(json.experts)) {
+    return json.experts;
+  }
+  if (Array.isArray(data)) {
+    return data;
+  }
+  if (Array.isArray(json)) {
+    return json;
+  }
+  if (data && typeof data === 'object') {
+    return [data];
+  }
+  console.warn(`[extractExpertsFromResponse] 无法解析（场景:${scene}）`, json);
+  return [];
 }
 
 // 初始化
