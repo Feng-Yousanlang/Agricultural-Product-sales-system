@@ -16,6 +16,7 @@
         <a href="loans">融资服务</a>
     </nav>
     <div class="user">
+        <span id="user-id-display" class="user-id"></span>
         <button id="btn-logout" class="btn">退出登录</button>
     </div>
 </header>
@@ -125,7 +126,7 @@
         </div>
     </section>
 
-    <section id="expert-appointment-manage" class="card">
+    <section id="expert-appointment-manage" class="card" data-identity="3">
         <div class="card-header">
             <h2>专家预约（专家端）</h2>
         </div>
@@ -219,7 +220,7 @@
         </form>
     </section>
 
-    <section id="loan-product-manage" class="card">
+    <section id="loan-product-manage" class="card" data-identity="4">
         <div class="card-header">
             <h2>贷款产品管理</h2>
         </div>
@@ -267,9 +268,9 @@
         <div class="msg" id="msg-applications"></div>
     </section>
 
-    <section id="loan-approvals" class="card">
+    <section id="loan-approvals" class="card" data-identity="4">
         <div class="card-header">
-            <h2>审批中心（演示）</h2>
+            <h2>审批中心</h2>
             <button id="btn-load-pending" class="btn btn-secondary">加载待审批</button>
         </div>
         <div class="list" id="pending-list"></div>

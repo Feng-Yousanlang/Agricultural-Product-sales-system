@@ -13,32 +13,62 @@ tabPwd.onclick = function() {
     tabMail.classList.remove('active');
     formPwd.style.display = '';
     formMail.style.display = 'none';
+    formRegister.style.display = 'none';
 }
 tabMail.onclick = function() {
     tabMail.classList.add('active');
     tabPwd.classList.remove('active');
     formMail.style.display = '';
     formPwd.style.display = 'none';
+    formRegister.style.display = 'none';
 }
 
-// 验证码/人机校验图刷新（这里只做演示）
-function refreshCaptcha() {
-    document.getElementById('captcha-img').innerText = '刷新成功';
-    setTimeout(()=>{
-        document.getElementById('captcha-img').innerText = '点击刷新';
-    }, 900);
+// 登录和注册表单切换
+const linkToRegister = document.getElementById('link-to-register');
+const linkToRegisterMail = document.getElementById('link-to-register-mail');
+const linkToLogin = document.getElementById('link-to-login');
+
+if (linkToRegister) {
+    linkToRegister.onclick = function(e) {
+        e.preventDefault();
+        formPwd.style.display = 'none';
+        formMail.style.display = 'none';
+        formRegister.style.display = '';
+        tabPwd.classList.remove('active');
+        tabMail.classList.remove('active');
+    };
 }
-document.getElementById('captcha-img').onclick = refreshCaptcha;
+
+if (linkToRegisterMail) {
+    linkToRegisterMail.onclick = function(e) {
+        e.preventDefault();
+        formPwd.style.display = 'none';
+        formMail.style.display = 'none';
+        formRegister.style.display = '';
+        tabPwd.classList.remove('active');
+        tabMail.classList.remove('active');
+    };
+}
+
+if (linkToLogin) {
+    linkToLogin.onclick = function(e) {
+        e.preventDefault();
+        formRegister.style.display = 'none';
+        formPwd.style.display = '';
+        formMail.style.display = 'none';
+        tabPwd.classList.add('active');
+        tabMail.classList.remove('active');
+    };
+}
 
 // 账号密码登录表单提交
 formPwd.onsubmit = async function(e) {
     e.preventDefault();
     const data = {
         username: formPwd.username.value.trim(),
-        password: formPwd.password.value.trim(),
-        verification: formPwd.verification.value.trim()
+        password: formPwd.password.value.trim()
     };
-    if (!data.username || !data.password || !data.verification) {
+    if (!data.username || !data.password) {
         setMsg('pwd', '请填写全部信息');
         return;
     }
@@ -177,21 +207,33 @@ function showLoginResult(type, json) {
     if(type==='mail') setMsg('mail', json.message || '未知错误');
     
     // 判断登录成功：根据文档，token字段值为"1"表示成功，"0"表示不成功
-    // 后端可能返回：{code: 200, token: '1'} 或 {code: 200, data: '1'}
+    // 后端返回格式：{code: 200, data: {token: '1', identity: '3', id: '123'}}
     const code = json.code;
-    const token = json.token || json.Token || json.accessToken || json.access_token || json.data;
+    // 优先从 data.token 获取，兼容旧格式
+    const data = json.data;
+    const token = (data && data.token) || json.token || json.Token || json.accessToken || json.access_token;
+    const identity = (data && data.identity) || json.identity;
+    const userId = (data && data.id) || json.id;
     // token为"1"或1表示成功，其他值表示失败
     const tokenValue = String(token).trim();
     const isSuccess = (code === 200 || code === '200') && (tokenValue === '1' || tokenValue === 'true');
     
-    console.log('登录判断:', { code, token, tokenValue, isSuccess }); // 调试信息
+    console.log('登录判断:', { code, token, tokenValue, identity, userId, isSuccess }); // 调试信息
     
     if (isSuccess) {
         setTimeout(()=>{
             try { 
                 // 保存token值（可能是"1"或其他实际的token字符串）
                 localStorage.setItem('auth_token', tokenValue);
-                console.log('Token已保存，准备跳转'); // 调试信息
+                // 保存用户身份
+                if (identity) {
+                    localStorage.setItem('user_identity', String(identity));
+                }
+                // 保存用户ID
+                if (userId) {
+                    localStorage.setItem('user_id', String(userId));
+                }
+                console.log('Token、身份和用户ID已保存，准备跳转'); // 调试信息
             } catch (e) {
                 console.error('保存Token失败:', e);
             }

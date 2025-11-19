@@ -46,6 +46,13 @@ body {
 .user {
     display: flex;
     align-items: center;
+    gap: 12px;
+}
+
+.user-id {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
 }
 
 .btn {
@@ -73,19 +80,24 @@ body {
 
 /* 主容器 */
 .container {
-    max-width: 1100px;
+    max-width: 1400px;
     margin: 16px auto;
     padding: 0 12px;
-    display: grid;
-    gap: 16px;
+    column-count: 2;
+    column-gap: 16px;
+    column-fill: balance;
 }
 
 /* 卡片样式 */
 .card {
     background: #fff;
     border-radius: 12px;
-    padding: 12px;
+    padding: 16px;
     box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 16px;
+    display: block;
 }
 
 .card-header {
@@ -313,7 +325,23 @@ body {
     align-items: center;
 }
 
+/* 特殊卡片：新闻轮播占满整行 */
+#news {
+    column-span: all;
+    margin-bottom: 16px;
+}
+
 /* 响应式适配 */
+@media (max-width: 1024px) {
+    .container {
+        column-count: 1;
+    }
+    
+    #news {
+        column-span: none;
+    }
+}
+
 @media (max-width: 768px) {
     .two-col {
         grid-template-columns: 1fr;

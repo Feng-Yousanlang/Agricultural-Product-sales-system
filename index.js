@@ -23,11 +23,74 @@ function getAuthToken() {
   }
 })();
 
+// 显示用户ID
+(function displayUserId() {
+  try {
+    const userId = localStorage.getItem('user_id');
+    const userIdDisplay = document.getElementById('user-id-display');
+    if (userIdDisplay && userId) {
+      userIdDisplay.textContent = `用户ID: ${userId}`;
+    }
+  } catch (e) {
+    console.error('显示用户ID失败:', e);
+  }
+})();
+
 // 退出登录
 document.getElementById('btn-logout').onclick = function() {
-  try { localStorage.removeItem('auth_token'); } catch {}
+  try { 
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_identity');
+    localStorage.removeItem('user_id');
+  } catch {}
   window.location.href = 'login.html';
 };
+
+// 根据用户身份显示/隐藏功能模块
+(function setupRoleBasedUI() {
+  try {
+    const identity = localStorage.getItem('user_identity') || '1'; // 默认为农户
+    const identityNum = parseInt(identity, 10);
+    
+    // 获取所有带 data-identity 属性的 section
+    const allSections = document.querySelectorAll('section[data-identity]');
+    const defaultSections = document.querySelectorAll('section:not([data-identity])');
+    
+    if (identityNum === 1) {
+      // 农户：显示默认 section，隐藏专家端和银行端专用功能
+      defaultSections.forEach(section => section.style.display = 'block');
+      allSections.forEach(section => {
+        const sectionIdentity = parseInt(section.getAttribute('data-identity'), 10);
+        section.style.display = (sectionIdentity === 3 || sectionIdentity === 4) ? 'none' : 'block';
+      });
+    } else if (identityNum === 3) {
+      // 专家：只显示专家端功能，隐藏其他所有
+      defaultSections.forEach(section => section.style.display = 'none');
+      allSections.forEach(section => {
+        const sectionIdentity = parseInt(section.getAttribute('data-identity'), 10);
+        section.style.display = (sectionIdentity === 3) ? 'block' : 'none';
+      });
+    } else if (identityNum === 4) {
+      // 银行：只显示银行端功能，隐藏其他所有
+      defaultSections.forEach(section => section.style.display = 'none');
+      allSections.forEach(section => {
+        const sectionIdentity = parseInt(section.getAttribute('data-identity'), 10);
+        section.style.display = (sectionIdentity === 4) ? 'block' : 'none';
+      });
+    } else {
+      // 其他身份或未设置：默认显示所有（农户模式）
+      defaultSections.forEach(section => section.style.display = 'block');
+      allSections.forEach(section => {
+        const sectionIdentity = parseInt(section.getAttribute('data-identity'), 10);
+        section.style.display = (sectionIdentity === 3 || sectionIdentity === 4) ? 'none' : 'block';
+      });
+    }
+    
+    console.log('用户身份:', identityNum, '界面已根据身份调整');
+  } catch (e) {
+    console.error('设置角色界面失败:', e);
+  }
+})();
 
 // ---------------- 新闻轮播 ----------------
 const slidesEl = document.getElementById('news-slides');

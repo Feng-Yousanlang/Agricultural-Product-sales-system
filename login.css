@@ -148,6 +148,26 @@ body {
     font-size: 15px;
 }
 
+/* 注册链接样式 */
+.register-link {
+    text-align: center;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #eef2ff;
+}
+
+.register-link a {
+    color: #5566ff;
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.2s;
+}
+
+.register-link a:hover {
+    color: #4050ef;
+    text-decoration: underline;
+}
+
 /* 响应式适配 */
 @media(max-width: 430px) {
     .container {
