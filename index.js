@@ -10,6 +10,25 @@ function getAuthToken() {
   }
 }
 
+function getCurrentUserId() {
+  try {
+    const raw = localStorage.getItem('user_id');
+    const id = parseInt(raw, 10);
+    return Number.isFinite(id) ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+function escapeAttr(value) {
+  if (value === null || value === undefined) return '';
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 // 登录校验：无token则跳回登录页
 (function checkAuth() {
   try {
@@ -531,15 +550,25 @@ const msgAppointmentCreate = document.getElementById('msg-appointment-create');
 if (formAppointmentCreate) {
   formAppointmentCreate.addEventListener('submit', async (e)=>{
     e.preventDefault();
+    const currentUserId = getCurrentUserId();
+    if (!currentUserId) {
+      msgAppointmentCreate.textContent = '未获取到用户ID，请重新登录后再试';
+      return;
+    }
+    const expertNameInput = document.getElementById('appointment-expertName');
+    const expertName = expertNameInput ? expertNameInput.value.trim() : '';
     const payload = {
-      userId: parseInt(document.getElementById('appointment-userId').value, 10),
-      expertId: parseInt(document.getElementById('appointment-expertId').value, 10),
+      userId: currentUserId,
+      expertName,
+      expert_name: expertName,
       date: document.getElementById('appointment-date').value,
       time: document.getElementById('appointment-time').value.trim(),
       topic: document.getElementById('appointment-topic').value.trim(),
       remark: document.getElementById('appointment-remark').value.trim()
     };
-    if (!payload.userId || !payload.expertId || !payload.date || !payload.time || !payload.topic) {
+    console.log('[预约创建] 当前用户ID:', currentUserId);
+    console.log('[预约创建] 提交payload:', payload);
+    if (!payload.userId || !expertName || !payload.date || !payload.time || !payload.topic) {
       msgAppointmentCreate.textContent = '请完善预约信息';
       return;
     }
@@ -565,64 +594,116 @@ if (formAppointmentCreate) {
 const btnLoadUserAppointments = document.getElementById('btn-load-user-appointments');
 const userAppointmentsList = document.getElementById('user-appointments-list');
 const msgUserAppointments = document.getElementById('msg-user-appointments');
-if (btnLoadUserAppointments) {
-  btnLoadUserAppointments.onclick = async ()=>{
-    const userId = parseInt(document.getElementById('user-appointment-userId').value, 10);
-    userAppointmentsList.innerHTML = '';
-    if (!userId) {
-      msgUserAppointments.textContent = '请输入用户ID';
-      return;
-    }
+
+async function loadUserAppointments(showLoading = true){
+  if (!userAppointmentsList) return;
+  const userId = getCurrentUserId();
+  userAppointmentsList.innerHTML = '';
+  if (!userId) {
+    msgUserAppointments.textContent = '未获取到用户ID，请重新登录后再试';
+    return;
+  }
+  console.log('[我的预约] 当前用户ID:', userId);
+  if (showLoading) {
     msgUserAppointments.textContent = '加载中...';
-    try {
-      const res = await fetch(`${API_BASE}/api/expert-appointment/user/list?userId=${encodeURIComponent(userId)}`);
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-      const json = await res.json();
-      const list = Array.isArray(json?.data) ? json.data : [];
-      userAppointmentsList.innerHTML = list.map(item=>
-        `<div class="expert">
-           <div class="name">预约#${item.id || item.appointment_id || ''}</div>
-           <div>专家：${item.expert?.name || item.expertName || ''}</div>
-           <div>日期：${item.date || item.appointmentDate || ''} ${item.time || ''}</div>
-           <div>主题：${item.topic || ''}</div>
-           <div>状态：${item.status || ''}</div>
-         </div>`
-      ).join('');
-      msgUserAppointments.textContent = list.length ? '' : '暂无预约记录';
-    } catch (err) {
-      userAppointmentsList.innerHTML = '';
-      msgUserAppointments.textContent = `加载失败：${err.message || '网络错误'}`;
+  }
+  try {
+    const url = `${API_BASE}/api/expert-appointment/user/list?user_id=${encodeURIComponent(userId)}`;
+    console.log('[我的预约] 请求地址:', url);
+    const res = await fetch(url);
+    if (!res.ok) {
+      const errText = await res.text().catch(()=>res.statusText);
+      throw new Error(errText || `HTTP ${res.status}`);
     }
-  };
+    const json = await res.json();
+    const list = Array.isArray(json?.data) ? json.data : [];
+    renderUserAppointments(list);
+    msgUserAppointments.textContent = list.length ? '' : '暂无预约记录';
+  } catch (err) {
+    userAppointmentsList.innerHTML = '';
+    msgUserAppointments.textContent = `加载失败：${err.message || '网络错误'}`;
+  }
 }
 
-const formAppointmentCancel = document.getElementById('form-appointment-cancel');
-const msgAppointmentCancel = document.getElementById('msg-appointment-cancel');
-if (formAppointmentCancel) {
-  formAppointmentCancel.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const appointmentId = parseInt(document.getElementById('cancel-appointment-id').value, 10);
-    if (!appointmentId) {
-      msgAppointmentCancel.textContent = '请输入预约ID';
+function renderUserAppointments(list){
+  userAppointmentsList.innerHTML = list.map(item=>{
+    const appointmentId = item.id ?? item.appointment_id ?? item.appointmentId ?? item.appointmentID ?? '';
+    const status = item.status || '';
+    const expertName = item.expert?.name || item.expertName || item.expert_name || '';
+    const dateStr = item.date || item.appointmentDate || '';
+    const timeStr = item.time || item.time_slot || '';
+    const canCancel = expertName && dateStr && timeStr;
+    const disabledByStatus = typeof status === 'string' && status.toLowerCase() === 'cancelled';
+    const disabled = (!canCancel || disabledByStatus) ? 'disabled' : '';
+    return `<div class="expert">
+      <div class="name">预约#${appointmentId}</div>
+      <div>专家：${expertName || '—'}</div>
+      <div>日期：${dateStr || '—'} ${timeStr || ''}</div>
+      <div>主题：${item.topic || ''}</div>
+      <div>状态：${status}</div>
+      <button class="btn btn-danger btn-cancel-appointment"
+        data-app-id="${appointmentId}"
+        data-expert-name="${escapeAttr(expertName)}"
+        data-date="${escapeAttr(dateStr)}"
+        data-time="${escapeAttr(timeStr)}"
+        ${disabled}>取消预约</button>
+    </div>`;
+  }).join('');
+}
+
+if (btnLoadUserAppointments) {
+  btnLoadUserAppointments.onclick = ()=>loadUserAppointments();
+}
+
+if (userAppointmentsList) {
+  userAppointmentsList.addEventListener('click', async (e)=>{
+    const btn = e.target.closest('.btn-cancel-appointment');
+    if (!btn) return;
+    const expertName = btn.getAttribute('data-expert-name');
+    const dateStr = btn.getAttribute('data-date');
+    const timeStr = btn.getAttribute('data-time');
+    if (!expertName || !dateStr || !timeStr) {
+      alert('无法获取专家姓名或时间段，取消失败');
       return;
     }
-    msgAppointmentCancel.textContent = '取消中...';
+    const appointmentIdText = btn.getAttribute('data-app-id');
+    console.log('[取消预约] 目标预约ID(展示):', appointmentIdText);
+    console.log('[取消预约] 目标专家/日期/时间:', expertName, dateStr, timeStr);
+    const confirmed = window.confirm(`确定取消与「${expertName}」在 ${dateStr} ${timeStr} 的预约吗？`);
+    if (!confirmed) return;
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '取消中...';
+    msgUserAppointments.textContent = '取消预约中...';
     try {
+      console.log('[取消预约] 请求发起...');
+      const payload = {
+        user_id: getCurrentUserId(),
+        expert_name: expertName,
+        expertName: expertName,
+        date: dateStr,
+        time: timeStr
+      };
+      console.log('[取消预约] 请求payload:', payload);
       const res = await fetch(`${API_BASE}/api/expert-appointment/cancel`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ appointmentId })
+        body: JSON.stringify(payload)
       });
       const json = await res.json().catch(()=>({}));
       if (!res.ok) {
+        console.error('[取消预约] 失败响应:', res.status, json);
         throw new Error(json?.message || res.statusText);
       }
-      msgAppointmentCancel.textContent = json?.message || '预约已取消';
-      formAppointmentCancel.reset();
+      console.log('[取消预约] 成功响应:', json);
+      msgUserAppointments.textContent = json?.message || '预约已取消';
+      await loadUserAppointments(false);
     } catch (err) {
-      msgAppointmentCancel.textContent = `取消失败：${err.message || '网络错误'}`;
+      console.error('[取消预约] 异常:', err);
+      msgUserAppointments.textContent = `取消失败：${err.message || '网络错误'}`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
     }
   });
 }

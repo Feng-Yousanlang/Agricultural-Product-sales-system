@@ -97,8 +97,7 @@
         <div class="two-col">
             <form id="form-appointment-create" class="form">
                 <h3>提交预约</h3>
-                <div class="row"><label for="appointment-userId">用户ID</label><input type="number" id="appointment-userId" required></div>
-                <div class="row"><label for="appointment-expertId">专家ID</label><input type="number" id="appointment-expertId" required></div>
+                <div class="row"><label for="appointment-expertName">专家姓名</label><input type="text" id="appointment-expertName" placeholder="请输入专家姓名" required></div>
                 <div class="row"><label for="appointment-date">日期</label><input type="date" id="appointment-date" required></div>
                 <div class="row"><label for="appointment-time">时间段</label><input type="text" id="appointment-time" placeholder="09:00-10:00" required></div>
                 <div class="row"><label for="appointment-topic">主题</label><input type="text" id="appointment-topic" required></div>
@@ -109,19 +108,10 @@
             <div class="form-stack">
                 <div>
                     <h3>我的预约</h3>
-                    <div class="form-inline">
-                        <input type="number" id="user-appointment-userId" placeholder="用户ID">
-                        <button id="btn-load-user-appointments" class="btn btn-secondary">查看</button>
-                    </div>
+                    <button id="btn-load-user-appointments" class="btn btn-secondary" style="margin-bottom:8px;">查看我的预约</button>
                     <div class="list" id="user-appointments-list"></div>
                     <div class="msg" id="msg-user-appointments"></div>
                 </div>
-                <form id="form-appointment-cancel" class="form">
-                    <h3>取消预约</h3>
-                    <div class="row"><label for="cancel-appointment-id">预约ID</label><input type="number" id="cancel-appointment-id" required></div>
-                    <button type="submit" class="btn btn-danger">取消预约</button>
-                    <div class="msg" id="msg-appointment-cancel"></div>
-                </form>
             </div>
         </div>
     </section>
