@@ -10,8 +10,8 @@
 <header class="topbar">
     <div class="brand">三农服务平台</div>
     <nav class="nav">
-        <a href="loans.html">融资服务</a>
-        <a href="appointment.html">预约服务</a>
+        <a href="loans.html" data-identity="1">融资服务</a>
+        <a href="appointment.html" data-identity="1">预约服务</a>
     </nav>
     <div class="user">
         <span id="user-id-display" class="user-id"></span>
@@ -89,7 +89,7 @@
         <div class="msg" id="msg-knowledge-search"></div>
     </section>
 
-    <section id="appointment-preview" class="card">
+    <section id="appointment-preview" class="card" data-identity="1">
         <div class="card-header">
             <h2>专家预约服务</h2>
             <a href="appointment.html" class="btn btn-secondary">前往预约页面</a>
@@ -100,7 +100,7 @@
     </section>
 
     <!-- 融资服务模块 -->
-    <section id="loan" class="card">
+    <section id="loan" class="card" data-identity="1">
         <div class="card-header">
             <h2>贷款产品</h2>
             <button id="loan-products-refresh" class="btn btn-secondary">刷新</button>
@@ -109,7 +109,7 @@
         <div class="msg" id="msg-loan-products"></div>
     </section>
 
-    <section id="loan-services" class="card">
+    <section id="loan-services" class="card" data-identity="1">
         <div class="card-header">
             <h2>贷款办理 & 还款管理</h2>
             <a href="loans.html" class="btn btn-secondary">前往贷款中心</a>
@@ -193,7 +193,7 @@
         <div class="msg" id="msg-approval-history"></div>
     </section>
 
-    <section id="loan-status" class="card">
+    <section id="loan-status" class="card" data-identity="1">
         <div class="card-header">
             <h2>贷款状态字典</h2>
             <button id="btn-load-status" class="btn btn-secondary">刷新</button>
@@ -233,13 +233,12 @@
     <section id="agricultural-products" class="card" data-identity="2">
         <div class="card-header">
             <h2>农产品商城</h2>
+            <div class="card-actions">
+                <button id="btn-refresh-products" class="btn btn-secondary">刷新商品</button>
+            </div>
         </div>
-        <div class="form-inline">
-            <input type="number" id="product-detail-id" placeholder="商品ID">
-            <button id="btn-load-product-detail" class="btn btn-secondary">查看商品详情</button>
-        </div>
-        <div id="product-detail-box" class="detail-box"></div>
-        <div class="msg" id="msg-product-detail"></div>
+        <div class="product-grid" id="product-catalog-list"></div>
+        <div class="msg" id="msg-product-catalog"></div>
         <div class="divider"></div>
         <div class="two-col">
             <form id="form-add-to-cart" class="form">
@@ -302,6 +301,30 @@
             <button type="submit" class="btn btn-danger">删除评论</button>
             <div class="msg" id="msg-delete-comment"></div>
         </form>
+    </section>
+
+    <!-- 购物车展示 -->
+    <section id="buyer-cart" class="card" data-identity="2">
+        <div class="card-header">
+            <h2>我的购物车</h2>
+            <div class="card-actions">
+                <button id="btn-refresh-cart" class="btn btn-secondary">刷新购物车</button>
+            </div>
+        </div>
+        <div class="list" id="cart-display-list"></div>
+        <div class="msg" id="msg-cart-display"></div>
+    </section>
+
+    <!-- 购买记录展示 -->
+    <section id="buyer-orders" class="card" data-identity="2">
+        <div class="card-header">
+            <h2>我的购买记录</h2>
+            <div class="card-actions">
+                <button id="btn-refresh-orders" class="btn btn-secondary">刷新购买记录</button>
+            </div>
+        </div>
+        <div class="list" id="orders-display-list"></div>
+        <div class="msg" id="msg-orders-display"></div>
     </section>
 </main>
 

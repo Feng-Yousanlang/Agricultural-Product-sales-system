@@ -71,46 +71,41 @@ document.getElementById('btn-logout').onclick = function() {
     const identity = localStorage.getItem('user_identity') || '1'; // 默认为农户
     const identityNum = parseInt(identity, 10);
     
-    // 获取所有带 data-identity 属性的 section
-    const allSections = document.querySelectorAll('section[data-identity]');
+    const identityElements = document.querySelectorAll('[data-identity]');
     const defaultSections = document.querySelectorAll('section:not([data-identity])');
     
-    if (identityNum === 1) {
-      // 农户：显示默认 section，隐藏专家端、银行端和买家端专用功能
-      defaultSections.forEach(section => section.style.display = 'block');
-      allSections.forEach(section => {
-        const sectionIdentity = parseInt(section.getAttribute('data-identity'), 10);
-        section.style.display = (sectionIdentity === 3 || sectionIdentity === 4 || sectionIdentity === 2) ? 'none' : 'block';
-      });
-    } else if (identityNum === 3) {
-      // 专家：只显示专家端功能，隐藏其他所有
-      defaultSections.forEach(section => section.style.display = 'none');
-      allSections.forEach(section => {
-        const sectionIdentity = parseInt(section.getAttribute('data-identity'), 10);
-        section.style.display = (sectionIdentity === 3) ? 'block' : 'none';
-      });
-    } else if (identityNum === 4) {
-      // 银行：只显示银行端功能，隐藏其他所有
-      defaultSections.forEach(section => section.style.display = 'none');
-      allSections.forEach(section => {
-        const sectionIdentity = parseInt(section.getAttribute('data-identity'), 10);
-        section.style.display = (sectionIdentity === 4) ? 'block' : 'none';
-      });
-    } else if (identityNum === 2) {
-      // 买家：只显示买家端功能，隐藏其他所有
-      defaultSections.forEach(section => section.style.display = 'none');
-      allSections.forEach(section => {
-        const sectionIdentity = parseInt(section.getAttribute('data-identity'), 10);
-        section.style.display = (sectionIdentity === 2) ? 'block' : 'none';
-      });
-    } else {
-      // 其他身份或未设置：默认显示所有（农户模式）
-      defaultSections.forEach(section => section.style.display = 'block');
-      allSections.forEach(section => {
-        const sectionIdentity = parseInt(section.getAttribute('data-identity'), 10);
-        section.style.display = (sectionIdentity === 3 || sectionIdentity === 4 || sectionIdentity === 2) ? 'none' : 'block';
-      });
+    function shouldShow(elementIdentity) {
+      if (identityNum === 1) {
+        return !(elementIdentity === 2 || elementIdentity === 3 || elementIdentity === 4);
+      }
+      if (identityNum === 2) {
+        return elementIdentity === 2;
+      }
+      if (identityNum === 3) {
+        return elementIdentity === 3;
+      }
+      if (identityNum === 4) {
+        return elementIdentity === 4;
+      }
+      return !(elementIdentity === 2 || elementIdentity === 3 || elementIdentity === 4);
     }
+    
+    defaultSections.forEach(section => {
+      if (identityNum === 1 || isNaN(identityNum)) {
+        section.style.display = 'block';
+      } else {
+        section.style.display = 'none';
+      }
+    });
+    
+    identityElements.forEach(el => {
+      const elementIdentity = parseInt(el.getAttribute('data-identity'), 10);
+      if (shouldShow(elementIdentity)) {
+        el.style.display = '';
+      } else {
+        el.style.display = 'none';
+      }
+    });
     
     console.log('用户身份:', identityNum, '界面已根据身份调整');
   } catch (e) {
@@ -969,59 +964,275 @@ if (formDeleteLoanStatus) {
   });
 }
 
-// ---------------- 商品详情 ----------------
-const btnLoadProductDetail = document.getElementById('btn-load-product-detail');
-const productDetailBox = document.getElementById('product-detail-box');
-const msgAgriculturalProductDetail = document.getElementById('msg-product-detail');
-if (btnLoadProductDetail) {
-  btnLoadProductDetail.onclick = async ()=>{
-    const productId = parseInt(document.getElementById('product-detail-id').value, 10);
-    productDetailBox.innerHTML = '';
-    if (!productId) {
-      msgAgriculturalProductDetail.textContent = '请输入商品ID';
-      return;
+// ---------------- 农产品商城 ----------------
+const DEFAULT_PRODUCT_IMAGE = 'https://via.placeholder.com/320x180?text=Product';
+
+function resolveProductImage(url) {
+  if (!url) return DEFAULT_PRODUCT_IMAGE;
+  try {
+    const parsed = new URL(url, window.location.origin);
+    if (!/^https?:$/i.test(parsed.protocol)) {
+      return DEFAULT_PRODUCT_IMAGE;
     }
-    msgAgriculturalProductDetail.textContent = '加载中...';
+    return parsed.href;
+  } catch {
+    return DEFAULT_PRODUCT_IMAGE;
+  }
+}
+
+const productCatalogList = document.getElementById('product-catalog-list');
+const msgProductCatalog = document.getElementById('msg-product-catalog');
+const btnRefreshProducts = document.getElementById('btn-refresh-products');
+
+function pickProductsFromResponse(json) {
+  if (!json) return null;
+  if (Array.isArray(json)) return json;
+  if (Array.isArray(json.data?.products)) return json.data.products;
+  if (Array.isArray(json.data?.records)) return json.data.records;
+  if (Array.isArray(json.data?.list)) return json.data.list;
+  if (Array.isArray(json.data)) return json.data;
+  if (Array.isArray(json.products)) return json.products;
+  if (Array.isArray(json.list)) return json.list;
+  if (Array.isArray(json.rows)) return json.rows;
+  if (json.data && typeof json.data === 'object' && json.data.productId) {
+    return [json.data];
+  }
+  if (json.productId) {
+    return [json];
+  }
+  return null;
+}
+
+async function requestProductCatalog() {
+  const endpoints = [
+    `${API_BASE}/api/products`
+  ];
+  let lastError = new Error('未获取到商品数据');
+  for (const url of endpoints) {
     try {
-      const res = await fetch(`${API_BASE}/api/agricultural/source/${productId}`);
+      const res = await fetch(url);
       if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
+        lastError = new Error(`HTTP ${res.status}`);
+        continue;
       }
       const json = await res.json();
-      const data = json?.data || json;
-      if (!data || !data.productId) {
-        throw new Error('未找到商品信息');
+      const list = pickProductsFromResponse(json);
+      if (Array.isArray(list)) {
+        return list;
       }
-      const comments = Array.isArray(data.comments) ? data.comments : [];
-      productDetailBox.innerHTML = `
-        <div><strong>商品ID：</strong>${data.productId || '—'}</div>
-        <div><strong>商品名称：</strong>${data.productName || '—'}</div>
-        <div><strong>价格：</strong>¥${data.price || '—'}</div>
-        <div><strong>发售商：</strong>${data.producer || '—'}</div>
-        <div><strong>销售量：</strong>${data.salesVolume || '—'}</div>
-        <div><strong>剩余量：</strong>${data.surplus || '—'}</div>
-        <div><strong>商品图片：</strong><img src="${data.productImg || ''}" alt="${data.productName || ''}" style="max-width:200px;margin-top:8px;"></div>
-        <div style="margin-top:16px;"><strong>评论列表：</strong></div>
-        <div style="margin-left:16px;">
-          ${comments.length ? comments.map(c=>`
-            <div style="border:1px solid #ddd;padding:8px;margin:8px 0;">
-              <div>评论ID：${c.productCommentId || '—'}</div>
-              <div>内容：${c.content || '—'}</div>
-              <div>时间：${c.sendTime || '—'}</div>
-              <div>用户ID：${c.userId || '—'}</div>
-              <div>点赞数：${c.commentLikeCount || 0}</div>
-              ${c.rootCommentId ? `<div>父评论ID：${c.rootCommentId}</div>` : ''}
-              ${c.toCommentId ? `<div>回复评论ID：${c.toCommentId}</div>` : ''}
-            </div>
-          `).join('') : '<div>暂无评论</div>'}
-        </div>
-      `;
-      msgAgriculturalProductDetail.textContent = '';
+      console.warn('[农产品商城] 未能解析响应:', json);
+      lastError = new Error('响应格式不正确');
     } catch (err) {
-      productDetailBox.innerHTML = '';
-      msgAgriculturalProductDetail.textContent = `加载失败：${err.message || '网络错误'}`;
+      lastError = err;
     }
-  };
+  }
+  throw lastError;
+}
+
+function renderProductCatalog(list) {
+  if (!productCatalogList) return;
+  if (!Array.isArray(list) || !list.length) {
+    productCatalogList.innerHTML = '<div class="empty">暂无商品</div>';
+    return;
+  }
+  productCatalogList.innerHTML = list.map(item=>{
+    const productId = item.productId || item.id || item.sourceId || '';
+    const price = item.price ?? item.productPrice ?? '';
+    const stock = item.surplus ?? item.stock ?? item.inventory ?? '—';
+    const sales = item.salesVolume ?? item.sales ?? '—';
+    const producer = item.producer || item.origin || item.owner || '—';
+    const img = item.productImg || item.imageUrl || item.imgUrl || '';
+    const safeImg = resolveProductImage(img);
+    const fallbackImg = escapeAttr(DEFAULT_PRODUCT_IMAGE);
+    return `<div class="product">
+      <div class="name">${item.productName || item.name || '未命名商品'}</div>
+      <div>商品ID：${productId || '—'}</div>
+      <div>价格：${price !== '' ? `¥${price}` : '—'}</div>
+      <div>库存：${stock}</div>
+      <div>销量：${sales}</div>
+      <div>产地/商家：${producer}</div>
+      <div class="thumb"><img src="${safeImg}" alt="${escapeAttr(item.productName || '')}" onerror="this.onerror=null;this.src='${fallbackImg}'"></div>
+      ${productId ? `<button class="btn btn-secondary btn-fill-product" data-product-id="${productId}" data-product-price="${price ?? ''}">将ID填入表单</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function loadAgriculturalProducts(showLoading = true) {
+  if (!productCatalogList) return;
+  if (showLoading) {
+    msgProductCatalog.textContent = '加载商品中...';
+    productCatalogList.innerHTML = '';
+  }
+  try {
+    const list = await requestProductCatalog();
+    renderProductCatalog(list);
+    msgProductCatalog.textContent = '';
+  } catch (err) {
+    productCatalogList.innerHTML = '';
+    msgProductCatalog.textContent = `加载失败：${err.message || '网络错误'}`;
+  }
+}
+
+if (btnRefreshProducts) {
+  btnRefreshProducts.addEventListener('click', ()=>loadAgriculturalProducts());
+}
+
+if (productCatalogList) {
+  productCatalogList.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.btn-fill-product');
+    if (!btn) return;
+    const { productId, productPrice } = btn.dataset;
+    const idsToFill = [
+      'cart-productId',
+      'purchase-productId',
+      'comment-productId',
+      'reply-productId'
+    ];
+    idsToFill.forEach(id=>{
+      const input = document.getElementById(id);
+      if (input && productId) {
+        input.value = productId;
+      }
+    });
+    if (productPrice !== undefined && productPrice !== '' && !Number.isNaN(Number(productPrice))) {
+      const purchaseMoney = document.getElementById('purchase-money');
+      const cartMoney = document.getElementById('cart-money');
+      if (purchaseMoney && !purchaseMoney.value) purchaseMoney.value = productPrice;
+      if (cartMoney && !cartMoney.value) cartMoney.value = productPrice;
+    }
+  });
+  loadAgriculturalProducts();
+}
+
+// ---------------- 买家购物车展示 ----------------
+const cartDisplayList = document.getElementById('cart-display-list');
+const msgCartDisplay = document.getElementById('msg-cart-display');
+const btnRefreshCart = document.getElementById('btn-refresh-cart');
+
+function normalizeCartList(json) {
+  if (!json) return [];
+  if (Array.isArray(json)) return json;
+  if (Array.isArray(json.data)) return json.data;
+  if (Array.isArray(json.data?.records)) return json.data.records;
+  if (Array.isArray(json.data?.list)) return json.data.list;
+  if (json.data && Array.isArray(json.data.products)) return json.data.products;
+  if (json.data && Array.isArray(json.data.items)) return json.data.items;
+  return [];
+}
+
+async function loadCartDisplay(showLoading = true) {
+  if (!cartDisplayList) return;
+  const userId = getCurrentUserId();
+  if (!userId) {
+    msgCartDisplay.textContent = '未获取到用户ID，请重新登录后再试';
+    cartDisplayList.innerHTML = '';
+    return;
+  }
+  if (showLoading) {
+    msgCartDisplay.textContent = '加载购物车中...';
+    cartDisplayList.innerHTML = '';
+  }
+  try {
+    const res = await fetch(`${API_BASE}/api/shopshow?userId=${encodeURIComponent(userId)}`);
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+    const json = await res.json();
+    const list = normalizeCartList(json);
+    renderCartDisplay(list);
+    msgCartDisplay.textContent = list.length ? '' : '购物车为空';
+  } catch (err) {
+    cartDisplayList.innerHTML = '';
+    msgCartDisplay.textContent = `加载失败：${err.message || '网络错误'}`;
+  }
+}
+
+function renderCartDisplay(list) {
+  if (!cartDisplayList) return;
+  if (!Array.isArray(list) || !list.length) {
+    cartDisplayList.innerHTML = '<div class="empty">购物车暂无商品</div>';
+    return;
+  }
+  cartDisplayList.innerHTML = list.map(item=>{
+    const safeImg = resolveProductImage(item.productImg || item.imageUrl);
+    const fallbackImg = escapeAttr(DEFAULT_PRODUCT_IMAGE);
+    const singlePrice = item.price ?? item.productPrice ?? '—';
+    const totalPrice = item.total_price ?? item.totalPrice ?? (singlePrice !== '—' && item.amount ? singlePrice * item.amount : '—');
+    return `<div class="product">
+      <div class="name">${item.productName || '未命名商品'}</div>
+      <div>发售商：${item.producer || '—'}</div>
+      <div>数量：${item.amount ?? '—'}</div>
+      <div>单价：${singlePrice !== '—' ? `¥${singlePrice}` : '—'}</div>
+      <div>总价：${totalPrice !== '—' ? `¥${totalPrice}` : '—'}</div>
+      <div class="thumb"><img src="${safeImg}" alt="${escapeAttr(item.productName || '')}" onerror="this.onerror=null;this.src='${fallbackImg}'"></div>
+    </div>`;
+  }).join('');
+}
+
+if (btnRefreshCart) {
+  btnRefreshCart.addEventListener('click', ()=>loadCartDisplay());
+}
+
+// 购买记录展示
+const ordersDisplayList = document.getElementById('orders-display-list');
+const msgOrdersDisplay = document.getElementById('msg-orders-display');
+const btnRefreshOrders = document.getElementById('btn-refresh-orders');
+
+function renderOrdersDisplay(list) {
+  if (!ordersDisplayList) return;
+  if (!Array.isArray(list) || !list.length) {
+    ordersDisplayList.innerHTML = '<div class="empty">暂无购买记录</div>';
+    return;
+  }
+  ordersDisplayList.innerHTML = list.map(item=>{
+    const safeImg = resolveProductImage(item.productImg || item.imageUrl);
+    const fallbackImg = escapeAttr(DEFAULT_PRODUCT_IMAGE);
+    const singlePrice = item.price ?? item.productPrice ?? '—';
+    const totalPrice = item.total_price ?? item.totalPrice ?? (singlePrice !== '—' && item.amount ? singlePrice * item.amount : '—');
+    return `<div class="product">
+      <div class="name">${item.productName || '未命名商品'}</div>
+      <div>发售商：${item.producer || '—'}</div>
+      <div>数量：${item.amount ?? '—'}</div>
+      <div>单价：${singlePrice !== '—' ? `¥${singlePrice}` : '—'}</div>
+      <div>总价：${totalPrice !== '—' ? `¥${totalPrice}` : '—'}</div>
+      <div class="thumb"><img src="${safeImg}" alt="${escapeAttr(item.productName || '')}" onerror="this.onerror=null;this.src='${fallbackImg}'"></div>
+    </div>`;
+  }).join('');
+}
+
+async function loadOrdersDisplay(showLoading = true) {
+  if (!ordersDisplayList) return;
+  const userId = getCurrentUserId();
+  if (!userId) {
+    msgOrdersDisplay.textContent = '未获取到用户ID，请重新登录后再试';
+    ordersDisplayList.innerHTML = '';
+    return;
+  }
+  if (showLoading) {
+    msgOrdersDisplay.textContent = '加载购买记录中...';
+    ordersDisplayList.innerHTML = '';
+  }
+  try {
+    const res = await fetch(`${API_BASE}/api/purchaseshow?userId=${encodeURIComponent(userId)}`);
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+    const json = await res.json();
+    const list = normalizeCartList(json);
+    renderOrdersDisplay(list);
+    msgOrdersDisplay.textContent = list.length ? '' : '暂无购买记录';
+  } catch (err) {
+    ordersDisplayList.innerHTML = '';
+    msgOrdersDisplay.textContent = `加载失败：${err.message || '网络错误'}`;
+  }
+}
+
+if (btnRefreshOrders) {
+  btnRefreshOrders.addEventListener('click', ()=>loadOrdersDisplay());
+}
+
+if (ordersDisplayList) {
+  loadOrdersDisplay();
 }
 
 // ---------------- 购物车 ----------------
