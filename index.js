@@ -76,11 +76,11 @@ document.getElementById('btn-logout').onclick = function() {
     const defaultSections = document.querySelectorAll('section:not([data-identity])');
     
     if (identityNum === 1) {
-      // 农户：显示默认 section，隐藏专家端和银行端专用功能
+      // 农户：显示默认 section，隐藏专家端、银行端和买家端专用功能
       defaultSections.forEach(section => section.style.display = 'block');
       allSections.forEach(section => {
         const sectionIdentity = parseInt(section.getAttribute('data-identity'), 10);
-        section.style.display = (sectionIdentity === 3 || sectionIdentity === 4) ? 'none' : 'block';
+        section.style.display = (sectionIdentity === 3 || sectionIdentity === 4 || sectionIdentity === 2) ? 'none' : 'block';
       });
     } else if (identityNum === 3) {
       // 专家：只显示专家端功能，隐藏其他所有
@@ -96,12 +96,19 @@ document.getElementById('btn-logout').onclick = function() {
         const sectionIdentity = parseInt(section.getAttribute('data-identity'), 10);
         section.style.display = (sectionIdentity === 4) ? 'block' : 'none';
       });
+    } else if (identityNum === 2) {
+      // 买家：只显示买家端功能，隐藏其他所有
+      defaultSections.forEach(section => section.style.display = 'none');
+      allSections.forEach(section => {
+        const sectionIdentity = parseInt(section.getAttribute('data-identity'), 10);
+        section.style.display = (sectionIdentity === 2) ? 'block' : 'none';
+      });
     } else {
       // 其他身份或未设置：默认显示所有（农户模式）
       defaultSections.forEach(section => section.style.display = 'block');
       allSections.forEach(section => {
         const sectionIdentity = parseInt(section.getAttribute('data-identity'), 10);
-        section.style.display = (sectionIdentity === 3 || sectionIdentity === 4) ? 'none' : 'block';
+        section.style.display = (sectionIdentity === 3 || sectionIdentity === 4 || sectionIdentity === 2) ? 'none' : 'block';
       });
     }
     
@@ -544,307 +551,6 @@ if (btnSearchKnowledge) {
   };
 }
 
-// ---------------- 专家预约（用户端） ----------------
-const formAppointmentCreate = document.getElementById('form-appointment-create');
-const msgAppointmentCreate = document.getElementById('msg-appointment-create');
-if (formAppointmentCreate) {
-  formAppointmentCreate.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const currentUserId = getCurrentUserId();
-    if (!currentUserId) {
-      msgAppointmentCreate.textContent = '未获取到用户ID，请重新登录后再试';
-      return;
-    }
-    const expertNameInput = document.getElementById('appointment-expertName');
-    const expertName = expertNameInput ? expertNameInput.value.trim() : '';
-    const payload = {
-      userId: currentUserId,
-      expertName,
-      expert_name: expertName,
-      date: document.getElementById('appointment-date').value,
-      time: document.getElementById('appointment-time').value.trim(),
-      topic: document.getElementById('appointment-topic').value.trim(),
-      remark: document.getElementById('appointment-remark').value.trim()
-    };
-    console.log('[预约创建] 当前用户ID:', currentUserId);
-    console.log('[预约创建] 提交payload:', payload);
-    if (!payload.userId || !expertName || !payload.date || !payload.time || !payload.topic) {
-      msgAppointmentCreate.textContent = '请完善预约信息';
-      return;
-    }
-    msgAppointmentCreate.textContent = '提交中...';
-    try {
-      const res = await fetch(`${API_BASE}/api/expert-appointment/create`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const json = await res.json().catch(()=>({}));
-      if (!res.ok) {
-        throw new Error(json?.message || res.statusText);
-      }
-      msgAppointmentCreate.textContent = json?.message || '预约申请已提交';
-      formAppointmentCreate.reset();
-    } catch (err) {
-      msgAppointmentCreate.textContent = `提交失败：${err.message || '网络错误'}`;
-    }
-  });
-}
-
-const btnLoadUserAppointments = document.getElementById('btn-load-user-appointments');
-const userAppointmentsList = document.getElementById('user-appointments-list');
-const msgUserAppointments = document.getElementById('msg-user-appointments');
-
-async function loadUserAppointments(showLoading = true){
-  if (!userAppointmentsList) return;
-  const userId = getCurrentUserId();
-  userAppointmentsList.innerHTML = '';
-  if (!userId) {
-    msgUserAppointments.textContent = '未获取到用户ID，请重新登录后再试';
-    return;
-  }
-  console.log('[我的预约] 当前用户ID:', userId);
-  if (showLoading) {
-    msgUserAppointments.textContent = '加载中...';
-  }
-  try {
-    const url = `${API_BASE}/api/expert-appointment/user/list?user_id=${encodeURIComponent(userId)}`;
-    console.log('[我的预约] 请求地址:', url);
-    const res = await fetch(url);
-    if (!res.ok) {
-      const errText = await res.text().catch(()=>res.statusText);
-      throw new Error(errText || `HTTP ${res.status}`);
-    }
-    const json = await res.json();
-    const list = Array.isArray(json?.data) ? json.data : [];
-    renderUserAppointments(list);
-    msgUserAppointments.textContent = list.length ? '' : '暂无预约记录';
-  } catch (err) {
-    userAppointmentsList.innerHTML = '';
-    msgUserAppointments.textContent = `加载失败：${err.message || '网络错误'}`;
-  }
-}
-
-function renderUserAppointments(list){
-  userAppointmentsList.innerHTML = list.map(item=>{
-    const appointmentId = item.id ?? item.appointment_id ?? item.appointmentId ?? item.appointmentID ?? '';
-    const status = item.status || '';
-    const expertName = item.expert?.name || item.expertName || item.expert_name || '';
-    const dateStr = item.date || item.appointmentDate || '';
-    const timeStr = item.time || item.time_slot || '';
-    const canCancel = expertName && dateStr && timeStr;
-    const disabledByStatus = typeof status === 'string' && status.toLowerCase() === 'cancelled';
-    const disabled = (!canCancel || disabledByStatus) ? 'disabled' : '';
-    return `<div class="expert">
-      <div class="name">预约#${appointmentId}</div>
-      <div>专家：${expertName || '—'}</div>
-      <div>日期：${dateStr || '—'} ${timeStr || ''}</div>
-      <div>主题：${item.topic || ''}</div>
-      <div>状态：${status}</div>
-      <button class="btn btn-danger btn-cancel-appointment"
-        data-app-id="${appointmentId}"
-        data-expert-name="${escapeAttr(expertName)}"
-        data-date="${escapeAttr(dateStr)}"
-        data-time="${escapeAttr(timeStr)}"
-        ${disabled}>取消预约</button>
-    </div>`;
-  }).join('');
-}
-
-if (btnLoadUserAppointments) {
-  btnLoadUserAppointments.onclick = ()=>loadUserAppointments();
-}
-
-if (userAppointmentsList) {
-  userAppointmentsList.addEventListener('click', async (e)=>{
-    const btn = e.target.closest('.btn-cancel-appointment');
-    if (!btn) return;
-    const expertName = btn.getAttribute('data-expert-name');
-    const dateStr = btn.getAttribute('data-date');
-    const timeStr = btn.getAttribute('data-time');
-    if (!expertName || !dateStr || !timeStr) {
-      alert('无法获取专家姓名或时间段，取消失败');
-      return;
-    }
-    const appointmentIdText = btn.getAttribute('data-app-id');
-    console.log('[取消预约] 目标预约ID(展示):', appointmentIdText);
-    console.log('[取消预约] 目标专家/日期/时间:', expertName, dateStr, timeStr);
-    const confirmed = window.confirm(`确定取消与「${expertName}」在 ${dateStr} ${timeStr} 的预约吗？`);
-    if (!confirmed) return;
-    const originalText = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = '取消中...';
-    msgUserAppointments.textContent = '取消预约中...';
-    try {
-      console.log('[取消预约] 请求发起...');
-      const payload = {
-        user_id: getCurrentUserId(),
-        expert_name: expertName,
-        expertName: expertName,
-        date: dateStr,
-        time: timeStr
-      };
-      console.log('[取消预约] 请求payload:', payload);
-      const res = await fetch(`${API_BASE}/api/expert-appointment/cancel`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const json = await res.json().catch(()=>({}));
-      if (!res.ok) {
-        console.error('[取消预约] 失败响应:', res.status, json);
-        throw new Error(json?.message || res.statusText);
-      }
-      console.log('[取消预约] 成功响应:', json);
-      msgUserAppointments.textContent = json?.message || '预约已取消';
-      await loadUserAppointments(false);
-    } catch (err) {
-      console.error('[取消预约] 异常:', err);
-      msgUserAppointments.textContent = `取消失败：${err.message || '网络错误'}`;
-    } finally {
-      btn.disabled = false;
-      btn.textContent = originalText;
-    }
-  });
-}
-
-// ---------------- 专家预约（专家端） ----------------
-const btnLoadPendingAppointments = document.getElementById('btn-load-pending-appointments');
-const pendingAppointmentsList = document.getElementById('pending-appointments-list');
-const msgPendingAppointments = document.getElementById('msg-pending-appointments');
-if (btnLoadPendingAppointments) {
-  btnLoadPendingAppointments.onclick = async ()=>{
-    const expertId = parseInt(document.getElementById('pending-expert-id').value, 10);
-    pendingAppointmentsList.innerHTML = '';
-    msgPendingAppointments.textContent = '加载中...';
-    try {
-      const query = expertId ? `?expertId=${encodeURIComponent(expertId)}` : '';
-      const res = await fetch(`${API_BASE}/api/expert-appointment/pending${query}`);
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-      const json = await res.json();
-      const list = Array.isArray(json?.data) ? json.data : [];
-      pendingAppointmentsList.innerHTML = list.map(item=>
-        `<div class="expert">
-           <div class="name">预约#${item.id || item.appointment_id || ''}</div>
-           <div>农户：${item.user?.name || item.userName || ''}</div>
-           <div>时间：${item.date || ''} ${item.time || ''}</div>
-           <div>主题：${item.topic || ''}</div>
-           <div>备注：${item.remark || ''}</div>
-           <div>状态：${item.status || ''}</div>
-         </div>`
-      ).join('');
-      msgPendingAppointments.textContent = list.length ? '' : '暂无待审批预约';
-    } catch (err) {
-      pendingAppointmentsList.innerHTML = '';
-      msgPendingAppointments.textContent = `加载失败：${err.message || '网络错误'}`;
-    }
-  };
-}
-
-const formAppointmentReview = document.getElementById('form-appointment-review');
-const msgAppointmentReview = document.getElementById('msg-appointment-review');
-if (formAppointmentReview) {
-  formAppointmentReview.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const payload = {
-      appointment_id: parseInt(document.getElementById('review-appointment-id').value, 10),
-      expert_id: parseInt(document.getElementById('review-expert-id').value, 10),
-      action: document.getElementById('review-action').value,
-      comment: document.getElementById('review-comment').value.trim()
-    };
-    if (!payload.appointment_id || !payload.expert_id) {
-      msgAppointmentReview.textContent = '请填写预约ID和专家ID';
-      return;
-    }
-    msgAppointmentReview.textContent = '提交中...';
-    try {
-      const res = await fetch(`${API_BASE}/api/expert-appointment/review`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const json = await res.json().catch(()=>({}));
-      if (!res.ok) {
-        throw new Error(json?.message || res.statusText);
-      }
-      msgAppointmentReview.textContent = json?.message || '审批完成';
-      formAppointmentReview.reset();
-    } catch (err) {
-      msgAppointmentReview.textContent = `提交失败：${err.message || '网络错误'}`;
-    }
-  });
-}
-
-const btnLoadExpertSchedule = document.getElementById('btn-load-expert-schedule');
-const expertScheduleList = document.getElementById('expert-schedule-list');
-const msgExpertSchedule = document.getElementById('msg-expert-schedule');
-if (btnLoadExpertSchedule) {
-  btnLoadExpertSchedule.onclick = async ()=>{
-    const expertId = parseInt(document.getElementById('schedule-expert-id').value, 10);
-    expertScheduleList.innerHTML = '';
-    if (!expertId) {
-      msgExpertSchedule.textContent = '请输入专家ID';
-      return;
-    }
-    msgExpertSchedule.textContent = '加载中...';
-    try {
-      const res = await fetch(`${API_BASE}/api/expert-appointment/schedule?expertId=${encodeURIComponent(expertId)}`);
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-      const json = await res.json();
-      const list = Array.isArray(json?.data) ? json.data : [];
-      expertScheduleList.innerHTML = list.map(item=>
-        `<div class="expert">
-           <div class="name">预约#${item.id || ''}</div>
-           <div>农户：${item.user_name || item.userName || ''}</div>
-           <div>时间：${item.date || ''} ${item.time || ''}</div>
-           <div>主题：${item.topic || ''}</div>
-           <div>状态：${item.status || ''}</div>
-         </div>`
-      ).join('');
-      msgExpertSchedule.textContent = list.length ? '' : '暂无日程';
-    } catch (err) {
-      expertScheduleList.innerHTML = '';
-      msgExpertSchedule.textContent = `加载失败：${err.message || '网络错误'}`;
-    }
-  };
-}
-
-const formAppointmentStatus = document.getElementById('form-appointment-update-status');
-const msgAppointmentStatus = document.getElementById('msg-appointment-status');
-if (formAppointmentStatus) {
-  formAppointmentStatus.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const payload = {
-      appointment_id: parseInt(document.getElementById('status-appointment-id').value, 10),
-      expert_id: parseInt(document.getElementById('status-expert-id').value, 10),
-      status: document.getElementById('status-value').value
-    };
-    if (!payload.appointment_id || !payload.expert_id) {
-      msgAppointmentStatus.textContent = '请填写预约ID和专家ID';
-      return;
-    }
-    msgAppointmentStatus.textContent = '更新中...';
-    try {
-      const res = await fetch(`${API_BASE}/api/expert-appointment/update-status`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const json = await res.json().catch(()=>({}));
-      if (!res.ok) {
-        throw new Error(json?.message || res.statusText);
-      }
-      msgAppointmentStatus.textContent = json?.message || '状态已更新';
-      formAppointmentStatus.reset();
-    } catch (err) {
-      msgAppointmentStatus.textContent = `更新失败：${err.message || '网络错误'}`;
-    }
-  });
-}
 
 // ---------------- 贷款产品 ----------------
 const loanProductsGrid = document.getElementById('loan-products-grid');
@@ -1019,115 +725,9 @@ if (formProductDetail) {
 }
 
 // ---------------- 贷款申请 ----------------
-const formApply = document.getElementById('form-loan-apply');
-const msgApply = document.getElementById('msg-loan-apply');
-formApply.addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  const userId = parseInt(document.getElementById('apply-userId').value,10);
-  const productId = parseInt(document.getElementById('apply-productId').value,10);
-  const amount = parseFloat(document.getElementById('apply-amount').value);
-  const term = parseInt(document.getElementById('apply-term').value,10);
-  const documentFile = document.getElementById('apply-document').files[0];
-  
-  // 验证参数
-  if (!userId || !productId || !amount || !term) {
-    msgApply.textContent = '请填写所有必填字段';
-    return;
-  }
-  
-  const token = getAuthToken();
-  
-  const formData = new FormData();
-  formData.append('userId', userId.toString());
-  formData.append('productId', productId.toString());
-  formData.append('amount', amount.toString());
-  formData.append('term', term.toString());
-  if (documentFile) {
-    formData.append('documents[]', documentFile);
-  }
-  
-  const headers = {};
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  
-  console.log('贷款申请使用 FormData 提交'); // 调试信息
-  
-  msgApply.textContent = '提交中...';
-  try {
-    const res = await fetch(`${API_BASE}/api/loan/apply`, {
-      method: 'POST',
-      headers: headers,
-      body: formData
-    });
-        
-    console.log('贷款申请响应状态:', res.status, res.statusText); // 调试信息
-    
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error('贷款申请错误响应:', errorText); // 调试信息
-      try {
-        const errorJson = JSON.parse(errorText);
-        msgApply.textContent = errorJson.message || `请求失败：${res.status} ${res.statusText}`;
-      } catch {
-        msgApply.textContent = `请求失败：${res.status} ${res.statusText}`;
-      }
-      return;
-    }
-    
-    const json = await res.json();
-    console.log('贷款申请响应:', JSON.stringify(json, null, 2)); // 调试信息：完整JSON
-    msgApply.textContent = json?.message || (json?.code === 200 ? '申请提交成功' : '申请提交失败');
-  } catch (err) {
-    console.error('贷款申请错误:', err); // 调试信息
-    msgApply.textContent = `提交失败：${err.message || '网络错误'}`;
-  }
-});
 
 // ---------------- 我的申请列表 ----------------
-const btnLoadApplications = document.getElementById('btn-load-applications');
-const applicationsList = document.getElementById('applications-list');
-const msgApplications = document.getElementById('msg-applications');
-btnLoadApplications.onclick = loadApplications;
-
-async function loadApplications(){
-  const userId = parseInt(document.getElementById('query-userId').value,10);
-  const status = document.getElementById('query-status').value.trim();
-  msgApplications.textContent = '加载中...';
-  try {
-    const params = new URLSearchParams();
-    if (userId) params.append('userId', userId.toString());
-    if (status) params.append('status', status);
-    let url = `${API_BASE}/api/loan/applications`;
-    const query = params.toString();
-    if (query) {
-      url += `?${query}`;
-    }
-    const res = await fetch(url);
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
-    const json = await res.json();
-    const list = (json && Array.isArray(json.data)) ? json.data : [];
-    renderApplications(list);
-    msgApplications.textContent = list.length ? '' : '暂无申请记录';
-  } catch (err) {
-    renderApplications([]);
-    msgApplications.textContent = `加载失败：${err.message || '网络错误'}`;
-  }
-}
-
-function renderApplications(list){
-  applicationsList.innerHTML = list.map(a=>
-    `<div class="expert">
-       <div class="name">申请#${a.applicationId}</div>
-       <div>产品：${a.productName||''}</div>
-       <div>金额：${a.amount||''}</div>
-       <div>期限(月)：${a.term||''}</div>
-       <div>状态：${a.status||''}</div>
-     </div>`
-  ).join('');
-}
+// ---------------- 我的申请列表 ----------------
 
 // ---------------- 审批中心 ----------------
 const btnLoadPending = document.getElementById('btn-load-pending');
@@ -1239,120 +839,7 @@ if (btnLoadApprovalHistory) {
 }
 
 // ---------------- 还款管理 ----------------
-const btnLoadPlan = document.getElementById('btn-load-plan');
-const planList = document.getElementById('plan-list');
-const msgPlan = document.getElementById('msg-plan');
-btnLoadPlan.onclick = async function(){
-  const applicationId = parseInt(document.getElementById('plan-applicationId').value,10);
-  planList.innerHTML = '';
-  if (!applicationId) {
-    msgPlan.textContent = '请输入申请ID';
-    return;
-  }
-  msgPlan.textContent = '加载中...';
-  try {
-    const res = await fetch(`${API_BASE}/api/loan/repayment-plan?applicationId=${encodeURIComponent(applicationId)}`);
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
-    const json = await res.json();
-    const data = json?.data;
-    const list = Array.isArray(data) ? data : (data ? [data] : []);
-    renderPlan(list);
-    msgPlan.textContent = list.length ? '' : '暂无还款计划';
-  } catch (err) {
-    renderPlan([]);
-    msgPlan.textContent = `加载失败：${err.message || '网络错误'}`;
-  }
-};
-
-function renderPlan(list){
-  if (!list.length) {
-    planList.innerHTML = '';
-    return;
-  }
-  planList.innerHTML = list.map(i=>{
-    const amount = i.amount ?? i.remainingAmount ?? i.RemainingAmout ?? '—';
-    return `<div class="expert">
-      <div>期数：${i.installmentNo || i.period || '—'}</div>
-      <div>到期日：${i.dueDate || i.due_time || '—'}</div>
-      <div>剩余金额：${amount}</div>
-      <div>状态：${i.status || '—'}</div>
-    </div>`;
-  }).join('');
-}
-
-const btnLoadRepayments = document.getElementById('btn-load-repayments');
-const repaymentsList = document.getElementById('repayments-list');
-const msgRepayments = document.getElementById('msg-repayments');
-if (btnLoadRepayments) {
-  btnLoadRepayments.onclick = async function(){
-    const userId = parseInt(document.getElementById('history-userId').value, 10);
-    repaymentsList.innerHTML = '';
-    if (!userId) {
-      msgRepayments.textContent = '请输入用户ID';
-      return;
-    }
-    msgRepayments.textContent = '加载中...';
-    try {
-      const res = await fetch(`${API_BASE}/api/loan/repayments?userId=${encodeURIComponent(userId)}`);
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-      const json = await res.json();
-      const list = Array.isArray(json?.data) ? json.data : [];
-      repaymentsList.innerHTML = list.map(item=>
-        `<div class="expert">
-           <div>申请ID：${item.applicationId || '—'}</div>
-           <div>金额：${item.amount || item.payAmount || '—'}</div>
-           <div>日期：${item.payDate || item.date || '—'}</div>
-         </div>`
-      ).join('');
-      msgRepayments.textContent = list.length ? '' : '暂无还款记录';
-    } catch (err) {
-      repaymentsList.innerHTML = '';
-      msgRepayments.textContent = `加载失败：${err.message || '网络错误'}`;
-    }
-  };
-}
-
-const formRepay = document.getElementById('form-repay');
-const msgRepay = document.getElementById('msg-repay');
-formRepay.addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  const applicationId = parseInt(document.getElementById('repay-applicationId').value,10);
-  const amount = parseFloat(document.getElementById('repay-amount').value);
-  const payDate = document.getElementById('repay-date').value;
-  
-  const requestData = {
-    applicationId: applicationId,
-    amount: amount,
-    payDate: payDate
-  };
-  
-  console.log('还款请求数据:', requestData); // 调试信息
-  
-  const token = getAuthToken();
-  const headers = {
-    'Content-Type': 'application/json'
-  };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  
-  msgRepay.textContent = '提交中...';
-  try {
-    const res = await fetch(`${API_BASE}/api/loan/repay`, {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(requestData)
-    });
-    const json = await res.json();
-    msgRepay.textContent = json?.message || (json?.code === 200 ? '还款提交成功' : '还款提交失败');
-  } catch (err) {
-    msgRepay.textContent = `提交失败：${err.message || '网络错误'}`;
-  }
-});
+// ---------------- 还款管理 ----------------
 
 const btnLoadStatus = document.getElementById('btn-load-status');
 const loanStatusList = document.getElementById('loan-status-list');
@@ -1383,5 +870,402 @@ async function loadLoanStatus(){
 if (btnLoadStatus) {
   btnLoadStatus.onclick = loadLoanStatus;
   loadLoanStatus();
+}
+
+// ---------------- 贷款状态管理（新增、修改、删除） ----------------
+const formCreateLoanStatus = document.getElementById('form-create-loan-status');
+const msgCreateLoanStatus = document.getElementById('msg-create-loan-status');
+if (formCreateLoanStatus) {
+  formCreateLoanStatus.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const payload = {
+      status_code: parseInt(document.getElementById('status-code').value, 10),
+      status_name: document.getElementById('status-name').value.trim(),
+      description: document.getElementById('status-desc').value.trim()
+    };
+    if (!payload.status_code || !payload.status_name) {
+      msgCreateLoanStatus.textContent = '请填写状态代码和状态名称';
+      return;
+    }
+    msgCreateLoanStatus.textContent = '提交中...';
+    try {
+      const res = await fetch(`${API_BASE}/api/loan/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json().catch(()=>({}));
+      if (!res.ok) {
+        throw new Error(json?.message || res.statusText);
+      }
+      msgCreateLoanStatus.textContent = json?.message || '新增状态成功';
+      formCreateLoanStatus.reset();
+      loadLoanStatus();
+    } catch (err) {
+      msgCreateLoanStatus.textContent = `提交失败：${err.message || '网络错误'}`;
+    }
+  });
+}
+
+const formUpdateLoanStatus = document.getElementById('form-update-loan-status');
+const msgUpdateLoanStatus = document.getElementById('msg-update-loan-status');
+if (formUpdateLoanStatus) {
+  formUpdateLoanStatus.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const statusId = parseInt(document.getElementById('update-status-id').value, 10);
+    const payload = {
+      status_name: document.getElementById('update-status-name').value.trim(),
+      description: document.getElementById('update-status-desc').value.trim()
+    };
+    if (!statusId || !payload.status_name) {
+      msgUpdateLoanStatus.textContent = '请填写状态ID和状态名称';
+      return;
+    }
+    msgUpdateLoanStatus.textContent = '提交中...';
+    try {
+      const res = await fetch(`${API_BASE}/api/loan/status/${statusId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json().catch(()=>({}));
+      if (!res.ok) {
+        throw new Error(json?.message || res.statusText);
+      }
+      msgUpdateLoanStatus.textContent = json?.message || '更新成功';
+      formUpdateLoanStatus.reset();
+      loadLoanStatus();
+    } catch (err) {
+      msgUpdateLoanStatus.textContent = `提交失败：${err.message || '网络错误'}`;
+    }
+  });
+}
+
+const formDeleteLoanStatus = document.getElementById('form-delete-loan-status');
+const msgDeleteLoanStatus = document.getElementById('msg-delete-loan-status');
+if (formDeleteLoanStatus) {
+  formDeleteLoanStatus.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const statusId = parseInt(document.getElementById('delete-status-id').value, 10);
+    if (!statusId) {
+      msgDeleteLoanStatus.textContent = '请输入状态ID';
+      return;
+    }
+    msgDeleteLoanStatus.textContent = '删除中...';
+    try {
+      const res = await fetch(`${API_BASE}/api/loan/status/${statusId}`, {
+        method: 'DELETE'
+      });
+      const json = await res.json().catch(()=>({}));
+      if (!res.ok) {
+        throw new Error(json?.message || res.statusText);
+      }
+      msgDeleteLoanStatus.textContent = json?.message || '删除成功';
+      formDeleteLoanStatus.reset();
+      loadLoanStatus();
+    } catch (err) {
+      msgDeleteLoanStatus.textContent = `删除失败：${err.message || '网络错误'}`;
+    }
+  });
+}
+
+// ---------------- 商品详情 ----------------
+const btnLoadProductDetail = document.getElementById('btn-load-product-detail');
+const productDetailBox = document.getElementById('product-detail-box');
+const msgAgriculturalProductDetail = document.getElementById('msg-product-detail');
+if (btnLoadProductDetail) {
+  btnLoadProductDetail.onclick = async ()=>{
+    const productId = parseInt(document.getElementById('product-detail-id').value, 10);
+    productDetailBox.innerHTML = '';
+    if (!productId) {
+      msgAgriculturalProductDetail.textContent = '请输入商品ID';
+      return;
+    }
+    msgAgriculturalProductDetail.textContent = '加载中...';
+    try {
+      const res = await fetch(`${API_BASE}/api/agricultural/source/${productId}`);
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const json = await res.json();
+      const data = json?.data || json;
+      if (!data || !data.productId) {
+        throw new Error('未找到商品信息');
+      }
+      const comments = Array.isArray(data.comments) ? data.comments : [];
+      productDetailBox.innerHTML = `
+        <div><strong>商品ID：</strong>${data.productId || '—'}</div>
+        <div><strong>商品名称：</strong>${data.productName || '—'}</div>
+        <div><strong>价格：</strong>¥${data.price || '—'}</div>
+        <div><strong>发售商：</strong>${data.producer || '—'}</div>
+        <div><strong>销售量：</strong>${data.salesVolume || '—'}</div>
+        <div><strong>剩余量：</strong>${data.surplus || '—'}</div>
+        <div><strong>商品图片：</strong><img src="${data.productImg || ''}" alt="${data.productName || ''}" style="max-width:200px;margin-top:8px;"></div>
+        <div style="margin-top:16px;"><strong>评论列表：</strong></div>
+        <div style="margin-left:16px;">
+          ${comments.length ? comments.map(c=>`
+            <div style="border:1px solid #ddd;padding:8px;margin:8px 0;">
+              <div>评论ID：${c.productCommentId || '—'}</div>
+              <div>内容：${c.content || '—'}</div>
+              <div>时间：${c.sendTime || '—'}</div>
+              <div>用户ID：${c.userId || '—'}</div>
+              <div>点赞数：${c.commentLikeCount || 0}</div>
+              ${c.rootCommentId ? `<div>父评论ID：${c.rootCommentId}</div>` : ''}
+              ${c.toCommentId ? `<div>回复评论ID：${c.toCommentId}</div>` : ''}
+            </div>
+          `).join('') : '<div>暂无评论</div>'}
+        </div>
+      `;
+      msgAgriculturalProductDetail.textContent = '';
+    } catch (err) {
+      productDetailBox.innerHTML = '';
+      msgAgriculturalProductDetail.textContent = `加载失败：${err.message || '网络错误'}`;
+    }
+  };
+}
+
+// ---------------- 购物车 ----------------
+const formAddToCart = document.getElementById('form-add-to-cart');
+const msgCart = document.getElementById('msg-cart');
+if (formAddToCart) {
+  formAddToCart.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const currentUserId = getCurrentUserId();
+    if (!currentUserId) {
+      msgCart.textContent = '未获取到用户ID，请重新登录后再试';
+      return;
+    }
+    const payload = {
+      productId: parseInt(document.getElementById('cart-productId').value, 10),
+      userId: currentUserId,
+      amount: parseInt(document.getElementById('cart-amount').value, 10),
+      money: parseFloat(document.getElementById('cart-money').value),
+      getAddress: document.getElementById('cart-address').value.trim()
+    };
+    if (!payload.productId || !payload.amount || !payload.money || !payload.getAddress) {
+      msgCart.textContent = '请完善购物车信息';
+      return;
+    }
+    msgCart.textContent = '提交中...';
+    try {
+      const res = await fetch(`${API_BASE}/api/shop`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json().catch(()=>({}));
+      if (!res.ok) {
+        throw new Error(json?.message || res.statusText);
+      }
+      msgCart.textContent = json?.message || json?.data?.message || '商品已成功加入购物车';
+      formAddToCart.reset();
+    } catch (err) {
+      msgCart.textContent = `提交失败：${err.message || '网络错误'}`;
+    }
+  });
+}
+
+// ---------------- 购买商品 ----------------
+const formPurchase = document.getElementById('form-purchase');
+const msgPurchase = document.getElementById('msg-purchase');
+const paymentMethodsBox = document.getElementById('payment-methods-box');
+if (formPurchase) {
+  formPurchase.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const currentUserId = getCurrentUserId();
+    if (!currentUserId) {
+      msgPurchase.textContent = '未获取到用户ID，请重新登录后再试';
+      return;
+    }
+    const payload = {
+      productId: parseInt(document.getElementById('purchase-productId').value, 10),
+      userId: currentUserId,
+      amount: parseInt(document.getElementById('purchase-amount').value, 10),
+      money: parseFloat(document.getElementById('purchase-money').value),
+      getAddress: document.getElementById('purchase-address').value.trim()
+    };
+    if (!payload.productId || !payload.amount || !payload.money || !payload.getAddress) {
+      msgPurchase.textContent = '请完善购买信息';
+      return;
+    }
+    msgPurchase.textContent = '提交中...';
+    paymentMethodsBox.style.display = 'none';
+    try {
+      const res = await fetch(`${API_BASE}/api/purchase`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json().catch(()=>({}));
+      if (!res.ok) {
+        throw new Error(json?.message || res.statusText);
+      }
+      msgPurchase.textContent = json?.message || '订单创建成功，请选择支付方式';
+      const methods = json?.data?.paymentMethods || [];
+      if (methods.length) {
+        paymentMethodsBox.innerHTML = `<div><strong>支付方式：</strong>${methods.join('、')}</div>`;
+        paymentMethodsBox.style.display = 'block';
+      }
+      formPurchase.reset();
+    } catch (err) {
+      msgPurchase.textContent = `提交失败：${err.message || '网络错误'}`;
+    }
+  });
+}
+
+// ---------------- 评论点赞 ----------------
+const btnLikeComment = document.getElementById('btn-like-comment');
+const likeCountDisplay = document.getElementById('like-count-display');
+const msgLike = document.getElementById('msg-like');
+if (btnLikeComment) {
+  btnLikeComment.onclick = async ()=>{
+    const commentId = parseInt(document.getElementById('like-comment-id').value, 10);
+    if (!commentId) {
+      msgLike.textContent = '请输入评论ID';
+      return;
+    }
+    msgLike.textContent = '点赞中...';
+    likeCountDisplay.textContent = '';
+    try {
+      const res = await fetch(`${API_BASE}/api/comment/like`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productCommentId: commentId })
+      });
+      const json = await res.json().catch(()=>({}));
+      if (!res.ok) {
+        throw new Error(json?.message || res.statusText);
+      }
+      const count = json?.data?.commentLikeCount;
+      if (count !== undefined) {
+        likeCountDisplay.textContent = `当前点赞数：${count}`;
+      }
+      msgLike.textContent = json?.message || '点赞成功';
+    } catch (err) {
+      msgLike.textContent = `点赞失败：${err.message || '网络错误'}`;
+    }
+  };
+}
+
+// ---------------- 删除评论 ----------------
+const formDeleteComment = document.getElementById('form-delete-comment');
+const msgDeleteComment = document.getElementById('msg-delete-comment');
+if (formDeleteComment) {
+  formDeleteComment.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const currentUserId = getCurrentUserId();
+    if (!currentUserId) {
+      msgDeleteComment.textContent = '未获取到用户ID，请重新登录后再试';
+      return;
+    }
+    const payload = {
+      productCommentId: parseInt(document.getElementById('delete-comment-id').value, 10),
+      userId: currentUserId
+    };
+    if (!payload.productCommentId) {
+      msgDeleteComment.textContent = '请输入评论ID';
+      return;
+    }
+    msgDeleteComment.textContent = '删除中...';
+    try {
+      const res = await fetch(`${API_BASE}/api/comment/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json().catch(()=>({}));
+      if (!res.ok) {
+        throw new Error(json?.message || res.statusText);
+      }
+      msgDeleteComment.textContent = json?.message || '评论已成功删除';
+      formDeleteComment.reset();
+    } catch (err) {
+      msgDeleteComment.textContent = `删除失败：${err.message || '网络错误'}`;
+    }
+  });
+}
+
+// ---------------- 发布评论 ----------------
+const formAddComment = document.getElementById('form-add-comment');
+const msgComment = document.getElementById('msg-comment');
+if (formAddComment) {
+  formAddComment.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const currentUserId = getCurrentUserId();
+    if (!currentUserId) {
+      msgComment.textContent = '未获取到用户ID，请重新登录后再试';
+      return;
+    }
+    const rootCommentId = document.getElementById('comment-rootId').value.trim();
+    const payload = {
+      content: document.getElementById('comment-content').value.trim(),
+      sendTime: new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\//g, '-'),
+      userId: currentUserId,
+      productId: parseInt(document.getElementById('comment-productId').value, 10),
+      rootCommentId: rootCommentId ? parseInt(rootCommentId, 10) : null
+    };
+    if (!payload.content || !payload.productId) {
+      msgComment.textContent = '请完善评论信息';
+      return;
+    }
+    msgComment.textContent = '提交中...';
+    try {
+      const res = await fetch(`${API_BASE}/api/comment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json().catch(()=>({}));
+      if (!res.ok) {
+        throw new Error(json?.message || res.statusText);
+      }
+      msgComment.textContent = json?.message || '评论发布成功';
+      formAddComment.reset();
+    } catch (err) {
+      msgComment.textContent = `提交失败：${err.message || '网络错误'}`;
+    }
+  });
+}
+
+// ---------------- 回复评论 ----------------
+const formReplyComment = document.getElementById('form-reply-comment');
+const msgReply = document.getElementById('msg-reply');
+if (formReplyComment) {
+  formReplyComment.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const currentUserId = getCurrentUserId();
+    if (!currentUserId) {
+      msgReply.textContent = '未获取到用户ID，请重新登录后再试';
+      return;
+    }
+    const payload = {
+      content: document.getElementById('reply-content').value.trim(),
+      sendTime: new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\//g, '-'),
+      userId: currentUserId,
+      productId: parseInt(document.getElementById('reply-productId').value, 10),
+      rootCommentId: parseInt(document.getElementById('reply-rootId').value, 10),
+      toCommentId: parseInt(document.getElementById('reply-toId').value, 10)
+    };
+    if (!payload.content || !payload.productId || !payload.rootCommentId || !payload.toCommentId) {
+      msgReply.textContent = '请完善回复信息';
+      return;
+    }
+    msgReply.textContent = '提交中...';
+    try {
+      const res = await fetch(`${API_BASE}/api/comment/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json().catch(()=>({}));
+      if (!res.ok) {
+        throw new Error(json?.message || res.statusText);
+      }
+      msgReply.textContent = json?.message || '回复发布成功';
+      formReplyComment.reset();
+    } catch (err) {
+      msgReply.textContent = `提交失败：${err.message || '网络错误'}`;
+    }
+  });
 }
 

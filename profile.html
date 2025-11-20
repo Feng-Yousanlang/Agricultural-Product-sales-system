@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人中心</title>
+    <link rel="stylesheet" href="index.css">
+    <style>
+        .profile-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .profile-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .profile-section {
+            margin-bottom: 40px;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .profile-section h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            border-left: 4px solid #3498db;
+            padding-left: 10px;
+        }
+        .profile-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+        .info-item label {
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        .info-item span {
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .list-item {
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            background: #f9f9f9;
+        }
+        .list-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .list-item-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<header class="topbar">
+    <div class="brand">三农服务平台</div>
+    <nav class="nav">
+        <a href="index.html">首页</a>
+    </nav>
+    <div class="user">
+        <span id="user-id-display" class="user-id"></span>
+        <button id="btn-logout" class="btn">退出登录</button>
+    </div>
+</header>
+
+<main class="profile-container">
+    <div class="profile-header">
+        <h1>个人中心</h1>
+        <a href="index.html" class="btn btn-secondary">返回首页</a>
+    </div>
+
+    <!-- 1. 基础信息管理（所有角色可见） -->
+    <section id="profile-basic" class="profile-section">
+        <h2>基础信息管理</h2>
+        <div id="profile-display" class="profile-info">
+            <div class="info-item">
+                <label>用户ID</label>
+                <span id="display-userId">—</span>
+            </div>
+            <div class="info-item">
+                <label>用户名</label>
+                <span id="display-username">—</span>
+            </div>
+            <div class="info-item">
+                <label>身份</label>
+                <span id="display-identity">—</span>
+            </div>
+            <div class="info-item">
+                <label>真实姓名</label>
+                <span id="display-realName">—</span>
+            </div>
+            <div class="info-item">
+                <label>手机号</label>
+                <span id="display-phone">—</span>
+            </div>
+            <div class="info-item">
+                <label>邮箱</label>
+                <span id="display-email">—</span>
+            </div>
+            <div class="info-item">
+                <label>注册时间</label>
+                <span id="display-createTime">—</span>
+            </div>
+        </div>
+        <button id="btn-edit-profile" class="btn">编辑个人信息</button>
+        <div id="profile-edit-form" class="hidden" style="margin-top: 20px;">
+            <form id="form-edit-profile">
+                <div class="form-group">
+                    <label for="edit-realName">真实姓名</label>
+                    <input type="text" id="edit-realName">
+                </div>
+                <div class="form-group">
+                    <label for="edit-phone">手机号</label>
+                    <input type="text" id="edit-phone">
+                </div>
+                <div class="form-group">
+                    <label for="edit-email">邮箱</label>
+                    <input type="email" id="edit-email">
+                </div>
+                <div class="form-group">
+                    <label for="edit-avatarUrl">头像URL</label>
+                    <input type="text" id="edit-avatarUrl" placeholder="输入图片链接">
+                </div>
+                <div class="btn-group">
+                    <button type="submit" class="btn">保存</button>
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-edit">取消</button>
+                </div>
+                <div class="msg" id="msg-profile-edit"></div>
+            </form>
+        </div>
+    </section>
+
+    <!-- 2. 收货地址管理（仅买家可见） -->
+    <section id="profile-addresses" class="profile-section hidden" data-identity="2">
+        <h2>收货地址管理</h2>
+        <button id="btn-add-address" class="btn" style="margin-bottom: 15px;">新增地址</button>
+        <div id="address-list"></div>
+        <div id="address-form" class="hidden" style="margin-top: 20px;">
+            <form id="form-address">
+                <input type="hidden" id="address-id">
+                <div class="form-group">
+                    <label for="address-receiver">收货人姓名</label>
+                    <input type="text" id="address-receiver" required>
+                </div>
+                <div class="form-group">
+                    <label for="address-phone">收货人电话</label>
+                    <input type="text" id="address-phone" required>
+                </div>
+                <div class="form-group">
+                    <label for="address-province">省份</label>
+                    <input type="text" id="address-province" required>
+                </div>
+                <div class="form-group">
+                    <label for="address-city">城市</label>
+                    <input type="text" id="address-city" required>
+                </div>
+                <div class="form-group">
+                    <label for="address-detail">详细地址</label>
+                    <textarea id="address-detail" rows="3" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="address-isDefault"> 设为默认地址
+                    </label>
+                </div>
+                <div class="btn-group">
+                    <button type="submit" class="btn">保存</button>
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-address">取消</button>
+                </div>
+                <div class="msg" id="msg-address"></div>
+            </form>
+        </div>
+    </section>
+
+    <!-- 3. 密码管理（所有角色可见） -->
+    <section id="profile-password" class="profile-section">
+        <h2>密码管理</h2>
+        <form id="form-change-password">
+            <div class="form-group">
+                <label for="old-password">原密码</label>
+                <input type="password" id="old-password" required>
+            </div>
+            <div class="form-group">
+                <label for="new-password">新密码</label>
+                <input type="password" id="new-password" required>
+            </div>
+            <div class="form-group">
+                <label for="confirm-password">确认新密码</label>
+                <input type="password" id="confirm-password" required>
+            </div>
+            <button type="submit" class="btn">修改密码</button>
+            <div class="msg" id="msg-password"></div>
+        </form>
+    </section>
+
+    <!-- 4. 融资相关管理（仅农户可见） -->
+    <section id="profile-financing" class="profile-section hidden" data-identity="1">
+        <h2>融资相关管理</h2>
+        <div class="form-inline" style="margin-bottom: 15px;">
+            <select id="financing-status-filter">
+                <option value="">全部状态</option>
+                <option value="1">已提交</option>
+                <option value="2">已打回</option>
+                <option value="3">已审核</option>
+                <option value="4">已还款</option>
+                <option value="5">已逾期</option>
+            </select>
+            <button id="btn-load-financing" class="btn btn-secondary">查询</button>
+        </div>
+        <div id="financing-list"></div>
+        <div class="msg" id="msg-financing"></div>
+    </section>
+
+    <!-- 5. 订单管理 -->
+    <section id="profile-orders-purchased" class="profile-section hidden" data-identity="2">
+        <h2>我买到的订单</h2>
+        <div class="form-inline" style="margin-bottom: 15px;">
+            <select id="purchased-status-filter">
+                <option value="">全部状态</option>
+                <option value="1">待支付</option>
+                <option value="2">待发货</option>
+                <option value="3">待收货</option>
+                <option value="4">已完成</option>
+                <option value="5">已取消</option>
+            </select>
+            <button id="btn-load-purchased" class="btn btn-secondary">查询</button>
+        </div>
+        <div id="purchased-list"></div>
+        <div class="msg" id="msg-purchased"></div>
+    </section>
+
+    <section id="profile-orders-sold" class="profile-section hidden" data-identity="1">
+        <h2>我卖出的订单</h2>
+        <div class="form-inline" style="margin-bottom: 15px;">
+            <select id="sold-status-filter">
+                <option value="">全部状态</option>
+                <option value="1">待付款</option>
+                <option value="2">待发货</option>
+                <option value="3">待收货</option>
+                <option value="4">已完成</option>
+                <option value="5">已取消</option>
+            </select>
+            <button id="btn-load-sold" class="btn btn-secondary">查询</button>
+        </div>
+        <div id="sold-list"></div>
+        <div class="msg" id="msg-sold"></div>
+    </section>
+
+    <!-- 6. 发布管理（仅农户可见） -->
+    <section id="profile-releases" class="profile-section hidden" data-identity="1">
+        <h2>发布管理</h2>
+        <div class="form-inline" style="margin-bottom: 15px;">
+            <select id="release-type-filter">
+                <option value="1">农产品商品</option>
+                <option value="2">求购需求</option>
+            </select>
+            <select id="release-status-filter">
+                <option value="">全部状态</option>
+                <option value="1">上架</option>
+                <option value="2">下架</option>
+            </select>
+            <button id="btn-load-releases" class="btn btn-secondary">查询</button>
+        </div>
+        <div id="releases-list"></div>
+        <div class="msg" id="msg-releases"></div>
+    </section>
+
+    <!-- 7. 专家预约管理（仅农户可见） -->
+    <section id="profile-appointments" class="profile-section hidden" data-identity="1">
+        <h2>专家预约管理</h2>
+        <div class="form-inline" style="margin-bottom: 15px;">
+            <select id="appointment-status-filter">
+                <option value="">全部状态</option>
+                <option value="1">待审核</option>
+                <option value="2">已通过</option>
+                <option value="3">已拒绝</option>
+                <option value="4">已完成</option>
+                <option value="5">已取消</option>
+            </select>
+            <button id="btn-load-appointments" class="btn btn-secondary">查询</button>
+        </div>
+        <div id="appointments-list"></div>
+        <div class="msg" id="msg-appointments"></div>
+    </section>
+
+    <!-- 8. 权限专属功能 -->
+    <section id="profile-bank-records" class="profile-section hidden" data-identity="4">
+        <h2>贷款审批记录</h2>
+        <div class="form-inline" style="margin-bottom: 15px;">
+            <input type="text" id="bank-time-range" placeholder="时间范围（可选）">
+            <button id="btn-load-bank-records" class="btn btn-secondary">查询</button>
+        </div>
+        <div id="bank-records-list"></div>
+        <div class="msg" id="msg-bank-records"></div>
+    </section>
+
+    <section id="profile-admin-users" class="profile-section hidden" data-identity="5">
+        <h2>用户管理（管理员）</h2>
+        <div class="form-inline" style="margin-bottom: 15px;">
+            <select id="admin-user-identity-filter">
+                <option value="">全部角色</option>
+                <option value="1">农户</option>
+                <option value="2">买家</option>
+                <option value="3">专家</option>
+                <option value="4">银行</option>
+                <option value="5">管理员</option>
+            </select>
+            <button id="btn-load-admin-users" class="btn btn-secondary">查询</button>
+        </div>
+        <div id="admin-users-list"></div>
+        <div class="msg" id="msg-admin-users"></div>
+    </section>
+
+    <section id="profile-admin-products" class="profile-section hidden" data-identity="5">
+        <h2>商品管理（管理员）</h2>
+        <div class="form-inline" style="margin-bottom: 15px;">
+            <select id="admin-product-status-filter">
+                <option value="">全部状态</option>
+                <option value="1">待审核</option>
+                <option value="2">已审核</option>
+                <option value="3">已下架</option>
+            </select>
+            <button id="btn-load-admin-products" class="btn btn-secondary">查询</button>
+        </div>
+        <div id="admin-products-list"></div>
+        <div class="msg" id="msg-admin-products"></div>
+    </section>
+</main>
+
+<script src="profile.js"></script>
+</body>
+</html>
+

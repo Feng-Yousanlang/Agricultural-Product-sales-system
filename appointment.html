@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>专家预约服务</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+<header class="topbar">
+    <div class="brand">三农服务平台</div>
+    <nav class="nav">
+        <a href="index.html">首页</a>
+        <a href="loans.html">融资服务</a>
+        <a href="appointment.html" style="background:rgba(255,255,255,0.2);color:#fff;">预约服务</a>
+    </nav>
+    <div class="user">
+        <span id="user-id-display" class="user-id"></span>
+        <a href="profile.html" class="btn btn-secondary" style="margin-right:8px;">个人中心</a>
+        <button id="btn-logout" class="btn">退出登录</button>
+    </div>
+</header>
+
+<main class="container">
+    <section id="expert-appointment-user" class="card">
+        <div class="card-header">
+            <h2>专家预约（用户端）</h2>
+        </div>
+        <div class="two-col">
+            <form id="form-appointment-create" class="form">
+                <h3>提交预约</h3>
+                <div class="row"><label for="appointment-expertName">专家姓名</label><input type="text" id="appointment-expertName" placeholder="请输入专家姓名" required></div>
+                <div class="row"><label for="appointment-date">日期</label><input type="date" id="appointment-date" required></div>
+                <div class="row"><label for="appointment-time">时间段</label><input type="text" id="appointment-time" placeholder="09:00-10:00" required></div>
+                <div class="row"><label for="appointment-topic">主题</label><input type="text" id="appointment-topic" required></div>
+                <div class="row"><label for="appointment-remark">备注</label><input type="text" id="appointment-remark"></div>
+                <button type="submit" class="btn">提交预约</button>
+                <div class="msg" id="msg-appointment-create"></div>
+            </form>
+            <div class="form-stack">
+                <div>
+                    <h3>我的预约</h3>
+                    <button id="btn-load-user-appointments" class="btn btn-secondary" style="margin-bottom:8px;">刷新我的预约</button>
+                    <div class="list" id="user-appointments-list"></div>
+                    <div class="msg" id="msg-user-appointments"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<script src="appointment.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>贷款服务中心</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+<header class="topbar">
+    <div class="brand">三农服务平台</div>
+    <nav class="nav">
+        <a href="index.html">首页</a>
+        <a href="loans.html" style="background:rgba(255,255,255,0.2);color:#fff;">融资服务</a>
+        <a href="appointment.html">预约服务</a>
+    </nav>
+    <div class="user">
+        <span id="user-id-display" class="user-id"></span>
+        <a href="profile.html" class="btn btn-secondary" style="margin-right:8px;">个人中心</a>
+        <button id="btn-logout" class="btn">退出登录</button>
+    </div>
+</header>
+
+<main class="container">
+    <section id="loan-apply" class="card">
+        <div class="card-header">
+            <h2>贷款申请</h2>
+        </div>
+        <form id="form-loan-apply" autocomplete="off" class="form">
+            <div class="row">
+                <label for="apply-productName">产品名称</label>
+                <input type="text" id="apply-productName" required>
+            </div>
+            <div class="row">
+                <label for="apply-amount">金额</label>
+                <input type="number" id="apply-amount" required>
+            </div>
+            <div class="row">
+                <label for="apply-term">期限(月)</label>
+                <input type="number" id="apply-term" required>
+            </div>
+            <div class="row">
+                <label for="apply-document">资质材料（单文件）</label>
+                <input type="file" id="apply-document" accept=".pdf,.jpg,.png,.jpeg,.doc,.docx">
+            </div>
+            <button type="submit" class="btn">提交申请</button>
+            <div class="msg" id="msg-loan-apply"></div>
+        </form>
+    </section>
+
+    <section id="loan-applications" class="card">
+        <div class="card-header">
+            <h2>我的申请</h2>
+            <button id="btn-load-applications" class="btn btn-secondary">刷新</button>
+        </div>
+        <div class="list" id="applications-list"></div>
+        <div class="msg" id="msg-applications"></div>
+    </section>
+
+    <section id="loan-repay" class="card">
+        <div class="card-header">
+            <h2>还款管理</h2>
+        </div>
+        <div class="two-col">
+            <div>
+                <h3 style="margin:6px 0;">还款计划</h3>
+                <div class="form-inline">
+                    <input type="number" id="plan-applicationId" placeholder="申请ID">
+                    <button id="btn-load-plan" class="btn btn-secondary">查询计划</button>
+                </div>
+                <div class="list" id="plan-list"></div>
+                <div class="msg" id="msg-plan"></div>
+                <div class="divider"></div>
+                <h3 style="margin:6px 0;">还款历史</h3>
+                <div class="form-inline">
+                    <input type="number" id="history-userId" placeholder="用户ID">
+                    <button id="btn-load-repayments" class="btn btn-secondary">查询历史</button>
+                </div>
+                <div class="list" id="repayments-list"></div>
+                <div class="msg" id="msg-repayments"></div>
+            </div>
+            <div>
+                <h3 style="margin:6px 0;">提交还款</h3>
+                <form id="form-repay" autocomplete="off" class="form">
+                    <div class="row">
+                        <label for="repay-applicationId">申请ID</label>
+                        <input type="number" id="repay-applicationId" required>
+                    </div>
+                    <div class="row">
+                        <label for="repay-amount">金额</label>
+                        <input type="number" id="repay-amount" required>
+                    </div>
+                    <div class="row">
+                        <label for="repay-date">日期</label>
+                        <input type="date" id="repay-date" required>
+                    </div>
+                    <button type="submit" class="btn">提交</button>
+                    <div class="msg" id="msg-repay"></div>
+                </form>
+            </div>
+        </div>
+    </section>
+</main>
+
+<script src="loans.js"></script>
+</body>
+</html>
+

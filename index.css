@@ -98,6 +98,13 @@ body {
     page-break-inside: avoid;
     margin-bottom: 16px;
     display: block;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transform-origin: center center;
+}
+
+.card:hover {
+    transform: scale(1.02);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
 }
 
 .card-header {
