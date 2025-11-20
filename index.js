@@ -29,6 +29,11 @@ function escapeAttr(value) {
     .replace(/>/g, '&gt;');
 }
 
+function formatMultilineText(value) {
+  if (value === null || value === undefined) return '';
+  return escapeAttr(value).replace(/\n/g, '<br>');
+}
+
 // 登录校验：无token则跳回登录页
 (function checkAuth() {
   try {
@@ -983,6 +988,57 @@ function resolveProductImage(url) {
 const productCatalogList = document.getElementById('product-catalog-list');
 const msgProductCatalog = document.getElementById('msg-product-catalog');
 const btnRefreshProducts = document.getElementById('btn-refresh-products');
+const selectedProductInfo = document.getElementById('selected-product-info');
+const productCommentList = document.getElementById('product-comment-list');
+const msgSelectedProduct = document.getElementById('msg-selected-product');
+const msgProductComments = document.getElementById('msg-product-comments');
+
+const PRODUCT_ID_INPUTS = [
+  'cart-productId',
+  'purchase-productId',
+  'comment-productId',
+  'reply-productId'
+];
+const PRODUCT_PRICE_INPUTS = [
+  'purchase-money',
+  'cart-money'
+];
+
+let latestProductCatalog = [];
+let selectedProductCard = null;
+const childCommentCache = new Map();
+
+function populateProductIdInputs(productId) {
+  if (!productId) return;
+  PRODUCT_ID_INPUTS.forEach(id=>{
+    const input = document.getElementById(id);
+    if (input) {
+      input.value = productId;
+    }
+  });
+}
+
+function populateProductPriceInputs(productPrice) {
+  if (productPrice === undefined || productPrice === null || productPrice === '') return;
+  if (Number.isNaN(Number(productPrice))) return;
+  PRODUCT_PRICE_INPUTS.forEach(id=>{
+    const input = document.getElementById(id);
+    if (input && !input.value) {
+      input.value = productPrice;
+    }
+  });
+}
+
+function resetProductDetailSection() {
+  if (selectedProductCard) {
+    selectedProductCard.classList.remove('selected');
+    selectedProductCard = null;
+  }
+  if (selectedProductInfo) selectedProductInfo.innerHTML = '';
+  if (productCommentList) productCommentList.innerHTML = '';
+  if (msgSelectedProduct) msgSelectedProduct.textContent = '请选择商品查看详情与评论';
+  if (msgProductComments) msgProductComments.textContent = '';
+}
 
 function pickProductsFromResponse(json) {
   if (!json) return null;
@@ -1031,6 +1087,7 @@ async function requestProductCatalog() {
 
 function renderProductCatalog(list) {
   if (!productCatalogList) return;
+  latestProductCatalog = Array.isArray(list) ? list : [];
   if (!Array.isArray(list) || !list.length) {
     productCatalogList.innerHTML = '<div class="empty">暂无商品</div>';
     return;
@@ -1044,7 +1101,12 @@ function renderProductCatalog(list) {
     const img = item.productImg || item.imageUrl || item.imgUrl || '';
     const safeImg = resolveProductImage(img);
     const fallbackImg = escapeAttr(DEFAULT_PRODUCT_IMAGE);
-    return `<div class="product">
+    const safeProductId = productId !== undefined && productId !== null ? String(productId) : '';
+    const productIdAttr = safeProductId ? ` data-product-id="${escapeAttr(safeProductId)}"` : '';
+    const priceValue = price ?? '';
+    const priceAttr = (priceValue !== '' && priceValue !== null && priceValue !== undefined)
+      ? ` data-product-price="${escapeAttr(priceValue)}"` : '';
+    return `<div class="product" data-product-card="true"${productIdAttr}${priceAttr}>
       <div class="name">${item.productName || item.name || '未命名商品'}</div>
       <div>商品ID：${productId || '—'}</div>
       <div>价格：${price !== '' ? `¥${price}` : '—'}</div>
@@ -1052,9 +1114,184 @@ function renderProductCatalog(list) {
       <div>销量：${sales}</div>
       <div>产地/商家：${producer}</div>
       <div class="thumb"><img src="${safeImg}" alt="${escapeAttr(item.productName || '')}" onerror="this.onerror=null;this.src='${fallbackImg}'"></div>
-      ${productId ? `<button class="btn btn-secondary btn-fill-product" data-product-id="${productId}" data-product-price="${price ?? ''}">将ID填入表单</button>` : ''}
+      ${safeProductId ? `<button class="btn btn-secondary btn-fill-product" data-product-id="${escapeAttr(safeProductId)}" data-product-price="${priceValue !== '' ? escapeAttr(priceValue) : ''}">将ID填入表单</button>` : ''}
     </div>`;
   }).join('');
+}
+
+function highlightProductCard(card) {
+  if (!card) return;
+  if (selectedProductCard && selectedProductCard !== card) {
+    selectedProductCard.classList.remove('selected');
+  }
+  selectedProductCard = card;
+  card.classList.add('selected');
+}
+
+async function loadProductDetailAndComments(productId) {
+  if (!selectedProductInfo || !msgSelectedProduct || !productCommentList || !msgProductComments) return;
+  if (!productId) {
+    resetProductDetailSection();
+    msgSelectedProduct.textContent = '该商品缺少ID，无法加载详情';
+    return;
+  }
+  selectedProductInfo.innerHTML = '';
+  productCommentList.innerHTML = '';
+  msgSelectedProduct.textContent = '加载商品详情中...';
+  msgProductComments.textContent = '加载评论中...';
+  try {
+    const res = await fetch(`${API_BASE}/api/commentarea?productId=${encodeURIComponent(productId)}`);
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+    const json = await res.json();
+    const data = json?.data || null;
+    if (!data || typeof data !== 'object') {
+      throw new Error('未获取到商品数据');
+    }
+    renderSelectedProductDetail(data);
+    const comments = Array.isArray(data.productComment)
+      ? data.productComment
+      : (Array.isArray(data.comments) ? data.comments : []);
+    renderProductComments(comments);
+    msgSelectedProduct.textContent = '';
+    msgProductComments.textContent = comments.length ? '' : '暂无评论';
+  } catch (err) {
+    selectedProductInfo.innerHTML = '';
+    productCommentList.innerHTML = '';
+    msgSelectedProduct.textContent = `加载失败：${err.message || '网络错误'}`;
+    msgProductComments.textContent = '';
+  }
+}
+
+function renderSelectedProductDetail(data) {
+  if (!selectedProductInfo) return;
+  const name = data.productName || data.name || '未命名商品';
+  const productId = data.productId ?? data.id ?? '—';
+  const producer = data.producer || data.origin || data.owner || '—';
+  const userId = data.userId ?? data.ownerId ?? data.farmerId ?? '—';
+  const price = data.price ?? data.productPrice ?? '—';
+  const surplus = data.surplus ?? data.stock ?? '—';
+  const sales = data.salesVolumn ?? data.salesVolume ?? data.sales ?? '—';
+  const img = data.productImg || data.imageUrl || data.imgUrl || '';
+  const desc = data.description || data.productDesc || '';
+  const safeImg = resolveProductImage(img);
+  const fallbackImg = escapeAttr(DEFAULT_PRODUCT_IMAGE);
+  selectedProductInfo.innerHTML = `
+    <div class="product-detail-banner">
+      <img src="${safeImg}" alt="${escapeAttr(name)}" onerror="this.onerror=null;this.src='${fallbackImg}'">
+      <div>
+        <h3>${escapeAttr(name)}</h3>
+        <div class="product-detail-info">
+          <div><strong>商品ID：</strong>${escapeAttr(productId)}</div>
+          <div><strong>所属农户ID：</strong>${escapeAttr(userId)}</div>
+          <div><strong>商家/产地：</strong>${escapeAttr(producer)}</div>
+          <div><strong>单价：</strong>${price !== '—' ? `¥${escapeAttr(price)}` : '—'}</div>
+          <div><strong>剩余量：</strong>${escapeAttr(surplus)}</div>
+          <div><strong>销量：</strong>${escapeAttr(sales)}</div>
+        </div>
+        ${desc ? `<p>${formatMultilineText(desc)}</p>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function renderProductComments(list) {
+  if (!productCommentList) return;
+  if (!Array.isArray(list) || !list.length) {
+    productCommentList.innerHTML = '<div class="empty">暂无评论</div>';
+    if (msgProductComments) {
+      msgProductComments.textContent = '暂无评论';
+    }
+    return;
+  }
+  productCommentList.innerHTML = list.map(renderSingleComment).join('');
+  if (msgProductComments) {
+    msgProductComments.textContent = '';
+  }
+}
+
+function renderSingleComment(item) {
+  const commentId = item.productCommentId ?? item.commentId ?? item.id ?? '';
+  const userId = item.userId ?? '—';
+  const sendTime = item.sendTime || item.createdTime || item.createTime || '—';
+  const likeCount = item.commentLikeCount ?? item.likeCount ?? 0;
+  const content = item.content ? formatMultilineText(item.content) : '（无内容）';
+  const btnLoadChild = commentId
+    ? `<button class="btn btn-secondary btn-load-child" data-comment-id="${escapeAttr(commentId)}">查看子评论</button>`
+    : '';
+  return `<div class="comment-item" ${commentId ? `data-comment-id="${escapeAttr(commentId)}"` : ''}>
+    <div class="comment-content">${content}</div>
+    <div class="comment-meta">
+      <span>评论ID：${commentId || '—'}</span>
+      <span>用户ID：${escapeAttr(userId)}</span>
+      <span>时间：${escapeAttr(sendTime)}</span>
+      <span>点赞数：${escapeAttr(likeCount)}</span>
+    </div>
+    <div class="comment-actions">
+      ${btnLoadChild}
+    </div>
+    <div class="child-comments" ${commentId ? `data-child-container="${escapeAttr(commentId)}"` : ''}></div>
+  </div>`;
+}
+
+function renderChildCommentList(list) {
+  if (!Array.isArray(list) || !list.length) {
+    return '<div class="empty">暂无子评论</div>';
+  }
+  return list.map(item=>{
+    const childContent = item.content ? formatMultilineText(item.content) : '（无内容）';
+    const sendTime = item.sendTime || item.createdTime || item.createTime || '—';
+    const userId = item.userId ?? '—';
+    const likeCount = item.commentLikeCount ?? item.likeCount ?? 0;
+    const commentId = item.productCommentId ?? item.commentId ?? item.id ?? '—';
+    return `<div class="child-comment">
+      <div class="comment-content">${childContent}</div>
+      <div class="comment-meta">
+        <span>评论ID：${escapeAttr(commentId)}</span>
+        <span>用户ID：${escapeAttr(userId)}</span>
+        <span>时间：${escapeAttr(sendTime)}</span>
+        <span>点赞数：${escapeAttr(likeCount)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function normalizeChildComments(json) {
+  if (!json) return [];
+  if (Array.isArray(json)) return json;
+  if (Array.isArray(json.data)) return json.data;
+  if (Array.isArray(json.data?.data)) return json.data.data;
+  if (Array.isArray(json.data?.records)) return json.data.records;
+  if (Array.isArray(json.data?.list)) return json.data.list;
+  if (Array.isArray(json.data?.items)) return json.data.items;
+  if (json.data && json.data.productCommentId) return [json.data];
+  if (json.productCommentId) return [json];
+  return [];
+}
+
+async function loadChildComments(commentId, container, triggerBtn) {
+  if (!commentId || !container) return;
+  container.innerHTML = '<div class="msg">子评论加载中...</div>';
+  try {
+    let list = childCommentCache.get(commentId);
+    if (!list) {
+      const res = await fetch(`${API_BASE}/api/comment/childcomment?product_comment_id=${encodeURIComponent(commentId)}`);
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const json = await res.json();
+      list = normalizeChildComments(json);
+      childCommentCache.set(commentId, list);
+    }
+    container.innerHTML = renderChildCommentList(list);
+    if (triggerBtn) {
+      triggerBtn.textContent = '子评论已加载';
+      triggerBtn.disabled = true;
+    }
+  } catch (err) {
+    container.innerHTML = `<div class="msg">加载失败：${escapeAttr(err.message || '网络错误')}</div>`;
+  }
 }
 
 async function loadAgriculturalProducts(showLoading = true) {
@@ -1066,6 +1303,7 @@ async function loadAgriculturalProducts(showLoading = true) {
   try {
     const list = await requestProductCatalog();
     renderProductCatalog(list);
+    resetProductDetailSection();
     msgProductCatalog.textContent = '';
   } catch (err) {
     productCatalogList.innerHTML = '';
@@ -1080,28 +1318,42 @@ if (btnRefreshProducts) {
 if (productCatalogList) {
   productCatalogList.addEventListener('click', (e)=>{
     const btn = e.target.closest('.btn-fill-product');
-    if (!btn) return;
-    const { productId, productPrice } = btn.dataset;
-    const idsToFill = [
-      'cart-productId',
-      'purchase-productId',
-      'comment-productId',
-      'reply-productId'
-    ];
-    idsToFill.forEach(id=>{
-      const input = document.getElementById(id);
-      if (input && productId) {
-        input.value = productId;
+    if (btn) {
+      e.stopPropagation();
+      const { productId, productPrice } = btn.dataset;
+      populateProductIdInputs(productId);
+      populateProductPriceInputs(productPrice);
+      return;
+    }
+    const card = e.target.closest('.product[data-product-card="true"]');
+    if (!card) return;
+    const productId = card.getAttribute('data-product-id');
+    const productPrice = card.getAttribute('data-product-price');
+    if (productId) {
+      highlightProductCard(card);
+      populateProductIdInputs(productId);
+      loadProductDetailAndComments(productId);
+    } else {
+      resetProductDetailSection();
+      if (msgSelectedProduct) {
+        msgSelectedProduct.textContent = '该商品缺少ID，无法加载详情';
       }
-    });
-    if (productPrice !== undefined && productPrice !== '' && !Number.isNaN(Number(productPrice))) {
-      const purchaseMoney = document.getElementById('purchase-money');
-      const cartMoney = document.getElementById('cart-money');
-      if (purchaseMoney && !purchaseMoney.value) purchaseMoney.value = productPrice;
-      if (cartMoney && !cartMoney.value) cartMoney.value = productPrice;
+    }
+    if (productPrice) {
+      populateProductPriceInputs(productPrice);
     }
   });
   loadAgriculturalProducts();
+}
+
+if (productCommentList) {
+  productCommentList.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.btn-load-child');
+    if (!btn) return;
+    const commentId = btn.getAttribute('data-comment-id');
+    const container = btn.closest('.comment-item')?.querySelector('.child-comments');
+    loadChildComments(commentId, container, btn);
+  });
 }
 
 // ---------------- 买家购物车展示 ----------------
@@ -1428,6 +1680,7 @@ if (formAddComment) {
     }
     msgComment.textContent = '提交中...';
     try {
+      console.log('[发布评论] 请求载荷:', payload);
       const res = await fetch(`${API_BASE}/api/comment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
