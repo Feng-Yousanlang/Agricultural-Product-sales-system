@@ -1113,6 +1113,7 @@ function normalizeCartList(json) {
   if (!json) return [];
   if (Array.isArray(json)) return json;
   if (Array.isArray(json.data)) return json.data;
+  if (Array.isArray(json.data?.data)) return json.data.data;
   if (Array.isArray(json.data?.records)) return json.data.records;
   if (Array.isArray(json.data?.list)) return json.data.list;
   if (json.data && Array.isArray(json.data.products)) return json.data.products;
@@ -1156,12 +1157,13 @@ function renderCartDisplay(list) {
   cartDisplayList.innerHTML = list.map(item=>{
     const safeImg = resolveProductImage(item.productImg || item.imageUrl);
     const fallbackImg = escapeAttr(DEFAULT_PRODUCT_IMAGE);
-    const singlePrice = item.price ?? item.productPrice ?? '—';
-    const totalPrice = item.total_price ?? item.totalPrice ?? (singlePrice !== '—' && item.amount ? singlePrice * item.amount : '—');
+    const singlePrice = item.price ?? item.productPrice ?? item.unitPrice ?? '—';
+    const quantity = item.amount ?? item.quantity ?? item.count ?? '—';
+    const totalPrice = item.totalPrice ?? item.total_price ?? ((singlePrice !== '—' && quantity !== '—') ? Number(singlePrice) * Number(quantity) : '—');
     return `<div class="product">
       <div class="name">${item.productName || '未命名商品'}</div>
       <div>发售商：${item.producer || '—'}</div>
-      <div>数量：${item.amount ?? '—'}</div>
+      <div>数量：${quantity}</div>
       <div>单价：${singlePrice !== '—' ? `¥${singlePrice}` : '—'}</div>
       <div>总价：${totalPrice !== '—' ? `¥${totalPrice}` : '—'}</div>
       <div class="thumb"><img src="${safeImg}" alt="${escapeAttr(item.productName || '')}" onerror="this.onerror=null;this.src='${fallbackImg}'"></div>
@@ -1187,14 +1189,19 @@ function renderOrdersDisplay(list) {
   ordersDisplayList.innerHTML = list.map(item=>{
     const safeImg = resolveProductImage(item.productImg || item.imageUrl);
     const fallbackImg = escapeAttr(DEFAULT_PRODUCT_IMAGE);
-    const singlePrice = item.price ?? item.productPrice ?? '—';
-    const totalPrice = item.total_price ?? item.totalPrice ?? (singlePrice !== '—' && item.amount ? singlePrice * item.amount : '—');
+    const singlePrice = item.price ?? item.productPrice ?? item.unitPrice ?? '—';
+    const quantity = item.amount ?? item.quantity ?? item.count ?? '—';
+    const totalPrice = item.totalPrice ?? item.total_price ?? ((singlePrice !== '—' && quantity !== '—') ? Number(singlePrice) * Number(quantity) : '—');
+    const sendAddress = item.sendAddress || item.getAddress || item.address || '';
+    const createTime = item.createTime || item.createdTime || item.orderTime || '';
     return `<div class="product">
       <div class="name">${item.productName || '未命名商品'}</div>
       <div>发售商：${item.producer || '—'}</div>
-      <div>数量：${item.amount ?? '—'}</div>
+      <div>数量：${quantity}</div>
       <div>单价：${singlePrice !== '—' ? `¥${singlePrice}` : '—'}</div>
       <div>总价：${totalPrice !== '—' ? `¥${totalPrice}` : '—'}</div>
+      ${sendAddress ? `<div>收货地址：${escapeAttr(sendAddress)}</div>` : ''}
+      ${createTime ? `<div>创建时间：${escapeAttr(createTime)}</div>` : ''}
       <div class="thumb"><img src="${safeImg}" alt="${escapeAttr(item.productName || '')}" onerror="this.onerror=null;this.src='${fallbackImg}'"></div>
     </div>`;
   }).join('');
