@@ -13,6 +13,7 @@
         <a href="index.html">首页</a>
         <a href="loans.html" style="background:rgba(255,255,255,0.2);color:#fff;">融资服务</a>
         <a href="appointment.html">预约服务</a>
+        <a href="products.html" data-identity="1">农产品服务</a>
     </nav>
     <div class="user">
         <span id="user-id-display" class="user-id"></span>
@@ -22,6 +23,15 @@
 </header>
 
 <main class="container">
+    <section id="loan-products" class="card">
+        <div class="card-header">
+            <h2>贷款产品</h2>
+            <button id="loan-products-refresh" class="btn btn-secondary">刷新</button>
+        </div>
+        <div class="grid" id="loan-products-grid"></div>
+        <div class="msg" id="msg-loan-products"></div>
+    </section>
+
     <section id="loan-apply" class="card">
         <div class="card-header">
             <h2>贷款申请</h2>

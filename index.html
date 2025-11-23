@@ -12,7 +12,7 @@
     <nav class="nav">
         <a href="loans.html" data-identity="1">融资服务</a>
         <a href="appointment.html" data-identity="1">预约服务</a>
-        <a href="farmer-products.html" data-identity="1">农产品服务</a>
+        <a href="products.html" data-identity="1">农产品服务</a>
     </nav>
     <div class="user">
         <span id="user-id-display" class="user-id"></span>
@@ -22,7 +22,7 @@
 </header>
 
 <main class="container">
-    <section id="news" class="card">
+    <section id="news" class="card" data-identity="1">
         <div class="card-header">
             <h2>新闻轮播</h2>
             <button id="news-refresh" class="btn btn-secondary">刷新</button>
@@ -34,7 +34,7 @@
         <div class="msg" id="msg-news"></div>
     </section>
 
-    <section id="products" class="card">
+    <section id="products" class="card" data-identity="1">
         <div class="card-header">
             <h2>金融产品</h2>
             <button id="products-refresh" class="btn btn-secondary">换一批</button>
@@ -43,7 +43,7 @@
         <div class="msg" id="msg-products"></div>
     </section>
 
-    <section id="experts" class="card">
+    <section id="experts" class="card" data-identity="1">
         <div class="card-header">
             <h2>专家列表</h2>
         </div>
@@ -68,7 +68,7 @@
         <div class="detail-box" id="expert-detail-box"></div>
     </section>
 
-    <section id="knowledge" class="card">
+    <section id="knowledge" class="card" data-identity="1">
         <div class="card-header">
             <h2>农业知识库</h2>
             <button id="btn-load-knowledge" class="btn btn-secondary">刷新列表</button>
@@ -100,16 +100,81 @@
         </p>
     </section>
 
-    <!-- 融资服务模块 -->
-    <section id="loan" class="card" data-identity="1">
+    <!-- 专家审批预约（专家端，identity=3） -->
+    <section id="expert-appointment-review" class="card" data-identity="3">
         <div class="card-header">
-            <h2>贷款产品</h2>
-            <button id="loan-products-refresh" class="btn btn-secondary">刷新</button>
+            <h2>专家审批预约</h2>
+            <button id="btn-load-pending-appointments" class="btn btn-secondary">刷新待审批列表</button>
         </div>
-        <div class="grid" id="loan-products-grid"></div>
-        <div class="msg" id="msg-loan-products"></div>
+        <div class="list" id="pending-appointments-list"></div>
+        <div class="msg" id="msg-pending-appointments"></div>
+        <div class="divider"></div>
+        <form id="form-review-appointment" class="form">
+            <h3>审批预约</h3>
+            <div class="row">
+                <label for="review-appointment-id">预约ID</label>
+                <input type="number" id="review-appointment-id" placeholder="请输入预约ID" required>
+            </div>
+            <div class="row">
+                <label for="review-expert-id">专家ID</label>
+                <input type="number" id="review-expert-id" placeholder="自动填充当前用户ID" required>
+            </div>
+            <div class="row">
+                <label for="review-action">审批操作</label>
+                <select id="review-action" required>
+                    <option value="">请选择</option>
+                    <option value="同意">同意</option>
+                    <option value="拒绝">拒绝</option>
+                </select>
+            </div>
+            <div class="row">
+                <label for="review-comment">审批备注（可选）</label>
+                <textarea id="review-comment" rows="3" placeholder="可填写审批同意或拒绝的原因"></textarea>
+            </div>
+            <button type="submit" class="btn">提交审批</button>
+            <div class="msg" id="msg-review-appointment"></div>
+        </form>
     </section>
 
+    <!-- 专家预约日程（专家端，identity=3） -->
+    <section id="expert-appointment-schedule" class="card" data-identity="3">
+        <div class="card-header">
+            <h2>我的预约日程</h2>
+            <button id="btn-load-schedule" class="btn btn-secondary">刷新日程</button>
+        </div>
+        <div class="list" id="schedule-list"></div>
+        <div class="msg" id="msg-schedule"></div>
+    </section>
+
+    <!-- 更新预约状态（专家端，identity=3） -->
+    <section id="expert-update-status" class="card" data-identity="3">
+        <div class="card-header">
+            <h2>更新预约状态</h2>
+        </div>
+        <form id="form-update-status" class="form">
+            <h3>咨询后更新状态</h3>
+            <div class="row">
+                <label for="update-appointment-id">预约ID</label>
+                <input type="number" id="update-appointment-id" placeholder="请输入预约ID" required>
+            </div>
+            <div class="row">
+                <label for="update-expert-id">专家ID</label>
+                <input type="number" id="update-expert-id" placeholder="自动填充当前用户ID" required>
+            </div>
+            <div class="row">
+                <label for="update-status">更新状态</label>
+                <select id="update-status" required>
+                    <option value="">请选择</option>
+                    <option value="completed">已完成</option>
+                    <option value="no_show">农户未到场</option>
+                </select>
+            </div>
+            <button type="submit" class="btn">提交更新</button>
+            <div class="msg" id="msg-update-status"></div>
+        </form>
+    </section>
+
+    <!-- 融资服务模块 -->
     <section id="loan-services" class="card" data-identity="1">
         <div class="card-header">
             <h2>贷款办理 & 还款管理</h2>
@@ -256,7 +321,6 @@
                 <h3>加入购物车</h3>
                 <div class="row"><label for="cart-productId">商品ID</label><input type="number" id="cart-productId" required></div>
                 <div class="row"><label for="cart-amount">购买数量</label><input type="number" id="cart-amount" min="1" value="1" required></div>
-                <div class="row"><label for="cart-money">金额</label><input type="number" step="0.01" id="cart-money" required></div>
                 <div class="row"><label for="cart-address">收货地址</label><input type="text" id="cart-address" placeholder="北京市朝阳区XX街道XX小区" required></div>
                 <button type="submit" class="btn">加入购物车</button>
                 <div class="msg" id="msg-cart"></div>
@@ -265,7 +329,6 @@
                 <h3>直接购买</h3>
                 <div class="row"><label for="purchase-productId">商品ID</label><input type="number" id="purchase-productId" required></div>
                 <div class="row"><label for="purchase-amount">购买数量</label><input type="number" id="purchase-amount" min="1" value="1" required></div>
-                <div class="row"><label for="purchase-money">金额</label><input type="number" step="0.01" id="purchase-money" required></div>
                 <div class="row"><label for="purchase-address">收货地址</label><input type="text" id="purchase-address" placeholder="北京市朝阳区XX街道XX小区" required></div>
                 <button type="submit" class="btn">立即购买</button>
                 <div class="msg" id="msg-purchase"></div>
@@ -340,6 +403,7 @@
 </main>
 
 <script src="index.js"></script>
+<script src="appointment.js"></script>
 </body>
 </html>
 

@@ -5,24 +5,39 @@
 
 body {
     margin: 0;
-    font-family: 'Microsoft YaHei', Arial, sans-serif;
-    background: #f6f7fb;
-    color: #222;
+    font-family: "Georgia", "Times New Roman", "Songti SC", "SimSun", serif;
+    color: #3b2a1a;
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at 0% 0%, rgba(255,255,255,0.7) 0, transparent 55%),
+        radial-gradient(circle at 100% 100%, rgba(196, 140, 83, 0.55) 0, transparent 55%),
+        radial-gradient(circle at 0% 100%, rgba(153, 107, 67, 0.55) 0, transparent 55%),
+        linear-gradient(135deg, #f7ecd3, #e2c9a0);
+    background-attachment: fixed;
 }
 
 /* 顶部导航栏 */
 .topbar {
-    height: 56px;
-    background: #1f6feb;
-    color: #fff;
+    height: 60px;
+    background: linear-gradient(to bottom, #5b3b27, #3f281a);
+    border-bottom: 2px solid rgba(0, 0, 0, 0.35);
+    color: #f9f3e7;
     display: flex;
     align-items: center;
-    padding: 0 16px;
-    gap: 16px;
+    padding: 0 24px;
+    gap: 18px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
 }
 
 .brand {
     font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-size: 18px;
+    font-family: "Garamond", "Georgia", serif;
 }
 
 .nav {
@@ -32,15 +47,19 @@ body {
 }
 
 .nav a {
-    color: #cfe2ff;
+    color: #f2e5cf;
     text-decoration: none;
-    padding: 6px 8px;
-    border-radius: 6px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    border-bottom: 1px solid transparent;
+    transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .nav a:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: #fff;
+    color: #fffaf1;
+    border-bottom-color: #f5c773;
+    background-color: rgba(0, 0, 0, 0.2);
 }
 
 .user {
@@ -56,55 +75,69 @@ body {
 }
 
 .btn {
-    padding: 6px 12px;
-    border: none;
-    border-radius: 6px;
-    background: #f0f6ff;
-    color: #1f6feb;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(107, 70, 35, 0.7);
+    background: linear-gradient(135deg, #f4ddaa, #d9b47b);
+    color: #3b2a1a;
     cursor: pointer;
+    font-size: 13px;
+    letter-spacing: 0.03em;
+    box-shadow: 0 4px 10px rgba(120, 78, 39, 0.4);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease;
 }
 
 .btn-secondary {
-    background: #eaeef3;
-    color: #333;
+    background: linear-gradient(135deg, #e3cfaf, #c3a37b);
+    color: #2f2418;
 }
 
 .btn-danger {
-    background: #ffdad6;
-    color: #b3261e;
+    background: linear-gradient(135deg, #b64b3a, #8b3227);
+    color: #fef1ea;
+    border-color: rgba(97, 33, 24, 0.85);
 }
 
 .btn:hover {
-    filter: brightness(0.95);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(90, 58, 30, 0.6);
+    border-color: rgba(120, 78, 39, 0.95);
 }
 
 /* 主容器 */
 .container {
-    max-width: 1400px;
-    margin: 16px auto;
-    padding: 0 12px;
+    max-width: 1440px;
+    margin: 24px auto 40px;
+    padding: 0 24px 24px;
     column-count: 2;
-    column-gap: 16px;
+    column-gap: 20px;
     column-fill: balance;
 }
 
-/* 卡片样式 */
+/* 卡片样式：羊皮纸卡片 */
 .card {
-    background: #fff;
-    border-radius: 12px;
-    padding: 16px;
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+    background:
+        linear-gradient(145deg, #fbf0d8, #f1e0bf);
+    border-radius: 16px;
+    padding: 18px 18px 16px;
+    box-shadow:
+        0 18px 40px rgba(0, 0, 0, 0.25),
+        0 0 0 1px rgba(133, 88, 44, 0.35);
     break-inside: avoid;
     page-break-inside: avoid;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
     display: block;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease, background 0.25s ease;
     transform-origin: center center;
 }
 
 .card:hover {
-    transform: scale(1.02);
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
+    transform: translateY(-4px);
+    box-shadow:
+        0 24px 60px rgba(0, 0, 0, 0.35),
+        0 0 0 1px rgba(161, 110, 57, 0.55);
+    background:
+        linear-gradient(145deg, #fdf4dd, #f3ddaf);
 }
 
 .card-header {
@@ -200,32 +233,32 @@ body {
     gap: 12px;
 }
 
-/* 产品卡片 */
+/* 产品卡片：复古标签风格 */
 .product {
-    border: 1px solid #eef;
-    border-radius: 10px;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    background: #04f7ee;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid rgba(139, 92, 46, 0.8);
+    border-radius: 14px;
+    padding: 10px 12px;
+    display: grid;
+    grid-template-columns: 1fr auto; /* 左侧信息列 + 右侧图片 */
+    column-gap: 14px;
+    row-gap: 4px;
+    background: linear-gradient(135deg, #f8ecda, #f2ddc2);
+    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease, background 0.22s ease;
 }
 
 .product[data-product-card="true"] {
     cursor: pointer;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .product[data-product-card="true"].selected {
-    border-color: #1f6feb;
-    background: #f5faff;
-    box-shadow: 0 0 0 2px rgba(31, 111, 235, 0.12);
+    border-color: #b7791f;
+    box-shadow: 0 0 0 2px rgba(183, 121, 31, 0.25);
+    background: linear-gradient(135deg, #fdf1d8, #f5e1c0);
 }
 
 .product:hover {
-    transform: scale(1.02);
-    box-shadow: 0 6px 18px rgba(31, 111, 235, 0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(148, 92, 39, 0.35);
 }
 
 .product .name {
@@ -246,6 +279,32 @@ body {
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
+}
+
+/* 农产品卡片内的图片缩略图容器，固定在右侧 */
+.product .thumb {
+    grid-column: 2;
+    grid-row: 1 / -1;          /* 从第一行跨到最后一行，但仍在卡片内部 */
+    width: 100px;
+    height: 100px;             /* 固定缩略图尺寸，所有卡片统一大小 */
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: start;
+}
+
+.product .thumb img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;       /* 等比缩小，完整展示，不会超出框 */
+}
+
+/* 默认将非图片元素放到左侧文本列 */
+.product > :not(.thumb) {
+    grid-column: 1;
 }
 
 .tag {

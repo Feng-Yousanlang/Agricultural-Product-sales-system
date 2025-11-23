@@ -54,6 +54,75 @@ if (logoutBtn) {
   };
 }
 
+// ---------------- 贷款产品 ----------------
+const loanProductsGrid = document.getElementById('loan-products-grid');
+const msgLoanProducts = document.getElementById('msg-loan-products');
+const btnLoanProductsRefresh = document.getElementById('loan-products-refresh');
+
+async function loadLoanProducts(){
+  if (!loanProductsGrid) return;
+  if (msgLoanProducts) msgLoanProducts.textContent = '加载中...';
+  try {
+    const res = await fetch(`${API_BASE}/api/loan/products`);
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+    const json = await res.json();
+    const list = Array.isArray(json?.data)
+      ? json.data
+      : (Array.isArray(json?.products) ? json.products : (Array.isArray(json) ? json : []));
+    renderLoanProducts(list);
+    if (msgLoanProducts) msgLoanProducts.textContent = list.length ? '' : (json?.message || '暂无贷款产品');
+  } catch (err) {
+    renderLoanProducts([]);
+    if (msgLoanProducts) msgLoanProducts.textContent = `加载失败：${err.message || '网络错误'}`;
+  }
+}
+
+function renderLoanProducts(list){
+  if (!loanProductsGrid) return;
+  if (!Array.isArray(list) || !list.length) {
+    loanProductsGrid.innerHTML = '<div class="msg">暂无贷款产品</div>';
+    return;
+  }
+  loanProductsGrid.innerHTML = list.map(p=>{
+    const id = p.productId ?? p.fpId ?? p.id ?? '';
+    const name = p.name || p.fpName || `产品#${id}`;
+    const desc = p.description || p.fpDescription || '';
+    const category = p.category || '—';
+    const maxAmountRaw = p.maxAmount ?? p.max_amount ?? p.max ?? null;
+    const minAmountRaw = p.minAmount ?? p.min_amount ?? p.min ?? null;
+    const hasAmountRange = minAmountRaw !== null || maxAmountRaw !== null;
+    const amountRange = hasAmountRange
+      ? `${(minAmountRaw ?? maxAmountRaw ?? 0)} - ${(maxAmountRaw ?? minAmountRaw ?? 0)}`
+      : '—';
+    const rate = p.interestRate ?? p.annualRate;
+    const term = p.term ?? p.loanTerm ?? '—';
+    return `<div class="product">
+      <div class="name">${name}</div>
+      <div class="desc">${desc}</div>
+      <div>类型：${category}</div>
+      <div>额度范围：${amountRange}</div>
+      <div class="rate">${rate || rate === 0 ? ('年化 ' + rate + '%') : '—'}</div>
+      <div>期限(月)：${term}</div>
+      <div class="tags">${renderTags(p.tags)}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderTags(tags){
+  if (!tags) return '';
+  const arr = Array.isArray(tags) ? tags : String(tags).split(/[,，]/).map(t=>t.trim()).filter(Boolean);
+  return arr.map(t=>`<span class="tag">${t}</span>`).join('');
+}
+
+if (btnLoanProductsRefresh) {
+  btnLoanProductsRefresh.onclick = loadLoanProducts;
+}
+if (loanProductsGrid) {
+  loadLoanProducts();
+}
+
 // ---------------- 贷款申请 ----------------
 const formApply = document.getElementById('form-loan-apply');
 const msgApply = document.getElementById('msg-loan-apply');

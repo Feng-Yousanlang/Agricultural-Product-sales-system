@@ -77,35 +77,23 @@ document.getElementById('btn-logout').onclick = function() {
     const identityNum = parseInt(identity, 10);
     
     const identityElements = document.querySelectorAll('[data-identity]');
-    const defaultSections = document.querySelectorAll('section:not([data-identity])');
     
-    function shouldShow(elementIdentity) {
-      if (identityNum === 1) {
-        return !(elementIdentity === 2 || elementIdentity === 3 || elementIdentity === 4);
+    function shouldShow(identityAttr) {
+      if (!identityAttr) {
+        return true;
       }
-      if (identityNum === 2) {
-        return elementIdentity === 2;
+      const identityList = identityAttr.split(',')
+        .map(item=>parseInt(item.trim(), 10))
+        .filter(Number.isFinite);
+      if (!identityList.length) {
+        return true;
       }
-      if (identityNum === 3) {
-        return elementIdentity === 3;
-      }
-      if (identityNum === 4) {
-        return elementIdentity === 4;
-      }
-      return !(elementIdentity === 2 || elementIdentity === 3 || elementIdentity === 4);
+      return identityList.includes(identityNum);
     }
     
-    defaultSections.forEach(section => {
-      if (identityNum === 1 || isNaN(identityNum)) {
-        section.style.display = 'block';
-      } else {
-        section.style.display = 'none';
-      }
-    });
-    
     identityElements.forEach(el => {
-      const elementIdentity = parseInt(el.getAttribute('data-identity'), 10);
-      if (shouldShow(elementIdentity)) {
+      const identityAttr = el.getAttribute('data-identity');
+      if (shouldShow(identityAttr)) {
         el.style.display = '';
       } else {
         el.style.display = 'none';
@@ -552,67 +540,6 @@ if (btnSearchKnowledge) {
 }
 
 
-// ---------------- 贷款产品 ----------------
-const loanProductsGrid = document.getElementById('loan-products-grid');
-const msgLoanProducts = document.getElementById('msg-loan-products');
-document.getElementById('loan-products-refresh').onclick = loadLoanProducts;
-
-async function loadLoanProducts(){
-  msgLoanProducts.textContent = '加载中...';
-  try {
-    const res = await fetch(`${API_BASE}/api/loan/products`);
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
-    const json = await res.json();
-    const list = Array.isArray(json?.data)
-      ? json.data
-      : (Array.isArray(json?.products) ? json.products : (Array.isArray(json) ? json : []));
-    renderLoanProducts(list);
-    msgLoanProducts.textContent = list.length ? '' : (json?.message || '暂无贷款产品');
-  } catch (err) {
-    renderLoanProducts([]);
-    msgLoanProducts.textContent = `加载失败：${err.message || '网络错误'}`;
-  }
-}
-
-function renderLoanProducts(list){
-  if (!Array.isArray(list) || !list.length) {
-    loanProductsGrid.innerHTML = '<div class="msg">暂无贷款产品</div>';
-    return;
-  }
-  loanProductsGrid.innerHTML = list.map(p=>{
-    const id = p.productId ?? p.fpId ?? p.id ?? '';
-    const name = p.name || p.fpName || `产品#${id}`;
-    const desc = p.description || p.fpDescription || '';
-    const category = p.category || '—';
-    const maxAmountRaw = p.maxAmount ?? p.max_amount ?? p.max ?? null;
-    const minAmountRaw = p.minAmount ?? p.min_amount ?? p.min ?? null;
-    const hasAmountRange = minAmountRaw !== null || maxAmountRaw !== null;
-    const amountRange = hasAmountRange
-      ? `${(minAmountRaw ?? maxAmountRaw ?? 0)} - ${(maxAmountRaw ?? minAmountRaw ?? 0)}`
-      : '—';
-    const rate = p.interestRate ?? p.annualRate;
-    const term = p.term ?? p.loanTerm ?? '—';
-    return `<div class="product">
-      <div class="name">${name}</div>
-      <div class="desc">${desc}</div>
-      <div>类型：${category}</div>
-      <div>额度范围：${amountRange}</div>
-      <div class="rate">${rate || rate === 0 ? ('年化 ' + rate + '%') : '—'}</div>
-      <div>期限(月)：${term}</div>
-      <div class="tags">${renderTags(p.tags)}</div>
-    </div>`;
-  }).join('');
-}
-
-function renderTags(tags){
-  if (!tags) return '';
-  const arr = Array.isArray(tags) ? tags : String(tags).split(/[,，]/).map(t=>t.trim()).filter(Boolean);
-  return arr.map(t=>`<span class="tag">${t}</span>`).join('');
-}
-
-loadLoanProducts();
 
 // 贷款产品管理（新增 / 删除 / 详情）
 const formCreateProduct = document.getElementById('form-create-loan-product');
@@ -648,7 +575,7 @@ if (formCreateProduct) {
       }
       msgCreateProduct.textContent = json?.message || '创建成功';
       formCreateProduct.reset();
-      loadLoanProducts();
+      // 贷款产品列表已移至loans.html，此处不再刷新
     } catch (err) {
       msgCreateProduct.textContent = `提交失败：${err.message || '网络错误'}`;
     }
@@ -676,7 +603,7 @@ if (formDeleteProduct) {
       }
       msgDeleteProduct.textContent = json?.message || '删除成功';
       formDeleteProduct.reset();
-      loadLoanProducts();
+      // 贷款产品列表已移至loans.html，此处不再刷新
     } catch (err) {
       msgDeleteProduct.textContent = `删除失败：${err.message || '网络错误'}`;
     }
@@ -970,14 +897,37 @@ if (formDeleteLoanStatus) {
 }
 
 // ---------------- 农产品商城 ----------------
-const DEFAULT_PRODUCT_IMAGE = 'https://via.placeholder.com/320x180?text=Product';
+// 使用本地占位图，避免外网域名（via.placeholder.com）在实验环境中解析失败
+const DEFAULT_PRODUCT_IMAGE = 'default-product.png';
 
 function resolveProductImage(url) {
   if (!url) return DEFAULT_PRODUCT_IMAGE;
   try {
-    const parsed = new URL(url, window.location.origin);
+    const trimmed = String(url).trim();
+    if (!trimmed) return DEFAULT_PRODUCT_IMAGE;
+    // 首先检查是否是完整的HTTP/HTTPS URL
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+      return DEFAULT_PRODUCT_IMAGE;
+    }
+    // 验证URL格式是否正确，并做一些站点特定的转换
+    const parsed = new URL(trimmed);
     if (!/^https?:$/i.test(parsed.protocol)) {
       return DEFAULT_PRODUCT_IMAGE;
+    }
+    // 特殊处理：如果是 Bing 图片搜索结果链接，优先使用其中的 mediaurl 参数作为真正图片地址
+    try {
+      const host = parsed.hostname || '';
+      if (host.includes('bing.com')) {
+        const mediaUrl = parsed.searchParams.get('mediaurl');
+        if (mediaUrl) {
+          const decoded = decodeURIComponent(mediaUrl);
+          if (decoded.startsWith('http://') || decoded.startsWith('https://')) {
+            return decoded;
+          }
+        }
+      }
+    } catch (e) {
+      // 忽略 Bing 解析错误，继续使用原始链接
     }
     return parsed.href;
   } catch {
@@ -1060,29 +1010,27 @@ function pickProductsFromResponse(json) {
 }
 
 async function requestProductCatalog() {
-  const endpoints = [
-    `${API_BASE}/api/products`
-  ];
-  let lastError = new Error('未获取到商品数据');
-  for (const url of endpoints) {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) {
-        lastError = new Error(`HTTP ${res.status}`);
-        continue;
-      }
-      const json = await res.json();
-      const list = pickProductsFromResponse(json);
-      if (Array.isArray(list)) {
-        return list;
-      }
-      console.warn('[农产品商城] 未能解析响应:', json);
-      lastError = new Error('响应格式不正确');
-    } catch (err) {
-      lastError = err;
+  // 根据文档，获取商品列表接口为 /api/products/buyer，需要nums参数
+  const nums = 50; // 默认请求50个商品
+  const url = `${API_BASE}/api/products/buyer?nums=${nums}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
     }
+    const json = await res.json();
+    // 调试：查看商城端农产品接口返回的数据及图片字段
+    console.log('[product-catalog] raw response from', url, ':', json);
+    const list = pickProductsFromResponse(json);
+    console.log('[product-catalog] picked product list:', list);
+    if (Array.isArray(list)) {
+      return list;
+    }
+    console.warn('[农产品商城] 未能解析响应:', json);
+    throw new Error('响应格式不正确');
+  } catch (err) {
+    throw err;
   }
-  throw lastError;
 }
 
 function renderProductCatalog(list) {
@@ -1140,7 +1088,8 @@ async function loadProductDetailAndComments(productId) {
   msgSelectedProduct.textContent = '加载商品详情中...';
   msgProductComments.textContent = '加载评论中...';
   try {
-    const res = await fetch(`${API_BASE}/api/commentarea?productId=${encodeURIComponent(productId)}`);
+    // 根据文档，查看商品详细信息接口为 /api/products/buyer/{productId}
+    const res = await fetch(`${API_BASE}/api/products/buyer/${encodeURIComponent(productId)}`);
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
     }
@@ -1150,9 +1099,9 @@ async function loadProductDetailAndComments(productId) {
       throw new Error('未获取到商品数据');
     }
     renderSelectedProductDetail(data);
-    const comments = Array.isArray(data.productComment)
-      ? data.productComment
-      : (Array.isArray(data.comments) ? data.comments : []);
+    const comments = Array.isArray(data.comments)
+      ? data.comments
+      : (Array.isArray(data.productComment) ? data.productComment : []);
     renderProductComments(comments);
     msgSelectedProduct.textContent = '';
     msgProductComments.textContent = comments.length ? '' : '暂无评论';
@@ -1276,6 +1225,7 @@ async function loadChildComments(commentId, container, triggerBtn) {
   try {
     let list = childCommentCache.get(commentId);
     if (!list) {
+      // 根据文档，获取子评论接口为 /api/comment/childcomment，参数为 product_comment_id
       const res = await fetch(`${API_BASE}/api/comment/childcomment?product_comment_id=${encodeURIComponent(commentId)}`);
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
@@ -1386,7 +1336,8 @@ async function loadCartDisplay(showLoading = true) {
     cartDisplayList.innerHTML = '';
   }
   try {
-    const res = await fetch(`${API_BASE}/api/shopshow?userId=${encodeURIComponent(userId)}`);
+    // 根据文档，展示购物车接口为 /api/products/buyer/showshop
+    const res = await fetch(`${API_BASE}/api/products/buyer/showshop?userId=${encodeURIComponent(userId)}`);
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
     }
@@ -1412,19 +1363,81 @@ function renderCartDisplay(list) {
     const singlePrice = item.price ?? item.productPrice ?? item.unitPrice ?? '—';
     const quantity = item.amount ?? item.quantity ?? item.count ?? '—';
     const totalPrice = item.totalPrice ?? item.total_price ?? ((singlePrice !== '—' && quantity !== '—') ? Number(singlePrice) * Number(quantity) : '—');
-    return `<div class="product">
+    const productId = item.productId ?? item.id ?? '';
+    return `<div class="product" data-cart-product-id="${escapeAttr(productId)}">
       <div class="name">${item.productName || '未命名商品'}</div>
       <div>发售商：${item.producer || '—'}</div>
       <div>数量：${quantity}</div>
       <div>单价：${singlePrice !== '—' ? `¥${singlePrice}` : '—'}</div>
       <div>总价：${totalPrice !== '—' ? `¥${totalPrice}` : '—'}</div>
       <div class="thumb"><img src="${safeImg}" alt="${escapeAttr(item.productName || '')}" onerror="this.onerror=null;this.src='${fallbackImg}'"></div>
+      ${productId ? `<button class="btn btn-secondary btn-buy-from-cart" data-product-id="${escapeAttr(productId)}">从购物车购买</button>` : ''}
+      ${productId ? `<button class="btn btn-danger btn-delete-from-cart" data-product-id="${escapeAttr(productId)}">删除</button>` : ''}
     </div>`;
   }).join('');
 }
 
 if (btnRefreshCart) {
   btnRefreshCart.addEventListener('click', ()=>loadCartDisplay());
+}
+
+// 从购物车购买商品
+if (cartDisplayList) {
+  cartDisplayList.addEventListener('click', async (e)=>{
+    const btn = e.target.closest('.btn-buy-from-cart');
+    if (btn) {
+      const productId = btn.getAttribute('data-product-id');
+      const userId = getCurrentUserId();
+      if (!productId || !userId) {
+        alert('缺少必要信息');
+        return;
+      }
+      if (!confirm('确认从购物车购买该商品？')) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/products/buyer/buyshop`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId: parseInt(productId, 10), userId })
+        });
+        const json = await res.json().catch(()=>({}));
+        if (!res.ok) {
+          throw new Error(json?.message || res.statusText);
+        }
+        alert(json?.message || '购买成功');
+        loadCartDisplay(); // 刷新购物车
+        loadOrdersDisplay(false); // 刷新购买记录
+      } catch (err) {
+        alert(`购买失败：${err.message || '网络错误'}`);
+      }
+      return;
+    }
+    const btnDelete = e.target.closest('.btn-delete-from-cart');
+    if (btnDelete) {
+      const productId = btnDelete.getAttribute('data-product-id');
+      const userId = getCurrentUserId();
+      if (!productId || !userId) {
+        alert('缺少必要信息');
+        return;
+      }
+      if (!confirm('确认删除该商品？')) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/products/buyer/shop/delete`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId: parseInt(productId, 10), userId })
+        });
+        const json = await res.json().catch(()=>({}));
+        if (!res.ok) {
+          throw new Error(json?.message || res.statusText);
+        }
+        alert(json?.message || '删除成功');
+        loadCartDisplay(); // 刷新购物车
+      } catch (err) {
+        alert(`删除失败：${err.message || '网络错误'}`);
+      }
+      return;
+    }
+  });
 }
 
 // 购买记录展示
@@ -1446,15 +1459,25 @@ function renderOrdersDisplay(list) {
     const totalPrice = item.totalPrice ?? item.total_price ?? ((singlePrice !== '—' && quantity !== '—') ? Number(singlePrice) * Number(quantity) : '—');
     const sendAddress = item.sendAddress || item.getAddress || item.address || '';
     const createTime = item.createTime || item.createdTime || item.orderTime || '';
-    return `<div class="product">
+    const purchaseId = item.purchase_id ?? item.purchaseId ?? item.id ?? '';
+    const status = item.status ?? item.orderStatus ?? '';
+    // 根据文档，状态3为已付款待发货，状态4为已发货待收货，状态5为已收货
+    const canReceive = status === 3 || status === 4; // 待发货或已发货状态可以收货
+    const canCancel = status === 3; // 只有已付款待发货状态可以取消
+    const canReturn = status === 5 || status === 4; // 已收货或已发货状态可以退货（需要商品支持退货）
+    return `<div class="product" data-purchase-id="${escapeAttr(purchaseId)}" data-status="${escapeAttr(status)}">
       <div class="name">${item.productName || '未命名商品'}</div>
       <div>发售商：${item.producer || '—'}</div>
       <div>数量：${quantity}</div>
       <div>单价：${singlePrice !== '—' ? `¥${singlePrice}` : '—'}</div>
       <div>总价：${totalPrice !== '—' ? `¥${totalPrice}` : '—'}</div>
+      <div>状态：${status === 3 ? '已付款待发货' : status === 4 ? '已发货待收货' : status === 5 ? '已收货' : status === 6 ? '已取消' : status === 7 ? '已退货' : status || '—'}</div>
       ${sendAddress ? `<div>收货地址：${escapeAttr(sendAddress)}</div>` : ''}
       ${createTime ? `<div>创建时间：${escapeAttr(createTime)}</div>` : ''}
       <div class="thumb"><img src="${safeImg}" alt="${escapeAttr(item.productName || '')}" onerror="this.onerror=null;this.src='${fallbackImg}'"></div>
+      ${purchaseId && canReceive ? `<button class="btn btn-secondary btn-receive-product" data-purchase-id="${escapeAttr(purchaseId)}">确认收货</button>` : ''}
+      ${purchaseId && canCancel ? `<button class="btn btn-danger btn-cancel-purchase" data-purchase-id="${escapeAttr(purchaseId)}">取消订单</button>` : ''}
+      ${purchaseId && canReturn ? `<button class="btn btn-danger btn-return-product" data-purchase-id="${escapeAttr(purchaseId)}">退货</button>` : ''}
     </div>`;
   }).join('');
 }
@@ -1472,7 +1495,8 @@ async function loadOrdersDisplay(showLoading = true) {
     ordersDisplayList.innerHTML = '';
   }
   try {
-    const res = await fetch(`${API_BASE}/api/purchaseshow?userId=${encodeURIComponent(userId)}`);
+    // 根据文档，展示购买记录接口为 /api/products/buyer/showPurchase
+    const res = await fetch(`${API_BASE}/api/products/buyer/showPurchase?userId=${encodeURIComponent(userId)}`);
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
     }
@@ -1492,6 +1516,84 @@ if (btnRefreshOrders) {
 
 if (ordersDisplayList) {
   loadOrdersDisplay();
+  // 处理订单操作：收货、取消订单、退货
+  ordersDisplayList.addEventListener('click', async (e)=>{
+    const btn = e.target.closest('.btn-receive-product');
+    if (btn) {
+      const purchaseId = btn.getAttribute('data-purchase-id');
+      if (!purchaseId) {
+        alert('缺少订单ID');
+        return;
+      }
+      if (!confirm('确认收货？')) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/products/buyer/receiveProduct`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ purchase_id: parseInt(purchaseId, 10) })
+        });
+        const json = await res.json().catch(()=>({}));
+        if (!res.ok) {
+          throw new Error(json?.message || res.statusText);
+        }
+        alert(json?.message || '收货成功');
+        loadOrdersDisplay(); // 刷新购买记录
+      } catch (err) {
+        alert(`收货失败：${err.message || '网络错误'}`);
+      }
+      return;
+    }
+    const btnCancel = e.target.closest('.btn-cancel-purchase');
+    if (btnCancel) {
+      const purchaseId = btnCancel.getAttribute('data-purchase-id');
+      if (!purchaseId) {
+        alert('缺少订单ID');
+        return;
+      }
+      if (!confirm('确认取消订单？')) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/products/buyer/cancelPurchase`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ purchase_id: parseInt(purchaseId, 10) })
+        });
+        const json = await res.json().catch(()=>({}));
+        if (!res.ok) {
+          throw new Error(json?.message || res.statusText);
+        }
+        alert(json?.message || '取消订单成功');
+        loadOrdersDisplay(); // 刷新购买记录
+      } catch (err) {
+        alert(`取消订单失败：${err.message || '网络错误'}`);
+      }
+      return;
+    }
+    const btnReturn = e.target.closest('.btn-return-product');
+    if (btnReturn) {
+      const purchaseId = btnReturn.getAttribute('data-purchase-id');
+      if (!purchaseId) {
+        alert('缺少订单ID');
+        return;
+      }
+      if (!confirm('确认退货？')) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/products/buyer/returnProduct`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ purchase_id: parseInt(purchaseId, 10) })
+        });
+        const json = await res.json().catch(()=>({}));
+        if (!res.ok) {
+          throw new Error(json?.message || res.statusText);
+        }
+        alert(json?.message || '退货成功');
+        loadOrdersDisplay(); // 刷新购买记录
+      } catch (err) {
+        alert(`退货失败：${err.message || '网络错误'}`);
+      }
+      return;
+    }
+  });
 }
 
 // ---------------- 购物车 ----------------
@@ -1509,16 +1611,16 @@ if (formAddToCart) {
       productId: parseInt(document.getElementById('cart-productId').value, 10),
       userId: currentUserId,
       amount: parseInt(document.getElementById('cart-amount').value, 10),
-      money: parseFloat(document.getElementById('cart-money').value),
       getAddress: document.getElementById('cart-address').value.trim()
     };
-    if (!payload.productId || !payload.amount || !payload.money || !payload.getAddress) {
+    if (!payload.productId || !payload.amount || !payload.getAddress) {
       msgCart.textContent = '请完善购物车信息';
       return;
     }
     msgCart.textContent = '提交中...';
     try {
-      const res = await fetch(`${API_BASE}/api/shop`, {
+      // 根据文档，加入购物车接口为 /api/products/buyer/shop
+      const res = await fetch(`${API_BASE}/api/products/buyer/shop`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -1529,6 +1631,7 @@ if (formAddToCart) {
       }
       msgCart.textContent = json?.message || json?.data?.message || '商品已成功加入购物车';
       formAddToCart.reset();
+      loadCartDisplay(false); // 刷新购物车列表
     } catch (err) {
       msgCart.textContent = `提交失败：${err.message || '网络错误'}`;
     }
@@ -1551,17 +1654,17 @@ if (formPurchase) {
       productId: parseInt(document.getElementById('purchase-productId').value, 10),
       userId: currentUserId,
       amount: parseInt(document.getElementById('purchase-amount').value, 10),
-      money: parseFloat(document.getElementById('purchase-money').value),
       getAddress: document.getElementById('purchase-address').value.trim()
     };
-    if (!payload.productId || !payload.amount || !payload.money || !payload.getAddress) {
+    if (!payload.productId || !payload.amount || !payload.getAddress) {
       msgPurchase.textContent = '请完善购买信息';
       return;
     }
     msgPurchase.textContent = '提交中...';
     paymentMethodsBox.style.display = 'none';
     try {
-      const res = await fetch(`${API_BASE}/api/purchase`, {
+      // 根据文档，直接购买商品接口为 /api/products/buyer/purchase
+      const res = await fetch(`${API_BASE}/api/products/buyer/purchase`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -1577,6 +1680,7 @@ if (formPurchase) {
         paymentMethodsBox.style.display = 'block';
       }
       formPurchase.reset();
+      loadOrdersDisplay(false); // 刷新购买记录
     } catch (err) {
       msgPurchase.textContent = `提交失败：${err.message || '网络错误'}`;
     }
@@ -1709,21 +1813,26 @@ if (formReplyComment) {
       msgReply.textContent = '未获取到用户ID，请重新登录后再试';
       return;
     }
+    // 根据文档，回复评论也使用 /api/comment 接口，需要 rootCommentId 和 toCommentId
+    // 但文档中只提到了 rootCommentId，toCommentId 可能是可选的
     const payload = {
       content: document.getElementById('reply-content').value.trim(),
-      sendTime: new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\//g, '-'),
       userId: currentUserId,
       productId: parseInt(document.getElementById('reply-productId').value, 10),
-      rootCommentId: parseInt(document.getElementById('reply-rootId').value, 10),
-      toCommentId: parseInt(document.getElementById('reply-toId').value, 10)
+      rootCommentId: parseInt(document.getElementById('reply-rootId').value, 10)
     };
-    if (!payload.content || !payload.productId || !payload.rootCommentId || !payload.toCommentId) {
+    const toCommentId = document.getElementById('reply-toId').value.trim();
+    if (toCommentId) {
+      payload.toCommentId = parseInt(toCommentId, 10);
+    }
+    if (!payload.content || !payload.productId || !payload.rootCommentId) {
       msgReply.textContent = '请完善回复信息';
       return;
     }
     msgReply.textContent = '提交中...';
     try {
-      const res = await fetch(`${API_BASE}/api/comment/reply`, {
+      // 根据文档，回复评论也使用 /api/comment 接口
+      const res = await fetch(`${API_BASE}/api/comment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -1734,6 +1843,11 @@ if (formReplyComment) {
       }
       msgReply.textContent = json?.message || '回复发布成功';
       formReplyComment.reset();
+      // 如果当前有选中的商品，刷新评论列表
+      const currentProductId = document.getElementById('reply-productId').value;
+      if (currentProductId) {
+        loadProductDetailAndComments(parseInt(currentProductId, 10));
+      }
     } catch (err) {
       msgReply.textContent = `提交失败：${err.message || '网络错误'}`;
     }
