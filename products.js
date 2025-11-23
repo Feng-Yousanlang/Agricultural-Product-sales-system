@@ -295,7 +295,9 @@ async function loadPendingOrders(showLoading = true) {
       throw new Error(`HTTP ${res.status}`);
     }
     const json = await res.json();
+    console.log('[待发货订单] 后端返回的原始数据:', JSON.stringify(json, null, 2));
     const list = normalizeFarmerProducts(json);
+    console.log('[待发货订单] 解析后的列表:', list);
     renderPendingOrders(list);
     msgPendingOrders.textContent = list.length ? '' : '暂无待发货订单';
   } catch (err) {
@@ -310,21 +312,30 @@ function renderPendingOrders(list) {
     pendingOrdersList.innerHTML = '<div class="empty">暂无待发货订单</div>';
     return;
   }
-  pendingOrdersList.innerHTML = list.map(item=>{
+  pendingOrdersList.innerHTML = list.map((item, index)=>{
+    // 尝试多种方式获取 purchase_id
+    // 注意：根据接口文档，返回数据可能包含 purchase_id 或 purchaseId
     const purchaseId = item.purchase_id ?? item.purchaseId ?? item.id ?? '';
-    const productId = item.productId ?? '';
+    const productId = item.productId ?? item.product_id ?? '';
     const amount = item.amount ?? item.quantity ?? '—';
     const totalPrice = item.totalPrice ?? item.total_price ?? '—';
-    const getAddress = item.getAddress ?? item.address ?? '—';
+    const getAddress = item.getAddress ?? item.address ?? item.sendAddress ?? '—';
     const createTime = item.createTime ?? item.createdTime ?? '—';
+    
+    // 调试：输出每个订单项的完整数据
+    console.log(`[待发货订单] 订单项 ${index}:`, item);
+    console.log(`[待发货订单] 订单项 ${index} 提取的 purchaseId:`, purchaseId);
+    
+    // 如果 purchaseId 为空，显示警告但不阻止按钮显示
+    // 实际使用时，后端应该返回 purchase_id
     return `<div class="product" data-purchase-id="${escapeAttr(purchaseId)}">
-      <div>订单ID：${escapeAttr(purchaseId)}</div>
+      <div>订单ID：${purchaseId || '未提供'}</div>
       <div>商品ID：${escapeAttr(productId)}</div>
       <div>数量：${escapeAttr(amount)}</div>
       <div>总价：${totalPrice !== '—' ? `¥${escapeAttr(totalPrice)}` : '—'}</div>
       <div>收货地址：${escapeAttr(getAddress)}</div>
       <div>创建时间：${escapeAttr(createTime)}</div>
-      ${purchaseId ? `<button class="btn btn-secondary btn-send-product" data-purchase-id="${escapeAttr(purchaseId)}">发货</button>` : ''}
+      ${purchaseId ? `<button class="btn btn-secondary btn-send-product" data-purchase-id="${escapeAttr(purchaseId)}">发货</button>` : '<span class="text-warning">缺少订单ID，无法操作</span>'}
       ${purchaseId ? `<button class="btn btn-danger btn-cancel-order" data-purchase-id="${escapeAttr(purchaseId)}">取消订单</button>` : ''}
     </div>`;
   }).join('');
@@ -347,12 +358,36 @@ if (pendingOrdersList) {
       }
       if (!confirm('确认发货？')) return;
       try {
+        // 验证 purchaseId 是否有效
+        const purchaseIdNum = parseInt(purchaseId, 10);
+        if (Number.isNaN(purchaseIdNum) || purchaseIdNum <= 0) {
+          alert(`订单ID无效：${purchaseId}`);
+          console.error('[发货] 订单ID无效:', purchaseId, '转换后:', purchaseIdNum);
+          return;
+        }
+        
+        // 使用 JSON body 格式
+        const payload = { purchase_id: purchaseIdNum };
+        const requestBody = JSON.stringify(payload);
+        // 调试：输出发送给后端的参数
+        console.log('[发货] 请求 URL:', `${API_BASE}/api/products/farmer/sendProduct`);
+        console.log('[发货] 请求方法: POST');
+        console.log('[发货] 请求体:', requestBody);
+        console.log('[发货] purchaseId 原始值:', purchaseId, typeof purchaseId);
+        console.log('[发货] purchaseId 转换后:', purchaseIdNum, typeof purchaseIdNum);
+        
         const res = await fetch(`${API_BASE}/api/products/farmer/sendProduct`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ purchase_id: parseInt(purchaseId, 10) })
+          body: requestBody
         });
+        
+        // 调试：输出响应信息
+        console.log('[发货] 响应状态:', res.status, res.statusText);
+        const responseText = await res.clone().text();
+        console.log('[发货] 响应原始内容:', responseText);
         const json = await res.json().catch(()=>({}));
+        console.log('[发货] 响应解析后的 JSON:', json);
         if (!res.ok) {
           throw new Error(json?.message || res.statusText);
         }
@@ -372,12 +407,36 @@ if (pendingOrdersList) {
       }
       if (!confirm('确认取消订单？')) return;
       try {
+        // 验证 purchaseId 是否有效
+        const purchaseIdNum = parseInt(purchaseId, 10);
+        if (Number.isNaN(purchaseIdNum) || purchaseIdNum <= 0) {
+          alert(`订单ID无效：${purchaseId}`);
+          console.error('[取消订单] 订单ID无效:', purchaseId, '转换后:', purchaseIdNum);
+          return;
+        }
+        
+        // 使用 JSON body 格式
+        const payload = { purchase_id: purchaseIdNum };
+        const requestBody = JSON.stringify(payload);
+        // 调试：输出发送给后端的参数
+        console.log('[取消订单] 请求 URL:', `${API_BASE}/api/products/farmer/cancelPurchase`);
+        console.log('[取消订单] 请求方法: POST');
+        console.log('[取消订单] 请求体:', requestBody);
+        console.log('[取消订单] purchaseId 原始值:', purchaseId, typeof purchaseId);
+        console.log('[取消订单] purchaseId 转换后:', purchaseIdNum, typeof purchaseIdNum);
+        
         const res = await fetch(`${API_BASE}/api/products/farmer/cancelPurchase`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ purchase_id: parseInt(purchaseId, 10) })
+          body: requestBody
         });
+        
+        // 调试：输出响应信息
+        console.log('[取消订单] 响应状态:', res.status, res.statusText);
+        const responseText = await res.clone().text();
+        console.log('[取消订单] 响应原始内容:', responseText);
         const json = await res.json().catch(()=>({}));
+        console.log('[取消订单] 响应解析后的 JSON:', json);
         if (!res.ok) {
           throw new Error(json?.message || res.statusText);
         }
