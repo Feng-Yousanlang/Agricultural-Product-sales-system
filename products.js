@@ -227,10 +227,7 @@ async function loadFarmerProducts(showLoading = true) {
       throw new Error(`HTTP ${res.status}`);
     }
     const json = await res.json();
-    // 调试：查看后端返回的完整数据结构和图片字段
-    console.log('[farmer-products] raw response:', json);
     const list = normalizeFarmerProducts(json);
-    console.log('[farmer-products] normalized list:', list);
     renderFarmerProducts(list);
     msgFarmerProducts.textContent = list.length ? '' : '暂无商品';
   } catch (err) {

@@ -78,15 +78,12 @@ formPwd.onsubmit = async function(e) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-        console.log('HTTP状态码:', res.status, res.statusText); // 调试信息
         if (!res.ok) {
             const text = await res.text();
-            console.error('响应错误:', text); // 调试信息
             setMsg('pwd', `请求失败：${res.status} ${res.statusText}`);
             return;
         }
         const json = await res.json();
-        console.log('登录响应:', json); // 调试信息
         showLoginResult('pwd', json);
     } catch (err) {
         console.error('登录错误:', err); // 调试信息
@@ -112,7 +109,6 @@ formMail.onsubmit = async function(e) {
             body: JSON.stringify(data)
         });
         const json = await res.json();
-        console.log('邮箱登录响应:', json); // 调试信息
         showLoginResult('mail', json);
     } catch (err) {
         console.error('邮箱登录错误:', err); // 调试信息
@@ -141,7 +137,6 @@ formRegister.onsubmit = async function(e) {
         return;
     }
     const payload = { username, name: realName, password, passwordConfirm, identity };
-    console.log('注册提交参数:', payload); // 调试信息，确认 name 参数已包含
     try {
         const res = await fetch(`${API_BASE}/api/auth/register`, {
             method: 'POST',
@@ -218,7 +213,6 @@ function showLoginResult(type, json) {
     const tokenValue = String(token).trim();
     const isSuccess = (code === 200 || code === '200') && (tokenValue === '1' || tokenValue === 'true');
     
-    console.log('登录判断:', { code, token, tokenValue, identity, userId, isSuccess }); // 调试信息
     
     if (isSuccess) {
         setTimeout(()=>{
@@ -233,14 +227,12 @@ function showLoginResult(type, json) {
                 if (userId) {
                     localStorage.setItem('user_id', String(userId));
                 }
-                console.log('Token、身份和用户ID已保存，准备跳转'); // 调试信息
             } catch (e) {
                 console.error('保存Token失败:', e);
             }
             window.location.href = 'index.html';
         }, 300);
     } else {
-        console.log('登录未成功，不跳转'); // 调试信息
     }
 }
 function setMsg(type, msg) {

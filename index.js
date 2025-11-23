@@ -1,5 +1,9 @@
 // 后端API基础地址
 const API_BASE = 'http://10.61.194.227:8080';
+// 挂载到 window 对象，供其他脚本文件使用
+if (typeof window !== 'undefined') {
+  window.API_BASE = API_BASE;
+}
 
 // 获取认证token
 function getAuthToken() {
@@ -100,7 +104,6 @@ document.getElementById('btn-logout').onclick = function() {
       }
     });
     
-    console.log('用户身份:', identityNum, '界面已根据身份调整');
   } catch (e) {
     console.error('设置角色界面失败:', e);
   }
@@ -121,7 +124,6 @@ async function fetchNews() {
       throw new Error(`HTTP ${res.status}`);
     }
     const json = await res.json();
-    console.log('新闻接口响应:', JSON.stringify(json, null, 2)); // 调试信息：完整JSON
     
     // 兼容多种返回格式：newsList 或 data.newsList 或 data 本身
     let newsList = null;
@@ -149,7 +151,6 @@ async function fetchNews() {
       renderNews();
       msgNews.textContent = json?.message || '暂无新闻数据';
     } else {
-      console.error('新闻数据格式:', json);
       news = [];
       renderNews();
       msgNews.textContent = json?.message || '数据格式错误，请查看控制台';
@@ -196,7 +197,6 @@ async function fetchProducts(){
       throw new Error(`HTTP ${res.status}`);
     }
     const json = await res.json();
-    console.log('金融产品接口响应:', JSON.stringify(json, null, 2)); // 调试信息：完整JSON
     
     // 兼容多种返回格式：products 或 data.products 或 data 本身
     let products = null;
@@ -253,7 +253,6 @@ async function fetchExperts(){
       throw new Error(`HTTP ${res.status}`);
     }
     const json = await res.json();
-    console.log('专家接口响应:', JSON.stringify(json, null, 2)); // 调试信息：完整JSON
     
     // 兼容多种返回格式：experts 或 data.experts 或 data 本身
     let experts = null;
@@ -305,20 +304,15 @@ if (btnSearchExperts) {
       msgExpertsSearch.textContent = '请输入专家姓名';
       return;
     }
-    console.log('[专家搜索] 即将请求, 关键词:', keyword);
     msgExpertsSearch.textContent = '搜索中...';
     try {
       const res = await fetch(`${API_BASE}/api/experts/search?q=${encodeURIComponent(keyword)}`);
-      console.log('[专家搜索] 请求完成, 状态:', res.status, res.statusText);
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
       }
       const json = await res.json();
-      console.log('[专家搜索] 原始响应:', json);
       let list = extractExpertsFromResponse(json, 'search');
-      console.log('[专家搜索] 解析后的列表:', list);
       if (!list.length) {
-        console.log('[专家搜索] 搜索接口为空，尝试从 /api/experts/ 过滤');
         const all = await fetchAllExperts();
         list = filterExpertsByName(all, keyword);
       }
@@ -348,20 +342,15 @@ if (formExpertDetail) {
       msgExpertDetail.textContent = '请输入专家姓名';
       return;
     }
-    console.log('[专家详情] 搜索关键词:', expertName);
     msgExpertDetail.textContent = '搜索专家...';
     try {
       const searchRes = await fetch(`${API_BASE}/api/experts/search?q=${encodeURIComponent(expertName)}`);
-      console.log('[专家详情] 搜索请求完成, 状态:', searchRes.status);
       if (!searchRes.ok) {
         throw new Error(`HTTP ${searchRes.status}`);
       }
       const searchJson = await searchRes.json();
-      console.log('[专家详情] 搜索原始响应:', searchJson);
       let list = extractExpertsFromResponse(searchJson, 'detail');
-      console.log('[专家详情] 解析后的列表:', list);
       if (!list.length) {
-        console.log('[专家详情] 搜索接口为空，尝试从 /api/experts/ 过滤');
         const all = await fetchAllExperts();
         list = filterExpertsByName(all, expertName);
       }
@@ -388,10 +377,8 @@ if (formExpertDetail) {
             }
           }
         } catch (detailErr) {
-          console.warn('获取专家详情失败，使用搜索结果展示', detailErr);
         }
       }
-      console.log('[专家详情] 最终渲染数据:', detailData);
       const detailFields = formatField(detailData.field) || '—';
       expertDetailBox.innerHTML = `
         <div>姓名：${detailData.expertName || detailData.name || '—'}</div>
@@ -457,7 +444,6 @@ function extractExpertsFromResponse(json, scene){
   if (data && typeof data === 'object') {
     return [data];
   }
-  console.warn(`[extractExpertsFromResponse] 无法解析（场景:${scene}）`, json);
   return [];
 }
 
@@ -706,7 +692,6 @@ formApprove.addEventListener('submit', async (e)=>{
     remark: remark
   };
   
-  console.log('审批请求数据:', requestData); // 调试信息
   
   const token = getAuthToken();
   const headers = {
@@ -1019,14 +1004,10 @@ async function requestProductCatalog() {
       throw new Error(`HTTP ${res.status}`);
     }
     const json = await res.json();
-    // 调试：查看商城端农产品接口返回的数据及图片字段
-    console.log('[product-catalog] raw response from', url, ':', json);
     const list = pickProductsFromResponse(json);
-    console.log('[product-catalog] picked product list:', list);
     if (Array.isArray(list)) {
       return list;
     }
-    console.warn('[农产品商城] 未能解析响应:', json);
     throw new Error('响应格式不正确');
   } catch (err) {
     throw err;
@@ -1784,7 +1765,6 @@ if (formAddComment) {
     }
     msgComment.textContent = '提交中...';
     try {
-      console.log('[发布评论] 请求载荷:', payload);
       const res = await fetch(`${API_BASE}/api/comment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

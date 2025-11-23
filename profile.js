@@ -62,7 +62,6 @@ async function loadProfile() {
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
-    console.log('[个人中心] profile接口响应:', json);
     if (json.code !== 200 || !json.data) {
       throw new Error(json.message || '获取个人信息失败');
     }
@@ -148,7 +147,6 @@ if (formEditProfile) {
     formData.append('email', document.getElementById('edit-email').value.trim());
     formData.append('image_url', document.getElementById('edit-avatarUrl').value.trim());
 
-    console.log('[个人中心] 更新个人信息 formData:', Object.fromEntries(formData));
     msgEl.textContent = '提交中...';
 
     try {
@@ -197,7 +195,6 @@ if (formChangePassword) {
     formData.append('confirm_password', confirmPassword);
     formData.append('userId', resolvedUserId);
 
-    console.log('[个人中心] 修改密码 payload:', Object.fromEntries(formData));
     msgEl.textContent = '提交中...';
 
     try {
