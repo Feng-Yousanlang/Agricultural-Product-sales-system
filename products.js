@@ -120,21 +120,14 @@ if (formAddProduct) {
     }
     const name = document.getElementById('farmer-product-name').value.trim();
     const price = parseFloat(document.getElementById('farmer-product-price').value);
-    const surplus = parseInt(document.getElementById('farmer-product-surplus').value, 10);
+    const totalVolumn = parseInt(document.getElementById('farmer-product-surplus').value, 10);
     const img = document.getElementById('farmer-product-img').value.trim();
+    const producer = document.getElementById('farmer-product-producer')?.value.trim() || '';
     
-    if (!name || Number.isNaN(price) || price < 0 || Number.isNaN(surplus) || surplus < 0 || !img) {
-      msgAddProduct.textContent = '请填写完整且合法的商品信息';
+    if (!name || Number.isNaN(price) || price < 0 || Number.isNaN(totalVolumn) || totalVolumn < 0) {
+      msgAddProduct.textContent = '请填写合法的商品名称、单价与数量';
       return;
     }
-    
-    const payload = {
-      productName: name,
-      price,
-      userId: currentUserId,
-      productImg: img,
-      surplus
-    };
     
     msgAddProduct.textContent = '提交中...';
     try {
@@ -142,11 +135,16 @@ if (formAddProduct) {
       // 请求参数：productName, price, userId, productImg(可选), totalVolumn, producer(可选)
       const payloadForApi = {
         productName: name,
-        price: price,
+        price,
         userId: currentUserId,
-        productImg: img,
-        totalVolumn: surplus // 文档中使用totalVolumn表示商品数量
+        totalVolumn
       };
+      if (img) {
+        payloadForApi.productImg = img;
+      }
+      if (producer) {
+        payloadForApi.producer = producer;
+      }
       const res = await fetch(`${API_BASE}/api/products/farmer/newProduct`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -295,9 +293,7 @@ async function loadPendingOrders(showLoading = true) {
       throw new Error(`HTTP ${res.status}`);
     }
     const json = await res.json();
-    console.log('[待发货订单] 后端返回的原始数据:', JSON.stringify(json, null, 2));
     const list = normalizeFarmerProducts(json);
-    console.log('[待发货订单] 解析后的列表:', list);
     renderPendingOrders(list);
     msgPendingOrders.textContent = list.length ? '' : '暂无待发货订单';
   } catch (err) {
@@ -312,7 +308,7 @@ function renderPendingOrders(list) {
     pendingOrdersList.innerHTML = '<div class="empty">暂无待发货订单</div>';
     return;
   }
-  pendingOrdersList.innerHTML = list.map((item, index)=>{
+  pendingOrdersList.innerHTML = list.map(item=>{
     // 尝试多种方式获取 purchase_id
     // 注意：根据接口文档，返回数据可能包含 purchase_id 或 purchaseId
     const purchaseId = item.purchase_id ?? item.purchaseId ?? item.id ?? '';
@@ -321,10 +317,6 @@ function renderPendingOrders(list) {
     const totalPrice = item.totalPrice ?? item.total_price ?? '—';
     const getAddress = item.getAddress ?? item.address ?? item.sendAddress ?? '—';
     const createTime = item.createTime ?? item.createdTime ?? '—';
-    
-    // 调试：输出每个订单项的完整数据
-    console.log(`[待发货订单] 订单项 ${index}:`, item);
-    console.log(`[待发货订单] 订单项 ${index} 提取的 purchaseId:`, purchaseId);
     
     // 如果 purchaseId 为空，显示警告但不阻止按钮显示
     // 实际使用时，后端应该返回 purchase_id
@@ -366,28 +358,14 @@ if (pendingOrdersList) {
           return;
         }
         
-        // 使用 JSON body 格式
         const payload = { purchase_id: purchaseIdNum };
-        const requestBody = JSON.stringify(payload);
-        // 调试：输出发送给后端的参数
-        console.log('[发货] 请求 URL:', `${API_BASE}/api/products/farmer/sendProduct`);
-        console.log('[发货] 请求方法: POST');
-        console.log('[发货] 请求体:', requestBody);
-        console.log('[发货] purchaseId 原始值:', purchaseId, typeof purchaseId);
-        console.log('[发货] purchaseId 转换后:', purchaseIdNum, typeof purchaseIdNum);
-        
         const res = await fetch(`${API_BASE}/api/products/farmer/sendProduct`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: requestBody
+          body: JSON.stringify(payload)
         });
         
-        // 调试：输出响应信息
-        console.log('[发货] 响应状态:', res.status, res.statusText);
-        const responseText = await res.clone().text();
-        console.log('[发货] 响应原始内容:', responseText);
         const json = await res.json().catch(()=>({}));
-        console.log('[发货] 响应解析后的 JSON:', json);
         if (!res.ok) {
           throw new Error(json?.message || res.statusText);
         }
@@ -415,28 +393,14 @@ if (pendingOrdersList) {
           return;
         }
         
-        // 使用 JSON body 格式
         const payload = { purchase_id: purchaseIdNum };
-        const requestBody = JSON.stringify(payload);
-        // 调试：输出发送给后端的参数
-        console.log('[取消订单] 请求 URL:', `${API_BASE}/api/products/farmer/cancelPurchase`);
-        console.log('[取消订单] 请求方法: POST');
-        console.log('[取消订单] 请求体:', requestBody);
-        console.log('[取消订单] purchaseId 原始值:', purchaseId, typeof purchaseId);
-        console.log('[取消订单] purchaseId 转换后:', purchaseIdNum, typeof purchaseIdNum);
-        
         const res = await fetch(`${API_BASE}/api/products/farmer/cancelPurchase`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: requestBody
+          body: JSON.stringify(payload)
         });
         
-        // 调试：输出响应信息
-        console.log('[取消订单] 响应状态:', res.status, res.statusText);
-        const responseText = await res.clone().text();
-        console.log('[取消订单] 响应原始内容:', responseText);
         const json = await res.json().catch(()=>({}));
-        console.log('[取消订单] 响应解析后的 JSON:', json);
         if (!res.ok) {
           throw new Error(json?.message || res.statusText);
         }
@@ -539,7 +503,8 @@ async function loadStatusProducts() {
   statusProductsList.innerHTML = '';
   try {
     // 根据文档，展示某个状态的所有商品接口为 /api/products/farmer/showOneStatusAllProduct
-    const res = await fetch(`${API_BASE}/api/products/farmer/showOneStatusAllProduct?userId=${encodeURIComponent(userId)}&status=${encodeURIComponent(status)}`);
+    const requestUrl = `${API_BASE}/api/products/farmer/showOneStatusAllProduct?userId=${encodeURIComponent(userId)}&status=${encodeURIComponent(status)}`;
+    const res = await fetch(requestUrl);
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
     }

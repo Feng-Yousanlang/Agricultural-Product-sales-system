@@ -998,20 +998,20 @@ async function requestProductCatalog() {
   // 根据文档，获取商品列表接口为 /api/products/buyer，需要nums参数
   const nums = 50; // 默认请求50个商品
   const url = `${API_BASE}/api/products/buyer?nums=${nums}`;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
-    }
-    const json = await res.json();
-    const list = pickProductsFromResponse(json);
-    if (Array.isArray(list)) {
-      return list;
-    }
+      }
+      const json = await res.json();
+      const list = pickProductsFromResponse(json);
+      if (Array.isArray(list)) {
+        return list;
+      }
     throw new Error('响应格式不正确');
-  } catch (err) {
+    } catch (err) {
     throw err;
-  }
+    }
 }
 
 function renderProductCatalog(list) {
@@ -1318,7 +1318,8 @@ async function loadCartDisplay(showLoading = true) {
   }
   try {
     // 根据文档，展示购物车接口为 /api/products/buyer/showshop
-    const res = await fetch(`${API_BASE}/api/products/buyer/showshop?userId=${encodeURIComponent(userId)}`);
+    const requestUrl = `${API_BASE}/api/products/buyer/showshop?userId=${encodeURIComponent(userId)}`;
+    const res = await fetch(requestUrl);
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
     }
@@ -1344,16 +1345,19 @@ function renderCartDisplay(list) {
     const singlePrice = item.price ?? item.productPrice ?? item.unitPrice ?? '—';
     const quantity = item.amount ?? item.quantity ?? item.count ?? '—';
     const totalPrice = item.totalPrice ?? item.total_price ?? ((singlePrice !== '—' && quantity !== '—') ? Number(singlePrice) * Number(quantity) : '—');
-    const productId = item.productId ?? item.id ?? '';
-    return `<div class="product" data-cart-product-id="${escapeAttr(productId)}">
+    const productId = item.productId ?? item.sourceProductId ?? '';
+    const cartId = item.cartId ?? item.cart_id ?? item.id ?? '';
+    const showAction = Boolean(cartId);
+    return `<div class="product" data-cart-id="${escapeAttr(cartId)}">
       <div class="name">${item.productName || '未命名商品'}</div>
+      ${productId ? `<div>商品ID：${escapeAttr(productId)}</div>` : ''}
       <div>发售商：${item.producer || '—'}</div>
       <div>数量：${quantity}</div>
       <div>单价：${singlePrice !== '—' ? `¥${singlePrice}` : '—'}</div>
       <div>总价：${totalPrice !== '—' ? `¥${totalPrice}` : '—'}</div>
       <div class="thumb"><img src="${safeImg}" alt="${escapeAttr(item.productName || '')}" onerror="this.onerror=null;this.src='${fallbackImg}'"></div>
-      ${productId ? `<button class="btn btn-secondary btn-buy-from-cart" data-product-id="${escapeAttr(productId)}">从购物车购买</button>` : ''}
-      ${productId ? `<button class="btn btn-danger btn-delete-from-cart" data-product-id="${escapeAttr(productId)}">删除</button>` : ''}
+      ${showAction ? `<button class="btn btn-secondary btn-buy-from-cart" data-cart-id="${escapeAttr(cartId)}">从购物车购买</button>` : ''}
+      ${showAction ? `<button class="btn btn-danger btn-delete-from-cart" data-cart-id="${escapeAttr(cartId)}">删除</button>` : ''}
     </div>`;
   }).join('');
 }
@@ -1361,24 +1365,28 @@ function renderCartDisplay(list) {
 if (btnRefreshCart) {
   btnRefreshCart.addEventListener('click', ()=>loadCartDisplay());
 }
+if (cartDisplayList) {
+  loadCartDisplay();
+}
 
 // 从购物车购买商品
 if (cartDisplayList) {
   cartDisplayList.addEventListener('click', async (e)=>{
     const btn = e.target.closest('.btn-buy-from-cart');
     if (btn) {
-      const productId = btn.getAttribute('data-product-id');
+      const cartId = btn.getAttribute('data-cart-id');
       const userId = getCurrentUserId();
-      if (!productId || !userId) {
+      if (!cartId || !userId) {
         alert('缺少必要信息');
         return;
       }
       if (!confirm('确认从购物车购买该商品？')) return;
       try {
+        const payload = { cartId: parseInt(cartId, 10), userId };
         const res = await fetch(`${API_BASE}/api/products/buyer/buyshop`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productId: parseInt(productId, 10), userId })
+          body: JSON.stringify(payload)
         });
         const json = await res.json().catch(()=>({}));
         if (!res.ok) {
@@ -1394,9 +1402,9 @@ if (cartDisplayList) {
     }
     const btnDelete = e.target.closest('.btn-delete-from-cart');
     if (btnDelete) {
-      const productId = btnDelete.getAttribute('data-product-id');
+      const cartId = btnDelete.getAttribute('data-cart-id');
       const userId = getCurrentUserId();
-      if (!productId || !userId) {
+      if (!cartId || !userId) {
         alert('缺少必要信息');
         return;
       }
@@ -1405,7 +1413,7 @@ if (cartDisplayList) {
         const res = await fetch(`${API_BASE}/api/products/buyer/shop/delete`, {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productId: parseInt(productId, 10), userId })
+          body: JSON.stringify({ cartId: parseInt(cartId, 10), userId })
         });
         const json = await res.json().catch(()=>({}));
         if (!res.ok) {
@@ -1426,6 +1434,33 @@ const ordersDisplayList = document.getElementById('orders-display-list');
 const msgOrdersDisplay = document.getElementById('msg-orders-display');
 const btnRefreshOrders = document.getElementById('btn-refresh-orders');
 
+const ORDER_STATUS_LABELS = {
+  1: '刚上架',
+  2: '待支付',
+  3: '已付款待发货',
+  4: '已发货待收货',
+  5: '已收货',
+  6: '已取消',
+  7: '已退货'
+};
+
+function resolveOrderStatus(rawStatus) {
+  if (rawStatus === undefined || rawStatus === null || rawStatus === '') {
+    return { code: NaN, label: '—' };
+  }
+  const numeric = Number(rawStatus);
+  if (!Number.isNaN(numeric) && ORDER_STATUS_LABELS[numeric]) {
+    return { code: numeric, label: ORDER_STATUS_LABELS[numeric] };
+  }
+  const rawText = String(rawStatus).trim();
+  const matchEntry = Object.entries(ORDER_STATUS_LABELS).find(([, label])=>label === rawText);
+  if (matchEntry) {
+    const [code, label] = matchEntry;
+    return { code: Number(code), label };
+  }
+  return { code: Number.isNaN(numeric) ? NaN : numeric, label: rawText || '—' };
+}
+
 function renderOrdersDisplay(list) {
   if (!ordersDisplayList) return;
   if (!Array.isArray(list) || !list.length) {
@@ -1441,18 +1476,19 @@ function renderOrdersDisplay(list) {
     const sendAddress = item.sendAddress || item.getAddress || item.address || '';
     const createTime = item.createTime || item.createdTime || item.orderTime || '';
     const purchaseId = item.purchase_id ?? item.purchaseId ?? item.id ?? '';
-    const status = item.status ?? item.orderStatus ?? '';
+    const rawStatus = item.status ?? item.orderStatus ?? '';
+    const { code: statusCode, label: statusLabel } = resolveOrderStatus(rawStatus);
     // 根据文档，状态3为已付款待发货，状态4为已发货待收货，状态5为已收货
-    const canReceive = status === 3 || status === 4; // 待发货或已发货状态可以收货
-    const canCancel = status === 3; // 只有已付款待发货状态可以取消
-    const canReturn = status === 5 || status === 4; // 已收货或已发货状态可以退货（需要商品支持退货）
-    return `<div class="product" data-purchase-id="${escapeAttr(purchaseId)}" data-status="${escapeAttr(status)}">
+    const canReceive = statusCode === 3 || statusCode === 4; // 待发货或已发货状态可以收货
+    const canCancel = statusCode === 3; // 只有已付款待发货状态可以取消
+    const canReturn = statusCode === 5; // 只有确认收货后才允许退货
+    return `<div class="product" data-purchase-id="${escapeAttr(purchaseId)}" data-status="${escapeAttr(rawStatus)}">
       <div class="name">${item.productName || '未命名商品'}</div>
       <div>发售商：${item.producer || '—'}</div>
       <div>数量：${quantity}</div>
       <div>单价：${singlePrice !== '—' ? `¥${singlePrice}` : '—'}</div>
       <div>总价：${totalPrice !== '—' ? `¥${totalPrice}` : '—'}</div>
-      <div>状态：${status === 3 ? '已付款待发货' : status === 4 ? '已发货待收货' : status === 5 ? '已收货' : status === 6 ? '已取消' : status === 7 ? '已退货' : status || '—'}</div>
+      <div>状态：${statusLabel}</div>
       ${sendAddress ? `<div>收货地址：${escapeAttr(sendAddress)}</div>` : ''}
       ${createTime ? `<div>创建时间：${escapeAttr(createTime)}</div>` : ''}
       <div class="thumb"><img src="${safeImg}" alt="${escapeAttr(item.productName || '')}" onerror="this.onerror=null;this.src='${fallbackImg}'"></div>
@@ -1477,7 +1513,8 @@ async function loadOrdersDisplay(showLoading = true) {
   }
   try {
     // 根据文档，展示购买记录接口为 /api/products/buyer/showPurchase
-    const res = await fetch(`${API_BASE}/api/products/buyer/showPurchase?userId=${encodeURIComponent(userId)}`);
+    const requestUrl = `${API_BASE}/api/products/buyer/showPurchase?userId=${encodeURIComponent(userId)}`;
+    const res = await fetch(requestUrl);
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
     }
@@ -1508,10 +1545,11 @@ if (ordersDisplayList) {
       }
       if (!confirm('确认收货？')) return;
       try {
+        const payload = { purchase_id: parseInt(purchaseId, 10) };
         const res = await fetch(`${API_BASE}/api/products/buyer/receiveProduct`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ purchase_id: parseInt(purchaseId, 10) })
+          body: JSON.stringify(payload)
         });
         const json = await res.json().catch(()=>({}));
         if (!res.ok) {
@@ -1533,10 +1571,11 @@ if (ordersDisplayList) {
       }
       if (!confirm('确认取消订单？')) return;
       try {
+        const payload = { purchase_id: parseInt(purchaseId, 10) };
         const res = await fetch(`${API_BASE}/api/products/buyer/cancelPurchase`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ purchase_id: parseInt(purchaseId, 10) })
+          body: JSON.stringify(payload)
         });
         const json = await res.json().catch(()=>({}));
         if (!res.ok) {
@@ -1558,10 +1597,11 @@ if (ordersDisplayList) {
       }
       if (!confirm('确认退货？')) return;
       try {
+        const payload = { purchase_id: parseInt(purchaseId, 10) };
         const res = await fetch(`${API_BASE}/api/products/buyer/returnProduct`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ purchase_id: parseInt(purchaseId, 10) })
+          body: JSON.stringify(payload)
         });
         const json = await res.json().catch(()=>({}));
         if (!res.ok) {

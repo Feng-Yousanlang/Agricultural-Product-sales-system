@@ -41,8 +41,12 @@
                 <input type="number" id="farmer-product-surplus" placeholder="请输入库存数量" min="0" required>
             </div>
             <div class="row">
-                <label for="farmer-product-img">商品图片 URL</label>
-                <input type="url" id="farmer-product-img" placeholder="https://example.com/xxx.jpg" required>
+                <label for="farmer-product-img">商品图片 URL（可选）</label>
+                <input type="url" id="farmer-product-img" placeholder="https://example.com/xxx.jpg">
+            </div>
+            <div class="row">
+                <label for="farmer-product-producer">经销商 / 生产者（可选）</label>
+                <input type="text" id="farmer-product-producer" placeholder="如：XX合作社">
             </div>
             <button type="submit" class="btn">提交上架</button>
             <div class="msg" id="msg-add-product"></div>
