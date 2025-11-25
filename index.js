@@ -923,25 +923,41 @@ function resolveProductImage(url) {
 const productCatalogList = document.getElementById('product-catalog-list');
 const msgProductCatalog = document.getElementById('msg-product-catalog');
 const btnRefreshProducts = document.getElementById('btn-refresh-products');
-const selectedProductInfo = document.getElementById('selected-product-info');
-const productCommentList = document.getElementById('product-comment-list');
-const msgSelectedProduct = document.getElementById('msg-selected-product');
-const msgProductComments = document.getElementById('msg-product-comments');
+const productModal = document.getElementById('product-modal');
+const modalProductInfo = document.getElementById('modal-product-info');
+const modalProductMsg = document.getElementById('modal-product-msg');
+const modalCommentList = document.getElementById('modal-comment-list');
+const modalCommentMsg = document.getElementById('modal-comment-msg');
+const modalSelectedName = document.getElementById('modal-selected-name');
+const btnCloseProductModal = document.getElementById('btn-close-product-modal');
+const btnModalAddCart = document.getElementById('btn-modal-add-cart');
+const btnModalPurchase = document.getElementById('btn-modal-purchase');
+const purchaseModal = document.getElementById('purchase-modal');
+const purchaseModalTitle = document.getElementById('purchase-modal-title');
+const purchaseModalProductName = document.getElementById('purchase-modal-product-name');
+const formPurchaseModal = document.getElementById('form-purchase-modal');
+const purchaseAmountInput = document.getElementById('purchase-modal-amount');
+const purchaseAmountRow = document.getElementById('purchase-modal-amount-row');
+const purchaseAddressGroup = document.getElementById('purchase-modal-address-group');
+const purchaseAddressInput = document.getElementById('purchase-modal-address');
+const purchaseAddressSelect = document.getElementById('purchase-modal-address-select');
+const btnRefreshAddress = document.getElementById('btn-refresh-address');
+const purchaseModalMsg = document.getElementById('msg-purchase-modal');
+const btnPurchaseCancel = document.getElementById('btn-purchase-cancel');
 
 const PRODUCT_ID_INPUTS = [
-  'cart-productId',
-  'purchase-productId',
   'comment-productId',
   'reply-productId'
-];
-const PRODUCT_PRICE_INPUTS = [
-  'purchase-money',
-  'cart-money'
 ];
 
 let latestProductCatalog = [];
 let selectedProductCard = null;
 const childCommentCache = new Map();
+let activeProductId = null;
+let activeProductName = '';
+let activeCartId = null;
+let pendingPurchaseAction = 'purchase';
+let savedAddresses = [];
 
 function populateProductIdInputs(productId) {
   if (!productId) return;
@@ -953,26 +969,88 @@ function populateProductIdInputs(productId) {
   });
 }
 
-function populateProductPriceInputs(productPrice) {
-  if (productPrice === undefined || productPrice === null || productPrice === '') return;
-  if (Number.isNaN(Number(productPrice))) return;
-  PRODUCT_PRICE_INPUTS.forEach(id=>{
-    const input = document.getElementById(id);
-    if (input && !input.value) {
-      input.value = productPrice;
-    }
-  });
-}
-
-function resetProductDetailSection() {
+function clearProductSelection() {
   if (selectedProductCard) {
     selectedProductCard.classList.remove('selected');
     selectedProductCard = null;
   }
-  if (selectedProductInfo) selectedProductInfo.innerHTML = '';
-  if (productCommentList) productCommentList.innerHTML = '';
-  if (msgSelectedProduct) msgSelectedProduct.textContent = '请选择商品查看详情与评论';
-  if (msgProductComments) msgProductComments.textContent = '';
+  activeProductId = null;
+  activeProductName = '';
+  activeCartId = null;
+}
+
+function normalizeSavedAddressData(data) {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.records)) return data.records;
+  if (Array.isArray(data.list)) return data.list;
+  if (Array.isArray(data.data)) return data.data;
+  return [];
+}
+
+function resolveAddressText(item) {
+  return item?.addressName
+    || item?.address_name
+    || item?.address
+    || item?.newAddress
+    || item?.detail
+    || item?.fullAddress
+    || '';
+}
+
+function renderSavedAddressOptions(list = savedAddresses) {
+  if (!purchaseAddressSelect) return;
+  purchaseAddressSelect.innerHTML = '<option value="">选择保存的地址</option>';
+  list.forEach((item, index) => {
+    const text = resolveAddressText(item);
+    if (!text) return;
+    const option = document.createElement('option');
+    option.value = text;
+    option.textContent = text;
+    if (item.isDefault || item.defaultFlag || index === 0) {
+      option.dataset.default = 'true';
+    }
+    purchaseAddressSelect.appendChild(option);
+  });
+  // 如果当前输入为空且存在地址，默认填入第一个
+  if (!purchaseAddressInput) return;
+  if (purchaseAddressInput.value && purchaseAddressInput.value.trim()) return;
+  const firstOption = purchaseAddressSelect.options[1];
+  if (firstOption) {
+    purchaseAddressSelect.value = firstOption.value;
+    purchaseAddressInput.value = firstOption.value;
+  }
+}
+
+async function loadSavedAddresses(force = false) {
+  if (!purchaseAddressSelect) return [];
+  const userId = getCurrentUserId();
+  if (!userId) return [];
+  if (!force && savedAddresses.length) {
+    renderSavedAddressOptions(savedAddresses);
+    return savedAddresses;
+  }
+  try {
+    const res = await fetch(`${API_BASE}/api/products/buyer/getSavedAddress?userId=${encodeURIComponent(userId)}`);
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+    const json = await res.json();
+    const list = normalizeSavedAddressData(json?.data);
+    savedAddresses = list;
+    renderSavedAddressOptions(list);
+    if (!list.length && purchaseModalMsg) {
+      purchaseModalMsg.textContent = '暂无保存的地址，请手动输入';
+    }
+    return list;
+  } catch (err) {
+    if (purchaseModalMsg) {
+      purchaseModalMsg.textContent = `地址加载失败：${err.message || '网络错误'}`;
+    }
+    savedAddresses = [];
+    renderSavedAddressOptions([]);
+    return [];
+  }
 }
 
 function pickProductsFromResponse(json) {
@@ -1023,28 +1101,22 @@ function renderProductCatalog(list) {
   }
   productCatalogList.innerHTML = list.map(item=>{
     const productId = item.productId || item.id || item.sourceId || '';
-    const price = item.price ?? item.productPrice ?? '';
-    const stock = item.surplus ?? item.stock ?? item.inventory ?? '—';
-    const sales = item.salesVolume ?? item.sales ?? '—';
-    const producer = item.producer || item.origin || item.owner || '—';
     const img = item.productImg || item.imageUrl || item.imgUrl || '';
     const safeImg = resolveProductImage(img);
     const fallbackImg = escapeAttr(DEFAULT_PRODUCT_IMAGE);
+    const name = item.productName || item.name || '未命名商品';
+    const price = item.price ?? item.productPrice ?? '';
     const safeProductId = productId !== undefined && productId !== null ? String(productId) : '';
     const productIdAttr = safeProductId ? ` data-product-id="${escapeAttr(safeProductId)}"` : '';
-    const priceValue = price ?? '';
-    const priceAttr = (priceValue !== '' && priceValue !== null && priceValue !== undefined)
-      ? ` data-product-price="${escapeAttr(priceValue)}"` : '';
-    return `<div class="product" data-product-card="true"${productIdAttr}${priceAttr}>
-      <div class="name">${item.productName || item.name || '未命名商品'}</div>
-      <div>商品ID：${productId || '—'}</div>
-      <div>价格：${price !== '' ? `¥${price}` : '—'}</div>
-      <div>库存：${stock}</div>
-      <div>销量：${sales}</div>
-      <div>产地/商家：${producer}</div>
-      <div class="thumb"><img src="${safeImg}" alt="${escapeAttr(item.productName || '')}" onerror="this.onerror=null;this.src='${fallbackImg}'"></div>
-      ${safeProductId ? `<button class="btn btn-secondary btn-fill-product" data-product-id="${escapeAttr(safeProductId)}" data-product-price="${priceValue !== '' ? escapeAttr(priceValue) : ''}">将ID填入表单</button>` : ''}
-    </div>`;
+    const priceAttr = price !== '' && price !== null && price !== undefined
+      ? ` data-product-price="${escapeAttr(price)}"` : '';
+    const nameAttr = ` data-product-name="${escapeAttr(name)}"`;
+    return `<button type="button" class="product-card" data-product-card="true"${productIdAttr}${priceAttr}${nameAttr}>
+      <div class="product-card-thumb">
+        <img src="${safeImg}" alt="${escapeAttr(name)}" onerror="this.onerror=null;this.src='${fallbackImg}'">
+      </div>
+      <div class="product-card-name">${escapeAttr(name)}</div>
+    </button>`;
   }).join('');
 }
 
@@ -1057,19 +1129,115 @@ function highlightProductCard(card) {
   card.classList.add('selected');
 }
 
-async function loadProductDetailAndComments(productId) {
-  if (!selectedProductInfo || !msgSelectedProduct || !productCommentList || !msgProductComments) return;
-  if (!productId) {
-    resetProductDetailSection();
-    msgSelectedProduct.textContent = '该商品缺少ID，无法加载详情';
+function openProductModal(productId) {
+  if (!productModal) return;
+  productModal.classList.remove('hidden');
+  if (modalProductMsg) {
+    modalProductMsg.textContent = '加载商品详情中...';
+  }
+  if (modalCommentMsg) {
+    modalCommentMsg.textContent = '';
+  }
+  if (modalSelectedName) {
+    const displayName = activeProductName || '';
+    modalSelectedName.textContent = displayName
+      ? `${displayName}（ID：${productId}）`
+      : `商品ID：${productId}`;
+  }
+  loadProductDetailAndComments(productId);
+}
+
+function closeProductModal() {
+  if (!productModal) return;
+  productModal.classList.add('hidden');
+}
+
+function openPurchaseModal(action, options = {}) {
+  if (!purchaseModal) return;
+  pendingPurchaseAction = action;
+  const isCartCheckout = action === 'cart-checkout';
+  const requiresProduct = action !== 'cart-checkout';
+  if (requiresProduct && !activeProductId) {
+    alert('请先选择商品');
     return;
   }
-  selectedProductInfo.innerHTML = '';
-  productCommentList.innerHTML = '';
-  msgSelectedProduct.textContent = '加载商品详情中...';
-  msgProductComments.textContent = '加载评论中...';
+  if (isCartCheckout) {
+    activeCartId = options.cartId || null;
+    if (!activeCartId) {
+      alert('缺少购物车ID');
+      return;
+    }
+    activeProductName = options.productName || activeProductName;
+    activeProductId = options.productId || activeProductId;
+  } else {
+    activeCartId = null;
+  }
+
+  const amountRowVisible = action !== 'cart-checkout';
+  if (purchaseAmountRow) {
+    purchaseAmountRow.classList.toggle('hidden', !amountRowVisible);
+  }
+  if (purchaseAmountInput && amountRowVisible) {
+    purchaseAmountInput.value = options.amount ? String(options.amount) : '1';
+  }
+
+  const needsAddress = action === 'purchase' || action === 'cart-checkout';
+  if (purchaseAddressGroup) {
+    purchaseAddressGroup.classList.toggle('hidden', !needsAddress);
+  }
+  if (!needsAddress && purchaseAddressInput) {
+    purchaseAddressInput.value = '';
+    if (purchaseAddressSelect) {
+      purchaseAddressSelect.value = '';
+    }
+  }
+  if (needsAddress) {
+    loadSavedAddresses();
+  }
+
+  if (purchaseModalTitle) {
+    if (action === 'cart') {
+      purchaseModalTitle.textContent = '加入购物车';
+    } else if (action === 'purchase') {
+      purchaseModalTitle.textContent = '直接购买';
+    } else {
+      purchaseModalTitle.textContent = '填写收货地址';
+    }
+  }
+  if (purchaseModalProductName) {
+    const nameText = activeProductName ? `商品：${activeProductName}` : (activeProductId ? `商品ID：${activeProductId}` : '');
+    purchaseModalProductName.textContent = nameText;
+  }
+  if (purchaseAddressInput && needsAddress && options.prefillAddress) {
+    purchaseAddressInput.value = options.prefillAddress;
+  }
+  if (purchaseModalMsg) {
+    purchaseModalMsg.textContent = '';
+  }
+  purchaseModal.classList.remove('hidden');
+}
+
+function closePurchaseModal() {
+  if (!purchaseModal) return;
+  purchaseModal.classList.add('hidden');
+  pendingPurchaseAction = 'purchase';
+  activeCartId = null;
+}
+
+async function loadProductDetailAndComments(productId) {
+  if (!modalProductInfo || !modalProductMsg || !modalCommentList || !modalCommentMsg) return;
+  if (!productId) {
+    modalProductMsg.textContent = '该商品缺少ID，无法加载详情';
+    modalCommentMsg.textContent = '';
+    modalProductInfo.innerHTML = '';
+    modalCommentList.innerHTML = '';
+    return;
+  }
+  modalProductInfo.innerHTML = '';
+  modalCommentList.innerHTML = '';
+  modalProductMsg.textContent = '加载商品详情中...';
+  modalCommentMsg.textContent = '加载评论中...';
   try {
-    // 根据文档，查看商品详细信息接口为 /api/products/buyer/{productId}
     const res = await fetch(`${API_BASE}/api/products/buyer/${encodeURIComponent(productId)}`);
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
@@ -1084,18 +1252,18 @@ async function loadProductDetailAndComments(productId) {
       ? data.comments
       : (Array.isArray(data.productComment) ? data.productComment : []);
     renderProductComments(comments);
-    msgSelectedProduct.textContent = '';
-    msgProductComments.textContent = comments.length ? '' : '暂无评论';
+    modalProductMsg.textContent = '';
+    modalCommentMsg.textContent = comments.length ? '' : '暂无评论';
   } catch (err) {
-    selectedProductInfo.innerHTML = '';
-    productCommentList.innerHTML = '';
-    msgSelectedProduct.textContent = `加载失败：${err.message || '网络错误'}`;
-    msgProductComments.textContent = '';
+    modalProductInfo.innerHTML = '';
+    modalCommentList.innerHTML = '';
+    modalProductMsg.textContent = `加载失败：${err.message || '网络错误'}`;
+    modalCommentMsg.textContent = '';
   }
 }
 
 function renderSelectedProductDetail(data) {
-  if (!selectedProductInfo) return;
+  if (!modalProductInfo) return;
   const name = data.productName || data.name || '未命名商品';
   const productId = data.productId ?? data.id ?? '—';
   const producer = data.producer || data.origin || data.owner || '—';
@@ -1107,7 +1275,12 @@ function renderSelectedProductDetail(data) {
   const desc = data.description || data.productDesc || '';
   const safeImg = resolveProductImage(img);
   const fallbackImg = escapeAttr(DEFAULT_PRODUCT_IMAGE);
-  selectedProductInfo.innerHTML = `
+  activeProductId = productId;
+  activeProductName = name;
+  if (modalSelectedName) {
+    modalSelectedName.textContent = `${escapeAttr(name)}（ID：${escapeAttr(productId)}）`;
+  }
+  modalProductInfo.innerHTML = `
     <div class="product-detail-banner">
       <img src="${safeImg}" alt="${escapeAttr(name)}" onerror="this.onerror=null;this.src='${fallbackImg}'">
       <div>
@@ -1124,20 +1297,21 @@ function renderSelectedProductDetail(data) {
       </div>
     </div>
   `;
+  populateProductIdInputs(productId);
 }
 
 function renderProductComments(list) {
-  if (!productCommentList) return;
+  if (!modalCommentList) return;
   if (!Array.isArray(list) || !list.length) {
-    productCommentList.innerHTML = '<div class="empty">暂无评论</div>';
-    if (msgProductComments) {
-      msgProductComments.textContent = '暂无评论';
+    modalCommentList.innerHTML = '<div class="empty">暂无评论</div>';
+    if (modalCommentMsg) {
+      modalCommentMsg.textContent = '暂无评论';
     }
     return;
   }
-  productCommentList.innerHTML = list.map(renderSingleComment).join('');
-  if (msgProductComments) {
-    msgProductComments.textContent = '';
+  modalCommentList.innerHTML = list.map(renderSingleComment).join('');
+  if (modalCommentMsg) {
+    modalCommentMsg.textContent = '';
   }
 }
 
@@ -1234,7 +1408,7 @@ async function loadAgriculturalProducts(showLoading = true) {
   try {
     const list = await requestProductCatalog();
     renderProductCatalog(list);
-    resetProductDetailSection();
+    clearProductSelection();
     msgProductCatalog.textContent = '';
   } catch (err) {
     productCatalogList.innerHTML = '';
@@ -1248,37 +1422,162 @@ if (btnRefreshProducts) {
 
 if (productCatalogList) {
   productCatalogList.addEventListener('click', (e)=>{
-    const btn = e.target.closest('.btn-fill-product');
-    if (btn) {
-      e.stopPropagation();
-      const { productId, productPrice } = btn.dataset;
-      populateProductIdInputs(productId);
-      populateProductPriceInputs(productPrice);
-      return;
-    }
-    const card = e.target.closest('.product[data-product-card="true"]');
+    const card = e.target.closest('.product-card[data-product-card="true"]');
     if (!card) return;
     const productId = card.getAttribute('data-product-id');
-    const productPrice = card.getAttribute('data-product-price');
-    if (productId) {
-      highlightProductCard(card);
-      populateProductIdInputs(productId);
-      loadProductDetailAndComments(productId);
-    } else {
-      resetProductDetailSection();
-      if (msgSelectedProduct) {
-        msgSelectedProduct.textContent = '该商品缺少ID，无法加载详情';
-      }
+    if (!productId) {
+      alert('该商品缺少ID，无法加载详情');
+      return;
     }
-    if (productPrice) {
-      populateProductPriceInputs(productPrice);
-    }
+    highlightProductCard(card);
+    activeProductId = productId;
+    activeProductName = card.getAttribute('data-product-name') || '';
+    populateProductIdInputs(productId);
+    openProductModal(productId);
   });
   loadAgriculturalProducts();
 }
 
-if (productCommentList) {
-  productCommentList.addEventListener('click', (e)=>{
+if (btnCloseProductModal) {
+  btnCloseProductModal.addEventListener('click', closeProductModal);
+}
+
+if (productModal) {
+  productModal.addEventListener('click', (e)=>{
+    if (e.target === productModal) {
+      closeProductModal();
+    }
+  });
+}
+
+if (btnModalAddCart) {
+  btnModalAddCart.addEventListener('click', ()=>openPurchaseModal('cart'));
+}
+
+if (btnModalPurchase) {
+  btnModalPurchase.addEventListener('click', ()=>openPurchaseModal('purchase'));
+}
+
+if (purchaseAddressSelect) {
+  purchaseAddressSelect.addEventListener('change', ()=>{
+    const value = purchaseAddressSelect.value;
+    if (value && purchaseAddressInput) {
+      purchaseAddressInput.value = value;
+    }
+  });
+}
+
+if (btnRefreshAddress) {
+  btnRefreshAddress.addEventListener('click', ()=>loadSavedAddresses(true));
+}
+
+if (btnPurchaseCancel) {
+  btnPurchaseCancel.addEventListener('click', closePurchaseModal);
+}
+
+if (purchaseModal) {
+  purchaseModal.addEventListener('click', (e)=>{
+    if (e.target === purchaseModal) {
+      closePurchaseModal();
+    }
+  });
+}
+
+if (formPurchaseModal) {
+  formPurchaseModal.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const action = pendingPurchaseAction;
+    if (!action) {
+      purchaseModalMsg.textContent = '请选择操作后再提交';
+      return;
+    }
+    const currentUserId = getCurrentUserId();
+    if (!currentUserId) {
+      purchaseModalMsg.textContent = '未获取到用户ID，请重新登录后再试';
+      return;
+    }
+    const amount = parseInt(purchaseAmountInput?.value, 10);
+    if (action !== 'cart-checkout' && (!Number.isFinite(amount) || amount <= 0)) {
+      purchaseModalMsg.textContent = '请输入有效的购买数量';
+      return;
+    }
+    const address = purchaseAddressInput?.value.trim() || '';
+    const needsAddress = action === 'purchase' || action === 'cart-checkout';
+    if (needsAddress && !address) {
+      purchaseModalMsg.textContent = '请选择或输入收货地址';
+      return;
+    }
+    if (action !== 'cart-checkout' && !activeProductId) {
+      purchaseModalMsg.textContent = '未获取到商品，请重新选择';
+      return;
+    }
+    if (action === 'cart-checkout' && !activeCartId) {
+      purchaseModalMsg.textContent = '未获取到购物车信息，请重试';
+      return;
+    }
+    purchaseModalMsg.textContent = '提交中...';
+    try {
+      let endpoint = '';
+      let payload = {};
+      if (action === 'cart') {
+        endpoint = `${API_BASE}/api/products/buyer/shop`;
+        payload = {
+          productId: parseInt(activeProductId, 10),
+          userId: currentUserId,
+          amount
+        };
+      } else if (action === 'purchase') {
+        endpoint = `${API_BASE}/api/products/buyer/purchase`;
+        payload = {
+          productId: parseInt(activeProductId, 10),
+          userId: currentUserId,
+          amount,
+          getAddress: address
+        };
+      } else if (action === 'cart-checkout') {
+        endpoint = `${API_BASE}/api/products/buyer/buyshop`;
+        payload = {
+          cartId: parseInt(activeCartId, 10),
+          userId: currentUserId,
+          getAddress: address
+        };
+      } else {
+        throw new Error('未知的操作类型');
+      }
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json().catch(()=>({}));
+      if (!res.ok) {
+        throw new Error(json?.message || res.statusText);
+      }
+      const message = json?.message
+        || (action === 'cart'
+          ? '已加入购物车'
+          : action === 'cart-checkout'
+            ? '购买成功'
+            : '订单创建成功');
+      alert(message);
+      purchaseModalMsg.textContent = '';
+      closePurchaseModal();
+      if (action === 'cart') {
+        loadCartDisplay(false);
+      } else if (action === 'purchase') {
+        loadOrdersDisplay(false);
+      } else if (action === 'cart-checkout') {
+        loadCartDisplay();
+        loadOrdersDisplay(false);
+      }
+    } catch (err) {
+      purchaseModalMsg.textContent = `提交失败：${err.message || '网络错误'}`;
+    }
+  });
+}
+
+if (modalCommentList) {
+  modalCommentList.addEventListener('click', (e)=>{
     const btn = e.target.closest('.btn-load-child');
     if (!btn) return;
     const commentId = btn.getAttribute('data-comment-id');
@@ -1348,7 +1647,8 @@ function renderCartDisplay(list) {
     const productId = item.productId ?? item.sourceProductId ?? '';
     const cartId = item.cartId ?? item.cart_id ?? item.id ?? '';
     const showAction = Boolean(cartId);
-    return `<div class="product" data-cart-id="${escapeAttr(cartId)}">
+    const productAttr = productId ? ` data-product-id="${escapeAttr(productId)}"` : '';
+    return `<div class="product" data-cart-id="${escapeAttr(cartId)}"${productAttr}>
       <div class="name">${item.productName || '未命名商品'}</div>
       ${productId ? `<div>商品ID：${escapeAttr(productId)}</div>` : ''}
       <div>发售商：${item.producer || '—'}</div>
@@ -1375,29 +1675,22 @@ if (cartDisplayList) {
     const btn = e.target.closest('.btn-buy-from-cart');
     if (btn) {
       const cartId = btn.getAttribute('data-cart-id');
-      const userId = getCurrentUserId();
-      if (!cartId || !userId) {
-        alert('缺少必要信息');
+      const card = btn.closest('.product');
+      const productName = card?.querySelector('.name')?.textContent?.trim() || '';
+      const productId = card?.getAttribute('data-product-id') || '';
+      activeProductName = productName || activeProductName;
+      if (productId) {
+        activeProductId = productId;
+      }
+      if (!cartId) {
+        alert('缺少购物车ID');
         return;
       }
-      if (!confirm('确认从购物车购买该商品？')) return;
-      try {
-        const payload = { cartId: parseInt(cartId, 10), userId };
-        const res = await fetch(`${API_BASE}/api/products/buyer/buyshop`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const json = await res.json().catch(()=>({}));
-        if (!res.ok) {
-          throw new Error(json?.message || res.statusText);
-        }
-        alert(json?.message || '购买成功');
-        loadCartDisplay(); // 刷新购物车
-        loadOrdersDisplay(false); // 刷新购买记录
-      } catch (err) {
-        alert(`购买失败：${err.message || '网络错误'}`);
-      }
+      openPurchaseModal('cart-checkout', {
+        cartId,
+        productId,
+        productName
+      });
       return;
     }
     const btnDelete = e.target.closest('.btn-delete-from-cart');
@@ -1613,97 +1906,6 @@ if (ordersDisplayList) {
         alert(`退货失败：${err.message || '网络错误'}`);
       }
       return;
-    }
-  });
-}
-
-// ---------------- 购物车 ----------------
-const formAddToCart = document.getElementById('form-add-to-cart');
-const msgCart = document.getElementById('msg-cart');
-if (formAddToCart) {
-  formAddToCart.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const currentUserId = getCurrentUserId();
-    if (!currentUserId) {
-      msgCart.textContent = '未获取到用户ID，请重新登录后再试';
-      return;
-    }
-    const payload = {
-      productId: parseInt(document.getElementById('cart-productId').value, 10),
-      userId: currentUserId,
-      amount: parseInt(document.getElementById('cart-amount').value, 10),
-      getAddress: document.getElementById('cart-address').value.trim()
-    };
-    if (!payload.productId || !payload.amount || !payload.getAddress) {
-      msgCart.textContent = '请完善购物车信息';
-      return;
-    }
-    msgCart.textContent = '提交中...';
-    try {
-      // 根据文档，加入购物车接口为 /api/products/buyer/shop
-      const res = await fetch(`${API_BASE}/api/products/buyer/shop`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const json = await res.json().catch(()=>({}));
-      if (!res.ok) {
-        throw new Error(json?.message || res.statusText);
-      }
-      msgCart.textContent = json?.message || json?.data?.message || '商品已成功加入购物车';
-      formAddToCart.reset();
-      loadCartDisplay(false); // 刷新购物车列表
-    } catch (err) {
-      msgCart.textContent = `提交失败：${err.message || '网络错误'}`;
-    }
-  });
-}
-
-// ---------------- 购买商品 ----------------
-const formPurchase = document.getElementById('form-purchase');
-const msgPurchase = document.getElementById('msg-purchase');
-const paymentMethodsBox = document.getElementById('payment-methods-box');
-if (formPurchase) {
-  formPurchase.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const currentUserId = getCurrentUserId();
-    if (!currentUserId) {
-      msgPurchase.textContent = '未获取到用户ID，请重新登录后再试';
-      return;
-    }
-    const payload = {
-      productId: parseInt(document.getElementById('purchase-productId').value, 10),
-      userId: currentUserId,
-      amount: parseInt(document.getElementById('purchase-amount').value, 10),
-      getAddress: document.getElementById('purchase-address').value.trim()
-    };
-    if (!payload.productId || !payload.amount || !payload.getAddress) {
-      msgPurchase.textContent = '请完善购买信息';
-      return;
-    }
-    msgPurchase.textContent = '提交中...';
-    paymentMethodsBox.style.display = 'none';
-    try {
-      // 根据文档，直接购买商品接口为 /api/products/buyer/purchase
-      const res = await fetch(`${API_BASE}/api/products/buyer/purchase`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const json = await res.json().catch(()=>({}));
-      if (!res.ok) {
-        throw new Error(json?.message || res.statusText);
-      }
-      msgPurchase.textContent = json?.message || '订单创建成功，请选择支付方式';
-      const methods = json?.data?.paymentMethods || [];
-      if (methods.length) {
-        paymentMethodsBox.innerHTML = `<div><strong>支付方式：</strong>${methods.join('、')}</div>`;
-        paymentMethodsBox.style.display = 'block';
-      }
-      formPurchase.reset();
-      loadOrdersDisplay(false); // 刷新购买记录
-    } catch (err) {
-      msgPurchase.textContent = `提交失败：${err.message || '网络错误'}`;
     }
   });
 }

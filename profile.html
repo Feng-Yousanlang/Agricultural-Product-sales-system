@@ -91,8 +91,45 @@
             display: flex;
             gap: 8px;
         }
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .modal {
+            background: #fff;
+            border-radius: 10px;
+            padding: 24px;
+            width: min(420px, calc(100% - 40px));
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            animation: fadeInScale .2s ease;
+        }
+        .modal h3 {
+            margin-top: 0;
+        }
+        .modal textarea {
+            width: 100%;
+            border-radius: 6px;
+            border: 1px solid #dcdcdc;
+            padding: 10px;
+            resize: none;
+        }
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
         .hidden {
             display: none;
+        }
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
         }
     </style>
 </head>
@@ -178,44 +215,34 @@
     <!-- 2. 收货地址管理（仅买家可见） -->
     <section id="profile-addresses" class="profile-section hidden" data-identity="2">
         <h2>收货地址管理</h2>
-        <button id="btn-add-address" class="btn" style="margin-bottom: 15px;">新增地址</button>
-        <div id="address-list"></div>
-        <div id="address-form" class="hidden" style="margin-top: 20px;">
-            <form id="form-address">
-                <input type="hidden" id="address-id">
+        <div class="address-card-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;">
+            <form id="form-address-add" class="form">
+                <h3>新增地址</h3>
                 <div class="form-group">
-                    <label for="address-receiver">收货人姓名</label>
-                    <input type="text" id="address-receiver" required>
+                    <label for="add-address-newAddress">新地址</label>
+                    <textarea id="add-address-newAddress" rows="3" placeholder="请输入详细地址" required></textarea>
                 </div>
-                <div class="form-group">
-                    <label for="address-phone">收货人电话</label>
-                    <input type="text" id="address-phone" required>
-                </div>
-                <div class="form-group">
-                    <label for="address-province">省份</label>
-                    <input type="text" id="address-province" required>
-                </div>
-                <div class="form-group">
-                    <label for="address-city">城市</label>
-                    <input type="text" id="address-city" required>
-                </div>
-                <div class="form-group">
-                    <label for="address-detail">详细地址</label>
-                    <textarea id="address-detail" rows="3" required></textarea>
-                </div>
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="address-isDefault"> 设为默认地址
-                    </label>
-                </div>
-                <div class="btn-group">
-                    <button type="submit" class="btn">保存</button>
-                    <button type="button" class="btn btn-secondary" id="btn-cancel-address">取消</button>
-                </div>
-                <div class="msg" id="msg-address"></div>
+                <button type="submit" class="btn">新增地址</button>
+                <div class="msg" id="msg-add-address"></div>
             </form>
+
+            <div class="form" style="min-height:100%;">
+                <h3>我的地址</h3>
+                <div class="list" id="address-list-display" style="margin-top:15px;"></div>
+                <div class="msg" id="msg-list-address"></div>
+            </div>
         </div>
     </section>
+    <div id="address-edit-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+        <div class="modal">
+            <h3>修改地址</h3>
+            <textarea id="address-edit-input" rows="4" placeholder="请输入新的详细地址"></textarea>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="address-edit-cancel">取消</button>
+                <button type="button" class="btn" id="address-edit-save">保存</button>
+            </div>
+        </div>
+    </div>
 
     <!-- 3. 密码管理（所有角色可见） -->
     <section id="profile-password" class="profile-section">

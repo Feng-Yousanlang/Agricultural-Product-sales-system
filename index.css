@@ -68,6 +68,10 @@ body {
     gap: 12px;
 }
 
+.hidden {
+    display: none !important;
+}
+
 .user-id {
     color: #fff;
     font-size: 14px;
@@ -233,13 +237,67 @@ body {
     gap: 12px;
 }
 
-/* 产品卡片：复古标签风格 */
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 14px;
+}
+
+.product-card {
+    border: 1px solid rgba(139, 92, 46, 0.65);
+    border-radius: 16px;
+    padding: 12px;
+    background: linear-gradient(135deg, #f8ecda, #f2ddc2);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 10px;
+    aspect-ratio: 1 / 1;
+    cursor: pointer;
+    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+    text-align: center;
+}
+
+.product-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(148, 92, 39, 0.35);
+}
+
+.product-card.selected {
+    border-color: #b7791f;
+    box-shadow: 0 0 0 2px rgba(183, 121, 31, 0.25);
+}
+
+.product-card-thumb {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.85);
+}
+
+.product-card-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.product-card-name {
+    font-weight: 600;
+    font-size: 15px;
+    color: #2f1d10;
+}
+
+/* 复用旧版 product 卡片（购物车、订单等列表仍使用） */
 .product {
     border: 1px solid rgba(139, 92, 46, 0.8);
     border-radius: 14px;
     padding: 10px 12px;
     display: grid;
-    grid-template-columns: 1fr auto; /* 左侧信息列 + 右侧图片 */
+    grid-template-columns: 1fr auto;
     column-gap: 14px;
     row-gap: 4px;
     background: linear-gradient(135deg, #f8ecda, #f2ddc2);
@@ -265,28 +323,11 @@ body {
     font-weight: 600;
 }
 
-.product .desc {
-    color: #555;
-    font-size: 13px;
-}
-
-.product .rate {
-    color: #1f6feb;
-    font-weight: 600;
-}
-
-.product .tags {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-}
-
-/* 农产品卡片内的图片缩略图容器，固定在右侧 */
 .product .thumb {
     grid-column: 2;
-    grid-row: 1 / -1;          /* 从第一行跨到最后一行，但仍在卡片内部 */
+    grid-row: 1 / -1;
     width: 100px;
-    height: 100px;             /* 固定缩略图尺寸，所有卡片统一大小 */
+    height: 100px;
     border-radius: 8px;
     overflow: hidden;
     display: flex;
@@ -296,13 +337,11 @@ body {
 }
 
 .product .thumb img {
-    display: block;
     width: 100%;
     height: 100%;
-    object-fit: contain;       /* 等比缩小，完整展示，不会超出框 */
+    object-fit: contain;
 }
 
-/* 默认将非图片元素放到左侧文本列 */
 .product > :not(.thumb) {
     grid-column: 1;
 }
@@ -397,6 +436,115 @@ body {
     padding: 6px;
     font-size: 13px;
     background: #fdfdff;
+}
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.modal {
+    background: #fff;
+    border-radius: 14px;
+    padding: 22px;
+    width: min(520px, calc(100% - 40px));
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+    animation: fadeInScale 0.2s ease;
+    position: relative;
+}
+
+.modal-large {
+    width: min(960px, calc(100% - 40px));
+    max-height: calc(100vh - 60px);
+    overflow-y: auto;
+}
+
+.modal-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    border: none;
+    background: transparent;
+    font-size: 22px;
+    cursor: pointer;
+}
+
+.product-modal-body {
+    display: grid;
+    gap: 16px;
+}
+
+.product-modal-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.modal-action-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.modal-selected-name {
+    font-weight: 600;
+    color: #4b2b12;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.subtle {
+    color: #777;
+    font-size: 13px;
+    margin-top: -6px;
+    margin-bottom: 10px;
+}
+
+.address-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.address-select-stack {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.address-select-stack select {
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid #c9d2e3;
+    border-radius: 6px;
+    font-size: 14px;
+    background: #f8f9fc;
+    outline: none;
+}
+
+.address-select-stack select:focus {
+    border-color: #5566ff;
+    box-shadow: 0 0 0 2px rgba(85, 102, 255, 0.1);
+    background: #fff;
+}
+
+.hidden {
+    display: none !important;
+}
+
+@keyframes fadeInScale {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
 }
 
 /* 专家卡片 */

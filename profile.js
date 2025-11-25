@@ -33,6 +33,33 @@ function getCurrentUserId() {
   }
 })();
 
+(function setupProfileRoleUI() {
+  const identityRaw = localStorage.getItem('user_identity');
+  const identityNum = Number.parseInt(identityRaw, 10);
+  const elements = document.querySelectorAll('[data-identity]');
+
+  function shouldShow(attr) {
+    if (!attr) return true;
+    const identityList = attr.split(',')
+      .map((item) => Number.parseInt(item.trim(), 10))
+      .filter(Number.isFinite);
+    if (!identityList.length || !Number.isFinite(identityNum)) {
+      return !identityList.length;
+    }
+    return identityList.includes(identityNum);
+  }
+
+  elements.forEach((el) => {
+    if (shouldShow(el.getAttribute('data-identity'))) {
+      el.classList.remove('hidden');
+      el.style.display = '';
+    } else {
+      el.classList.add('hidden');
+      el.style.display = 'none';
+    }
+  });
+})();
+
 const logoutBtn = document.getElementById('btn-logout');
 if (logoutBtn) {
   logoutBtn.addEventListener('click', () => {
@@ -46,6 +73,7 @@ if (logoutBtn) {
 }
 
 let profileData = null;
+let editingAddressId = null;
 
 async function loadProfile() {
   const token = getAuthToken();
@@ -216,5 +244,228 @@ if (formChangePassword) {
   });
 }
 
+function initAddressManagement() {
+  const section = document.getElementById('profile-addresses');
+  if (!section) return;
+
+  const modal = document.getElementById('address-edit-modal');
+  const modalInput = document.getElementById('address-edit-input');
+  const modalCancelBtn = document.getElementById('address-edit-cancel');
+  const modalSaveBtn = document.getElementById('address-edit-save');
+
+  const addForm = document.getElementById('form-address-add');
+  if (addForm) {
+    addForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const addressInput = document.getElementById('add-address-newAddress');
+      const msgEl = document.getElementById('msg-add-address');
+      const userId = getCurrentUserId();
+      const newAddress = (addressInput?.value || '').trim();
+      if (!userId) {
+        msgEl.textContent = '未获取到用户ID，请重新登录';
+        return;
+      }
+      if (!newAddress) {
+        msgEl.textContent = '请输入新地址';
+        return;
+      }
+      msgEl.textContent = '提交中...';
+      try {
+        const json = await addressRequest('/api/user/upload/addAddress', {
+          payload: { userId, newAddress }
+        });
+        msgEl.textContent = json.message || '新增地址成功';
+        addressInput.value = '';
+        await fetchAddressList(userId);
+      } catch (err) {
+        msgEl.textContent = `新增失败：${err.message || '网络错误'}`;
+      }
+    });
+  }
+
+  const addressList = document.getElementById('address-list-display');
+  if (addressList) {
+    addressList.addEventListener('click', async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const item = target.closest('[data-address-id]');
+      if (!item) return;
+      const addressId = parseInt(item.getAttribute('data-address-id'), 10);
+      if (!Number.isFinite(addressId)) return;
+
+      const msgEl = document.getElementById('msg-list-address');
+      if (target.classList.contains('btn-edit-address')) {
+        const currentText = item.querySelector('.address-text')?.textContent?.trim() || '';
+        editingAddressId = addressId;
+        if (modal && modalInput) {
+          modalInput.value = currentText;
+          modal.classList.remove('hidden');
+          setTimeout(() => modalInput.focus(), 0);
+        }
+        return;
+      }
+
+      if (target.classList.contains('btn-delete-address')) {
+        const addressText = item.querySelector('.address-text')?.textContent?.trim() || '';
+        if (!confirm('确定删除该地址吗？')) return;
+        msgEl.textContent = '删除中...';
+        try {
+          const query = { addressId };
+          if (addressText) query.newAddress = addressText;
+          const json = await addressRequest('/api/user/upload/deleteAddress', {
+            method: 'DELETE',
+            query
+          });
+          msgEl.textContent = json.message || '删除成功';
+          await fetchAddressList();
+        } catch (err) {
+          msgEl.textContent = `删除失败：${err.message || '网络错误'}`;
+        }
+      }
+    });
+  }
+
+  if (modalCancelBtn && modal) {
+    modalCancelBtn.addEventListener('click', () => {
+      editingAddressId = null;
+      if (modalInput) modalInput.value = '';
+      modal.classList.add('hidden');
+    });
+  }
+
+  if (modalSaveBtn && modalInput && modal) {
+    modalSaveBtn.addEventListener('click', async () => {
+      if (!Number.isFinite(editingAddressId)) return;
+      const newAddress = modalInput.value.trim();
+      const msgEl = document.getElementById('msg-list-address');
+      if (!newAddress) {
+        msgEl.textContent = '请输入新的地址内容';
+        return;
+      }
+      msgEl.textContent = '修改中...';
+      try {
+        const json = await addressRequest('/api/user/upload/modifyAddress', {
+          payload: { addressId: editingAddressId, newAddress }
+        });
+        msgEl.textContent = json.message || '修改成功';
+        editingAddressId = null;
+        modalInput.value = '';
+        modal.classList.add('hidden');
+        await fetchAddressList();
+      } catch (err) {
+        msgEl.textContent = `修改失败：${err.message || '网络错误'}`;
+      }
+    });
+  }
+
+  fetchAddressList();
+}
+
+async function fetchAddressList(userIdOverride) {
+  const msgEl = document.getElementById('msg-list-address');
+  if (!msgEl) return;
+  const userId = userIdOverride || getCurrentUserId();
+  if (!userId) {
+    msgEl.textContent = '未获取到用户ID，请重新登录';
+    return;
+  }
+  msgEl.textContent = '查询中...';
+  try {
+    const json = await addressRequest('/api/user/upload/address', {
+      method: 'GET',
+      query: { userId }
+    });
+    const records = normalizeAddressData(json.data);
+    renderAddressList(records);
+    msgEl.textContent = '';
+  } catch (err) {
+    renderAddressList([]);
+    msgEl.textContent = `查询失败：${err.message || '网络错误'}`;
+  }
+}
+
+function renderAddressList(list) {
+  const container = document.getElementById('address-list-display');
+  if (!container) return;
+  container.innerHTML = '';
+  if (!Array.isArray(list) || !list.length) {
+    container.innerHTML = '<p class="msg">暂无地址数据</p>';
+    return;
+  }
+  list.forEach((item) => {
+    const addressId = pickValue(item, ['addressId', 'address_id', 'id'], '—');
+    const addressName = pickValue(item, ['address_name', 'addressName', 'address', 'newAddress'], '—');
+    const wrapper = document.createElement('div');
+    wrapper.className = 'list-item';
+    wrapper.setAttribute('data-address-id', addressId);
+    wrapper.innerHTML = `
+      <p class="address-text" style="margin:0 0 12px;">${escapeHtml(addressName)}</p>
+      <div class="list-item-actions">
+        <button type="button" class="btn btn-secondary btn-edit-address">修改</button>
+        <button type="button" class="btn btn-danger btn-delete-address">删除</button>
+      </div>
+    `;
+    container.appendChild(wrapper);
+  });
+}
+
+function normalizeAddressData(data) {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.records)) return data.records;
+  if (Array.isArray(data.list)) return data.list;
+  if (Array.isArray(data.data)) return data.data;
+  if (Array.isArray(data.addressList)) return data.addressList;
+  if (Array.isArray(data.addresses)) return data.addresses;
+  return [];
+}
+
+
+async function addressRequest(path, { method = 'POST', payload = null, query = null } = {}) {
+  const token = getAuthToken();
+  if (!token) throw new Error('未登录，请重新登录');
+  let url = `${API_BASE}${path}`;
+  if (query) {
+    const qs = new URLSearchParams();
+    Object.entries(query).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        qs.append(key, value);
+      }
+    });
+    const queryString = qs.toString();
+    if (queryString) {
+      url = `${url}?${queryString}`;
+    }
+  }
+  const options = {
+    method,
+    headers: { 'Authorization': `Bearer ${token}` }
+  };
+  if (payload && method !== 'GET') {
+    options.headers['Content-Type'] = 'application/json';
+    options.body = JSON.stringify(payload);
+  }
+  const res = await fetch(url, options);
+  let json = {};
+  try {
+    json = await res.json();
+  } catch {/* ignore */ }
+  if (!res.ok || (json.code && json.code !== 200)) {
+    throw new Error(json.message || `HTTP ${res.status}`);
+  }
+  return json;
+}
+
+function escapeHtml(value) {
+  if (value === undefined || value === null) return '';
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 loadProfile();
+initAddressManagement();
 
