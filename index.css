@@ -398,11 +398,85 @@ body {
     gap: 10px;
 }
 
+.comment-input-box {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.comment-input-box textarea {
+    width: 100%;
+    border: 1px solid #c9d2e3;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 14px;
+    resize: vertical;
+    min-height: 80px;
+}
+
+.comment-input-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.reply-tip {
+    font-size: 13px;
+    color: #7a4a05;
+    background: rgba(255, 206, 158, 0.3);
+    padding: 4px 8px;
+    border-radius: 999px;
+}
+
+.reply-tip.hidden {
+    display: none;
+}
+
+.link-btn {
+    border: none;
+    background: none;
+    color: #b87410;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 0;
+}
+
+.link-btn:hover {
+    text-decoration: underline;
+}
+
 .comment-item {
     border: 1px solid #e0e6f5;
     border-radius: 8px;
     padding: 8px;
     background: #fff;
+}
+
+.comment-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #4b2b12;
+    margin-bottom: 4px;
+}
+
+.comment-author {
+    color: #1f2937;
+}
+
+.comment-reply-target {
+    font-weight: 500;
+    color: #7a4a05;
+}
+
+.reply-arrow {
+    color: #c2410c;
+    font-size: 12px;
 }
 
 .comment-meta {
@@ -419,6 +493,40 @@ body {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
+}
+
+.comment-actions .link-btn {
+    font-size: 12px;
+    color: #7a4a05;
+}
+
+.btn-like-comment {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid #ffd7a3;
+    background: #fff7ed;
+    color: #a4550a;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-like-comment .like-count {
+    font-weight: 600;
+}
+
+.btn-like-comment.liked {
+    background: #ffedd5;
+    border-color: #fb923c;
+    color: #c2410c;
+}
+
+.btn-like-comment.loading {
+    opacity: 0.6;
+    pointer-events: none;
 }
 
 .child-comments {
@@ -569,6 +677,13 @@ body {
 .expert .desc {
     color: #666;
     font-size: 13px;
+}
+
+.expert .action-row {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 /* 融资服务模块样式（竖版可读） */

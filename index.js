@@ -928,6 +928,13 @@ const modalProductInfo = document.getElementById('modal-product-info');
 const modalProductMsg = document.getElementById('modal-product-msg');
 const modalCommentList = document.getElementById('modal-comment-list');
 const modalCommentMsg = document.getElementById('modal-comment-msg');
+const commentInputField = document.getElementById('comment-content-input');
+const commentStatusMsg = document.getElementById('msg-comment');
+const btnSubmitComment = document.getElementById('btn-submit-comment');
+const COMMENT_REPLY_PREFIX = '回复评论：';
+const replyIndicator = document.getElementById('replying-to');
+const replyTargetNameEl = document.getElementById('reply-target-name');
+const btnCancelReply = document.getElementById('btn-cancel-reply');
 const modalSelectedName = document.getElementById('modal-selected-name');
 const btnCloseProductModal = document.getElementById('btn-close-product-modal');
 const btnModalAddCart = document.getElementById('btn-modal-add-cart');
@@ -958,6 +965,150 @@ let activeProductName = '';
 let activeCartId = null;
 let pendingPurchaseAction = 'purchase';
 let savedAddresses = [];
+let commentReplyTarget = null;
+const commentMetaStore = new Map();
+
+function registerCommentMeta(commentId, name, userId) {
+  if (!commentId) return;
+  const key = String(commentId);
+  commentMetaStore.set(key, {
+    name,
+    userId
+  });
+}
+
+function getCommentMeta(commentId) {
+  if (!commentId) return null;
+  return commentMetaStore.get(String(commentId)) || null;
+}
+
+function resolveCommentAuthorName(name, userId) {
+  if (name && String(name).trim()) return String(name).trim();
+  if (userId && userId !== '—') {
+    return `用户${userId}`;
+  }
+  return '匿名用户';
+}
+
+function renderLikeButton(commentId, likeCount) {
+  if (!commentId) return '';
+  const safeId = escapeAttr(commentId);
+  const count = Number.isFinite(Number(likeCount)) ? Number(likeCount) : 0;
+  return `<button type="button" class="btn btn-like-comment" data-comment-id="${safeId}" data-liked="false" aria-pressed="false">
+    <span class="like-icon" aria-hidden="true">👍</span>
+    <span class="like-text">点赞</span>
+    <span class="like-count">${escapeAttr(count)}</span>
+  </button>`;
+}
+function updateLikeButtonState(btn, liked, count) {
+  if (!btn) return;
+  btn.dataset.liked = liked ? 'true' : 'false';
+  btn.setAttribute('aria-pressed', liked ? 'true' : 'false');
+  btn.classList.toggle('liked', liked);
+  const icon = btn.querySelector('.like-icon');
+  if (icon) {
+    icon.textContent = liked ? '❤️' : '👍';
+  }
+  const textEl = btn.querySelector('.like-text');
+  if (textEl) {
+    textEl.textContent = liked ? '已点赞' : '点赞';
+  }
+  if (count !== undefined && count !== null) {
+    const countEl = btn.querySelector('.like-count');
+    if (countEl) {
+      countEl.textContent = count;
+    }
+  }
+}
+
+
+function extractReplyTargetFromElement(el) {
+  if (!el) return null;
+  const id = el.getAttribute('data-comment-id');
+  if (!id) return null;
+  const rootIdAttr = el.getAttribute('data-root-id');
+  const rootId = rootIdAttr && rootIdAttr.trim() ? rootIdAttr : id;
+  const name = el.getAttribute('data-user-name') || '';
+  return {
+    id,
+    rootId,
+    name
+  };
+}
+
+function updateReplyIndicator() {
+  if (!replyIndicator) return;
+  if (commentReplyTarget) {
+    replyIndicator.classList.remove('hidden');
+    if (replyTargetNameEl) {
+      replyTargetNameEl.textContent = commentReplyTarget.name || `#${commentReplyTarget.id}`;
+    }
+  } else {
+    replyIndicator.classList.add('hidden');
+  }
+}
+
+function clearReplyTarget() {
+  commentReplyTarget = null;
+  updateReplyIndicator();
+  if (commentInputField && commentInputField.value.startsWith(COMMENT_REPLY_PREFIX)) {
+    commentInputField.value = '';
+  }
+  if (commentStatusMsg && commentStatusMsg.textContent.startsWith('正在回复')) {
+    commentStatusMsg.textContent = '';
+  }
+}
+
+function setReplyTarget(target) {
+  commentReplyTarget = target;
+  updateReplyIndicator();
+  if (commentInputField) {
+    if (!commentInputField.value.startsWith(COMMENT_REPLY_PREFIX)) {
+      commentInputField.value = COMMENT_REPLY_PREFIX;
+    }
+    commentInputField.focus();
+    commentInputField.setSelectionRange(commentInputField.value.length, commentInputField.value.length);
+  }
+  if (commentStatusMsg && target?.id) {
+    const targetLabel = target.name || `评论 #${target.id}`;
+    commentStatusMsg.textContent = `正在回复 ${targetLabel}`;
+  }
+}
+
+function setCommentComposerEnabled(enabled) {
+  if (commentInputField) {
+    commentInputField.disabled = !enabled;
+  }
+  if (btnSubmitComment) {
+    btnSubmitComment.disabled = !enabled;
+  }
+  if (!enabled && commentStatusMsg) {
+    commentStatusMsg.textContent = '请选择商品后再评论';
+  }
+  if (enabled && commentStatusMsg && commentStatusMsg.textContent === '请选择商品后再评论') {
+    commentStatusMsg.textContent = '';
+  }
+}
+
+function resetCommentComposer(disable = false) {
+  if (commentInputField) {
+    commentInputField.value = '';
+  }
+  clearReplyTarget();
+  if (disable) {
+    setCommentComposerEnabled(false);
+  }
+}
+
+setCommentComposerEnabled(false);
+
+if (btnCancelReply) {
+  btnCancelReply.addEventListener('click', ()=>clearReplyTarget());
+}
+
+if (btnSubmitComment) {
+  btnSubmitComment.addEventListener('click', ()=>submitInlineProductComment());
+}
 
 function populateProductIdInputs(productId) {
   if (!productId) return;
@@ -1144,12 +1295,15 @@ function openProductModal(productId) {
       ? `${displayName}（ID：${productId}）`
       : `商品ID：${productId}`;
   }
+  resetCommentComposer(false);
+  setCommentComposerEnabled(false);
   loadProductDetailAndComments(productId);
 }
 
 function closeProductModal() {
   if (!productModal) return;
   productModal.classList.add('hidden');
+  resetCommentComposer(true);
 }
 
 function openPurchaseModal(action, options = {}) {
@@ -1224,6 +1378,28 @@ function closePurchaseModal() {
   activeCartId = null;
 }
 
+async function requestCommentAreaDetail(productId) {
+  const url = `${API_BASE}/api/commentarea?productId=${encodeURIComponent(productId)}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`commentarea HTTP ${res.status}`);
+  }
+  const json = await res.json();
+  console.log('[评论] commentarea 原始响应:', json);
+  return json?.data || null;
+}
+
+async function requestFallbackProductDetail(productId) {
+  const url = `${API_BASE}/api/products/buyer/${encodeURIComponent(productId)}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`商品详情 HTTP ${res.status}`);
+  }
+  const json = await res.json();
+  console.log('[评论] fallback 商品详情响应:', json);
+  return json?.data || null;
+}
+
 async function loadProductDetailAndComments(productId) {
   if (!modalProductInfo || !modalProductMsg || !modalCommentList || !modalCommentMsg) return;
   if (!productId) {
@@ -1231,41 +1407,115 @@ async function loadProductDetailAndComments(productId) {
     modalCommentMsg.textContent = '';
     modalProductInfo.innerHTML = '';
     modalCommentList.innerHTML = '';
+    setCommentComposerEnabled(false);
     return;
   }
   modalProductInfo.innerHTML = '';
   modalCommentList.innerHTML = '';
   modalProductMsg.textContent = '加载商品详情中...';
   modalCommentMsg.textContent = '加载评论中...';
+  let detailData = null;
+  let lastError = null;
   try {
-    const res = await fetch(`${API_BASE}/api/products/buyer/${encodeURIComponent(productId)}`);
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
-    const json = await res.json();
-    const data = json?.data || null;
-    if (!data || typeof data !== 'object') {
-      throw new Error('未获取到商品数据');
-    }
-    renderSelectedProductDetail(data);
-    const comments = Array.isArray(data.comments)
-      ? data.comments
-      : (Array.isArray(data.productComment) ? data.productComment : []);
-    renderProductComments(comments);
-    modalProductMsg.textContent = '';
-    modalCommentMsg.textContent = comments.length ? '' : '暂无评论';
+    detailData = await requestCommentAreaDetail(productId);
   } catch (err) {
+    lastError = err;
+    console.warn('[评论] commentarea 请求失败:', err);
+  }
+  if (!detailData) {
+    try {
+      detailData = await requestFallbackProductDetail(productId);
+    } catch (err) {
+      lastError = err;
+      console.warn('[评论] fallback 商品详情请求失败:', err);
+    }
+  }
+  if (!detailData) {
     modalProductInfo.innerHTML = '';
     modalCommentList.innerHTML = '';
-    modalProductMsg.textContent = `加载失败：${err.message || '网络错误'}`;
+    modalProductMsg.textContent = `加载失败：${lastError?.message || '网络错误'}`;
     modalCommentMsg.textContent = '';
+    setCommentComposerEnabled(false);
+    return;
+  }
+  childCommentCache.clear();
+  commentMetaStore.clear();
+  renderSelectedProductDetail(detailData, productId);
+  const comments = Array.isArray(detailData.productComment)
+    ? detailData.productComment
+    : (Array.isArray(detailData.comments) ? detailData.comments : []);
+  console.log('[评论] 后端返回的评论列表:', comments);
+  renderProductComments(comments);
+  modalProductMsg.textContent = '';
+  modalCommentMsg.textContent = comments.length ? '' : '暂无评论';
+}
+
+async function submitInlineProductComment() {
+  if (!commentInputField) return;
+  const currentUserId = getCurrentUserId();
+  if (!currentUserId) {
+    if (commentStatusMsg) commentStatusMsg.textContent = '未获取到用户ID，请重新登录后再试';
+    return;
+  }
+  if (!activeProductId) {
+    if (commentStatusMsg) commentStatusMsg.textContent = '请选择商品后再评论';
+    return;
+  }
+  const content = commentInputField.value.trim();
+  if (!content) {
+    if (commentStatusMsg) commentStatusMsg.textContent = '请输入评论内容';
+    return;
+  }
+  const payload = {
+    content,
+    sendTime: new Date().toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    }).replace(/\//g, '-'),
+    userId: currentUserId,
+    productId: parseInt(activeProductId, 10)
+  };
+  if (commentReplyTarget) {
+    const rootId = commentReplyTarget.rootId || commentReplyTarget.id;
+    payload.rootCommentId = parseInt(rootId, 10);
+    payload.toCommentId = parseInt(commentReplyTarget.id, 10);
+  }
+  if (commentStatusMsg) commentStatusMsg.textContent = '提交中...';
+  try {
+    console.log('[弹窗评论] 提交参数:', payload);
+    const res = await fetch(`${API_BASE}/api/comment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json().catch(()=>({}));
+    if (!res.ok) {
+      throw new Error(json?.message || res.statusText);
+    }
+    if (commentStatusMsg) {
+      commentStatusMsg.textContent = json?.message || '评论发布成功';
+    }
+    commentInputField.value = '';
+    clearReplyTarget();
+    if (activeProductId) {
+      loadProductDetailAndComments(activeProductId);
+    }
+  } catch (err) {
+    if (commentStatusMsg) {
+      commentStatusMsg.textContent = `提交失败：${err.message || '网络错误'}`;
+    }
   }
 }
 
-function renderSelectedProductDetail(data) {
+function renderSelectedProductDetail(data, fallbackProductId) {
   if (!modalProductInfo) return;
   const name = data.productName || data.name || '未命名商品';
-  const productId = data.productId ?? data.id ?? '—';
+  const rawProductId = data.productId ?? data.id ?? fallbackProductId ?? '';
+  const productId = rawProductId || '—';
   const producer = data.producer || data.origin || data.owner || '—';
   const userId = data.userId ?? data.ownerId ?? data.farmerId ?? '—';
   const price = data.price ?? data.productPrice ?? '—';
@@ -1275,7 +1525,7 @@ function renderSelectedProductDetail(data) {
   const desc = data.description || data.productDesc || '';
   const safeImg = resolveProductImage(img);
   const fallbackImg = escapeAttr(DEFAULT_PRODUCT_IMAGE);
-  activeProductId = productId;
+  activeProductId = rawProductId ? String(rawProductId) : null;
   activeProductName = name;
   if (modalSelectedName) {
     modalSelectedName.textContent = `${escapeAttr(name)}（ID：${escapeAttr(productId)}）`;
@@ -1297,7 +1547,11 @@ function renderSelectedProductDetail(data) {
       </div>
     </div>
   `;
-  populateProductIdInputs(productId);
+  populateProductIdInputs(activeProductId);
+  setCommentComposerEnabled(Boolean(activeProductId));
+  if (commentStatusMsg && activeProductId) {
+    commentStatusMsg.textContent = '';
+  }
 }
 
 function renderProductComments(list) {
@@ -1320,11 +1574,19 @@ function renderSingleComment(item) {
   const userId = item.userId ?? '—';
   const sendTime = item.sendTime || item.createdTime || item.createTime || '—';
   const likeCount = item.commentLikeCount ?? item.likeCount ?? 0;
+  const commenterNameRaw = item.userName || item.nickname || item.userNickname || '';
+  const commenterName = resolveCommentAuthorName(commenterNameRaw, userId);
   const content = item.content ? formatMultilineText(item.content) : '（无内容）';
+  const rootId = item.rootCommentId ?? item.root_comment_id ?? commentId;
+  registerCommentMeta(commentId, commenterName, userId);
   const btnLoadChild = commentId
     ? `<button class="btn btn-secondary btn-load-child" data-comment-id="${escapeAttr(commentId)}">查看子评论</button>`
     : '';
-  return `<div class="comment-item" ${commentId ? `data-comment-id="${escapeAttr(commentId)}"` : ''}>
+  const likeButton = renderLikeButton(commentId, likeCount);
+  return `<div class="comment-item" ${commentId ? `data-comment-id="${escapeAttr(commentId)}"` : ''} ${rootId ? `data-root-id="${escapeAttr(rootId)}"` : ''} ${commenterName ? `data-user-name="${escapeAttr(commenterName)}"` : ''} title="点击评论即可回复该评论">
+    <div class="comment-header">
+      <span class="comment-author">${escapeAttr(commenterName)}</span>
+    </div>
     <div class="comment-content">${content}</div>
     <div class="comment-meta">
       <span>评论ID：${commentId || '—'}</span>
@@ -1333,29 +1595,55 @@ function renderSingleComment(item) {
       <span>点赞数：${escapeAttr(likeCount)}</span>
     </div>
     <div class="comment-actions">
+      ${likeButton}
       ${btnLoadChild}
     </div>
     <div class="child-comments" ${commentId ? `data-child-container="${escapeAttr(commentId)}"` : ''}></div>
   </div>`;
 }
 
-function renderChildCommentList(list) {
+function renderChildCommentList(list, rootIdFromParent) {
   if (!Array.isArray(list) || !list.length) {
     return '<div class="empty">暂无子评论</div>';
   }
+  list.forEach(item=>{
+    const commentId = item.productCommentId ?? item.commentId ?? item.id ?? '';
+    if (!commentId) return;
+    const userId = item.userId ?? '—';
+    const commenterNameRaw = item.userName || item.nickname || item.userNickname || '';
+    const commenterName = resolveCommentAuthorName(commenterNameRaw, userId);
+    registerCommentMeta(commentId, commenterName, userId);
+  });
   return list.map(item=>{
     const childContent = item.content ? formatMultilineText(item.content) : '（无内容）';
     const sendTime = item.sendTime || item.createdTime || item.createTime || '—';
     const userId = item.userId ?? '—';
     const likeCount = item.commentLikeCount ?? item.likeCount ?? 0;
     const commentId = item.productCommentId ?? item.commentId ?? item.id ?? '—';
-    return `<div class="child-comment">
+    const rootId = item.rootCommentId ?? item.root_comment_id ?? rootIdFromParent ?? commentId;
+    const commenterMeta = getCommentMeta(commentId);
+    const commenterName = commenterMeta?.name || resolveCommentAuthorName(item.userName || item.nickname || item.userNickname || '', userId);
+    const replyTargetId = item.toCommentId ?? item.to_comment_id;
+    const replyTargetMeta = replyTargetId ? getCommentMeta(replyTargetId) : null;
+    const replyTargetName = replyTargetMeta?.name || (replyTargetId ? `#${replyTargetId}` : '');
+    const likeButton = renderLikeButton(commentId, likeCount);
+    const replyMarkup = replyTargetId
+      ? `<span class="reply-arrow">↦</span><span class="comment-reply-target">${escapeAttr(replyTargetName)}</span>`
+      : '';
+    return `<div class="child-comment" data-comment-id="${escapeAttr(commentId)}" data-root-id="${escapeAttr(rootId)}" ${commenterName ? `data-user-name="${escapeAttr(commenterName)}"` : ''} title="点击评论即可回复该评论">
+      <div class="comment-header">
+        <span class="comment-author">${escapeAttr(commenterName)}</span>
+        ${replyMarkup}
+      </div>
       <div class="comment-content">${childContent}</div>
       <div class="comment-meta">
         <span>评论ID：${escapeAttr(commentId)}</span>
         <span>用户ID：${escapeAttr(userId)}</span>
         <span>时间：${escapeAttr(sendTime)}</span>
         <span>点赞数：${escapeAttr(likeCount)}</span>
+      </div>
+      <div class="comment-actions">
+        ${likeButton}
       </div>
     </div>`;
   }).join('');
@@ -1386,16 +1674,67 @@ async function loadChildComments(commentId, container, triggerBtn) {
         throw new Error(`HTTP ${res.status}`);
       }
       const json = await res.json();
+      console.log('[评论] 子评论接口原始响应:', { commentId, response: json });
       list = normalizeChildComments(json);
+      console.log('[评论] 子评论解析结果:', { commentId, parsedList: list });
       childCommentCache.set(commentId, list);
     }
-    container.innerHTML = renderChildCommentList(list);
+    container.innerHTML = renderChildCommentList(list, commentId);
     if (triggerBtn) {
       triggerBtn.textContent = '子评论已加载';
       triggerBtn.disabled = true;
     }
   } catch (err) {
     container.innerHTML = `<div class="msg">加载失败：${escapeAttr(err.message || '网络错误')}</div>`;
+  }
+}
+
+async function likeProductComment(commentId, triggerBtn) {
+  if (!commentId) return;
+  if (triggerBtn?.dataset.loading === 'true') return;
+  const numericId = parseInt(commentId, 10);
+  if (!Number.isFinite(numericId)) return;
+  const isLiked = triggerBtn?.dataset.liked === 'true';
+  const action = isLiked ? 'cancel' : 'like';
+  if (triggerBtn) {
+    triggerBtn.dataset.loading = 'true';
+    triggerBtn.classList.add('loading');
+  }
+  if (commentStatusMsg) commentStatusMsg.textContent = '';
+  try {
+    const payload = { productCommentId: numericId, action };
+    const res = await fetch(`${API_BASE}/api/comment/like`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json().catch(()=>({}));
+    console.log('[评论] 点赞接口响应:', { commentId: numericId, action, response: json });
+    if (!res.ok) {
+      throw new Error(json?.message || res.statusText);
+    }
+    const apiCount = json?.data?.commentLikeCount;
+    let newCount = Number.isFinite(Number(apiCount))
+      ? Number(apiCount)
+      : (() => {
+          const btnCount = triggerBtn?.querySelector('.like-count')?.textContent;
+          const current = Number.parseInt(btnCount || '0', 10);
+          if (!Number.isFinite(current)) return 0;
+          return isLiked ? Math.max(0, current - 1) : current + 1;
+        })();
+    updateLikeButtonState(triggerBtn, !isLiked, newCount);
+    if (commentStatusMsg) {
+      commentStatusMsg.textContent = json?.message || (isLiked ? '已取消点赞' : '点赞成功');
+    }
+  } catch (err) {
+    if (commentStatusMsg) {
+      commentStatusMsg.textContent = `点赞失败：${err.message || '网络错误'}`;
+    }
+  } finally {
+    if (triggerBtn) {
+      triggerBtn.dataset.loading = 'false';
+      triggerBtn.classList.remove('loading');
+    }
   }
 }
 
@@ -1578,11 +1917,37 @@ if (formPurchaseModal) {
 
 if (modalCommentList) {
   modalCommentList.addEventListener('click', (e)=>{
-    const btn = e.target.closest('.btn-load-child');
-    if (!btn) return;
-    const commentId = btn.getAttribute('data-comment-id');
-    const container = btn.closest('.comment-item')?.querySelector('.child-comments');
-    loadChildComments(commentId, container, btn);
+    const likeBtn = e.target.closest('.btn-like-comment');
+    if (likeBtn) {
+      const commentId = likeBtn.getAttribute('data-comment-id');
+      likeProductComment(commentId, likeBtn);
+      return;
+    }
+    const loadBtn = e.target.closest('.btn-load-child');
+    if (loadBtn) {
+      const commentId = loadBtn.getAttribute('data-comment-id');
+      const container = loadBtn.closest('.comment-item')?.querySelector('.child-comments');
+      loadChildComments(commentId, container, loadBtn);
+      return;
+    }
+    if (e.target.closest('.comment-actions')) {
+      return;
+    }
+    const childCommentEl = e.target.closest('.child-comment');
+    if (childCommentEl) {
+      const target = extractReplyTargetFromElement(childCommentEl);
+      if (target) {
+        setReplyTarget(target);
+      }
+      return;
+    }
+    const commentCard = e.target.closest('.comment-item');
+    if (commentCard) {
+      const target = extractReplyTargetFromElement(commentCard);
+      if (target) {
+        setReplyTarget(target);
+      }
+    }
   });
 }
 
@@ -2007,6 +2372,7 @@ if (formAddComment) {
     }
     msgComment.textContent = '提交中...';
     try {
+      console.log('[评论] 提交参数:', payload);
       const res = await fetch(`${API_BASE}/api/comment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2053,6 +2419,7 @@ if (formReplyComment) {
     }
     msgReply.textContent = '提交中...';
     try {
+      console.log('[评论回复] 提交参数:', payload);
       // 根据文档，回复评论也使用 /api/comment 接口
       const res = await fetch(`${API_BASE}/api/comment`, {
         method: 'POST',

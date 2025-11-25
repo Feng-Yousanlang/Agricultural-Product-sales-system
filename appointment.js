@@ -316,8 +316,10 @@ function renderPendingAppointments(list) {
       <div>主题：${topic}</div>
       ${remark ? `<div>备注：${escapeAttr(remark)}</div>` : ''}
       <div>状态：${status === 'pending' ? '待审批' : status}</div>
-      <button class="btn btn-secondary btn-fill-review-form" 
-        data-appointment-id="${escapeAttr(appointmentId)}">填入审批表单</button>
+      <div class="action-row">
+        <button class="btn btn-secondary btn-approve-appointment" data-appointment-id="${escapeAttr(appointmentId)}" data-action="同意">同意</button>
+        <button class="btn btn-danger btn-reject-appointment" data-appointment-id="${escapeAttr(appointmentId)}" data-action="拒绝">拒绝</button>
+      </div>
     </div>`;
   }).join('');
 }
@@ -326,15 +328,56 @@ if (btnLoadPendingAppointments) {
   btnLoadPendingAppointments.addEventListener('click', ()=>loadPendingAppointments());
 }
 
+async function submitAppointmentReview(appointmentId, action, comment = '') {
+  const expertId = getCurrentUserId();
+  if (!expertId) {
+    msgPendingAppointments.textContent = '未获取到专家ID，请重新登录后再试';
+    return;
+  }
+  if (!appointmentId || !action) {
+    msgPendingAppointments.textContent = '缺少必要的预约信息';
+    return;
+  }
+  const payload = {
+    appointment_id: parseInt(appointmentId, 10),
+    user_id: expertId,
+    action
+  };
+  if (comment) {
+    payload.comment = comment;
+  }
+  msgPendingAppointments.textContent = '提交审批中...';
+  try {
+    const res = await fetch(`${API_BASE_REF}/api/expert-appointment/review`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json().catch(()=>({}));
+    if (!res.ok) {
+      throw new Error(json?.message || res.statusText);
+    }
+    msgPendingAppointments.textContent = json?.message || '预约已审批';
+    loadPendingAppointments(false);
+    loadSchedule(false);
+  } catch (err) {
+    msgPendingAppointments.textContent = `审批失败：${err.message || '网络错误'}`;
+  }
+}
+
 if (pendingAppointmentsList) {
   pendingAppointmentsList.addEventListener('click', (e)=>{
-    const btn = e.target.closest('.btn-fill-review-form');
-    if (btn) {
-      const appointmentId = btn.getAttribute('data-appointment-id');
-      const reviewAppointmentIdInput = document.getElementById('review-appointment-id');
-      if (reviewAppointmentIdInput && appointmentId) {
-        reviewAppointmentIdInput.value = appointmentId;
-      }
+    const approveBtn = e.target.closest('.btn-approve-appointment');
+    if (approveBtn) {
+      const appointmentId = approveBtn.getAttribute('data-appointment-id');
+      submitAppointmentReview(appointmentId, '同意');
+      return;
+    }
+    const rejectBtn = e.target.closest('.btn-reject-appointment');
+    if (rejectBtn) {
+      const appointmentId = rejectBtn.getAttribute('data-appointment-id');
+      const comment = prompt('请输入拒绝理由（可选）：') || '';
+      submitAppointmentReview(appointmentId, '拒绝', comment.trim());
     }
   });
 }
@@ -453,7 +496,10 @@ function renderSchedule(list) {
       <div>日期：${dateStr} ${timeStr}</div>
       <div>主题：${topic}</div>
       <div>状态：${statusText}</div>
-      ${canUpdate && appointmentId ? `<button class="btn btn-secondary btn-fill-update-form" data-appointment-id="${escapeAttr(appointmentId)}">填入更新表单</button>` : ''}
+      ${canUpdate && appointmentId ? `<div class="action-row">
+        <button class="btn btn-secondary btn-update-status" data-appointment-id="${escapeAttr(appointmentId)}" data-status="completed">标记已完成</button>
+        <button class="btn btn-danger btn-update-status" data-appointment-id="${escapeAttr(appointmentId)}" data-status="no_show">标记未到场</button>
+      </div>` : ''}
     </div>`;
   }).join('');
 }
@@ -477,6 +523,54 @@ if (scheduleList) {
         }
       }
     }
+  });
+}
+
+async function submitAppointmentStatus(appointmentId, status) {
+  const userId = getCurrentUserId();
+  if (!userId) {
+    msgSchedule.textContent = '未获取到用户ID，请重新登录后再试';
+    return;
+  }
+  if (!appointmentId || !status) {
+    msgSchedule.textContent = '缺少必要的预约信息';
+    return;
+  }
+  const payload = {
+    appointment_id: parseInt(appointmentId, 10),
+    user_id: userId,
+    status
+  };
+  msgSchedule.textContent = '提交更新中...';
+  try {
+    const res = await fetch(`${API_BASE_REF}/api/expert-appointment/update-status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json().catch(()=>({}));
+    if (!res.ok) {
+      throw new Error(json?.message || res.statusText);
+    }
+    msgSchedule.textContent = json?.message || '状态已更新';
+    loadSchedule(false);
+  } catch (err) {
+    msgSchedule.textContent = `更新失败：${err.message || '网络错误'}`;
+  }
+}
+
+if (scheduleList) {
+  scheduleList.addEventListener('click', (e)=>{
+    const actionBtn = e.target.closest('.btn-update-status');
+    if (!actionBtn) return;
+    const appointmentId = actionBtn.getAttribute('data-appointment-id');
+    const status = actionBtn.getAttribute('data-status');
+    if (status === 'completed') {
+      if (!confirm('确认将该预约标记为“已完成”？')) return;
+    } else if (status === 'no_show') {
+      if (!confirm('确认记录“农户未到场”？')) return;
+    }
+    submitAppointmentStatus(appointmentId, status);
   });
 }
 
