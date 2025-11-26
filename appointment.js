@@ -100,19 +100,39 @@ if (formAppointmentCreate) {
       return;
     }
     const expertName = document.getElementById('appointment-expertName').value.trim();
-    const payload = {
-      userId: currentUserId,
-      expertName,
-      expert_name: expertName,
-      date: document.getElementById('appointment-date').value,
-      time: document.getElementById('appointment-time').value.trim(),
-      topic: document.getElementById('appointment-topic').value.trim(),
-      remark: document.getElementById('appointment-remark').value.trim()
-    };
-    if (!payload.userId || !expertName || !payload.date || !payload.time || !payload.topic) {
+    const timeRange = document.getElementById('appointment-time').value.trim();
+    const date = document.getElementById('appointment-date').value;
+    const topic = document.getElementById('appointment-topic').value.trim();
+    const remark = document.getElementById('appointment-remark').value.trim();
+    
+    // 从时间段中提取开始时间和结束时间（格式：09:00-10:00）
+    let startTime = '';
+    let endTime = '';
+    if (timeRange) {
+      const parts = timeRange.split('-');
+      if (parts.length === 2) {
+        startTime = parts[0].trim();
+        endTime = parts[1].trim();
+      }
+    }
+    
+    if (!currentUserId || !expertName || !date || !startTime || !endTime || !topic) {
       msgAppointmentCreate.textContent = '请完善预约信息';
       return;
     }
+    
+    const payload = {
+      user_ID: currentUserId,
+      userId: currentUserId, // 保留兼容性
+      expertName: expertName,
+      expert_name: expertName, // 保留兼容性
+      date: date,
+      startTime: startTime,
+      endTime: endTime,
+      topic: topic,
+      remark: remark || '',
+      status: 'pending' // 默认状态为待审批
+    };
     msgAppointmentCreate.textContent = '提交中...';
     try {
       // 根据文档，提交预约申请接口为 /api/expert-appointment/create
@@ -443,6 +463,13 @@ if (formReviewAppointment) {
 const scheduleList = document.getElementById('schedule-list');
 const msgSchedule = document.getElementById('msg-schedule');
 const btnLoadSchedule = document.getElementById('btn-load-schedule');
+let scheduleDataList = []; // 保存预约数据，供表单提交时使用
+
+function buildMeetTime(dateStr = '', timeRange = '') {
+  const start = typeof timeRange === 'string' ? timeRange.split('-')[0]?.trim() : '';
+  if (!dateStr || !start) return '';
+  return `${dateStr} ${start}`;
+}
 
 async function loadSchedule(showLoading = true) {
   if (!scheduleList) return;
@@ -466,6 +493,7 @@ async function loadSchedule(showLoading = true) {
     }
     const json = await res.json();
     const list = Array.isArray(json?.data) ? json.data : [];
+    scheduleDataList = list; // 保存预约数据
     renderSchedule(list);
     msgSchedule.textContent = list.length ? '' : '暂无预约日程';
   } catch (err) {
@@ -497,8 +525,8 @@ function renderSchedule(list) {
       <div>主题：${topic}</div>
       <div>状态：${statusText}</div>
       ${canUpdate && appointmentId ? `<div class="action-row">
-        <button class="btn btn-secondary btn-update-status" data-appointment-id="${escapeAttr(appointmentId)}" data-status="completed">标记已完成</button>
-        <button class="btn btn-danger btn-update-status" data-appointment-id="${escapeAttr(appointmentId)}" data-status="no_show">标记未到场</button>
+        <button class="btn btn-secondary btn-update-status" data-appointment-id="${escapeAttr(appointmentId)}" data-status="completed" data-date="${escapeAttr(dateStr)}" data-time="${escapeAttr(timeStr)}">标记已完成</button>
+        <button class="btn btn-danger btn-update-status" data-appointment-id="${escapeAttr(appointmentId)}" data-status="no_show" data-date="${escapeAttr(dateStr)}" data-time="${escapeAttr(timeStr)}">标记未到场</button>
       </div>` : ''}
     </div>`;
   }).join('');
@@ -526,7 +554,7 @@ if (scheduleList) {
   });
 }
 
-async function submitAppointmentStatus(appointmentId, status) {
+async function submitAppointmentStatus(appointmentId, status, dateStr, timeStr) {
   const userId = getCurrentUserId();
   if (!userId) {
     msgSchedule.textContent = '未获取到用户ID，请重新登录后再试';
@@ -536,10 +564,17 @@ async function submitAppointmentStatus(appointmentId, status) {
     msgSchedule.textContent = '缺少必要的预约信息';
     return;
   }
+  // 组合预约日期和时间作为 meetTime（仅使用开始时间）
+  const meetTime = buildMeetTime(dateStr, timeStr);
+  if (!meetTime) {
+    msgSchedule.textContent = '缺少预约时间信息';
+    return;
+  }
   const payload = {
     appointment_id: parseInt(appointmentId, 10),
     user_id: userId,
-    status
+    status,
+    meetTime: meetTime
   };
   msgSchedule.textContent = '提交更新中...';
   try {
@@ -565,12 +600,14 @@ if (scheduleList) {
     if (!actionBtn) return;
     const appointmentId = actionBtn.getAttribute('data-appointment-id');
     const status = actionBtn.getAttribute('data-status');
+    const dateStr = actionBtn.getAttribute('data-date');
+    const timeStr = actionBtn.getAttribute('data-time');
     if (status === 'completed') {
-      if (!confirm('确认将该预约标记为“已完成”？')) return;
+      if (!confirm('确认将该预约标记为"已完成"？')) return;
     } else if (status === 'no_show') {
-      if (!confirm('确认记录“农户未到场”？')) return;
+      if (!confirm('确认记录"农户未到场"？')) return;
     }
-    submitAppointmentStatus(appointmentId, status);
+    submitAppointmentStatus(appointmentId, status, dateStr, timeStr);
   });
 }
 
@@ -600,10 +637,25 @@ if (formUpdateStatus) {
       return;
     }
     
+    // 从已加载的预约数据中查找对应的预约时间
+    const appointment = scheduleDataList.find(item => {
+      const id = item.id ?? item.appointment_id ?? item.appointmentId;
+      return id && parseInt(id, 10) === appointmentId;
+    });
+    const dateStr = appointment ? (appointment.date || appointment.appointmentDate || '') : '';
+    const timeStr = appointment ? (appointment.time || appointment.time_slot || '') : '';
+    const meetTime = buildMeetTime(dateStr, timeStr);
+    
+    if (!meetTime) {
+      msgUpdateStatus.textContent = '未找到该预约的时间信息，请先刷新预约列表';
+      return;
+    }
+    
     const payload = {
       appointment_id: appointmentId,
       user_id: userId,  // 使用从 localStorage 获取的 user_id
-      status: status
+      status: status,
+      meetTime: meetTime
     };
     
     msgUpdateStatus.textContent = '提交更新中...';
