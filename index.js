@@ -322,6 +322,8 @@ if (btnSearchKnowledge) {
 const bankLoanProductsGrid = document.getElementById('loan-products-grid');
 const bankMsgLoanProducts = document.getElementById('msg-loan-products');
 const bankBtnLoanProductsRefresh = document.getElementById('loan-products-refresh');
+const bankInputLoanProductSearch = document.getElementById('loan-product-search-q');
+const bankBtnLoanProductSearch = document.getElementById('loan-product-search-btn');
 const bankFormLoanProductCreate = document.getElementById('form-loan-product-create');
 const bankMsgLoanProductCreate = document.getElementById('msg-loan-product-create');
 const bankLoanProductModal = document.getElementById('loan-product-modal');
@@ -350,6 +352,45 @@ async function bankLoadLoanProducts() {
     bankLoanProductsCache = [];
     bankRenderLoanProducts([]);
     if (bankMsgLoanProducts) bankMsgLoanProducts.textContent = `加载失败：${err.message || '网络错误'}`;
+  }
+}
+
+async function bankSearchLoanProducts(keyword) {
+  if (!bankLoanProductsGrid) return;
+  const q = (keyword || '').trim();
+  if (!q) {
+    if (bankMsgLoanProducts) bankMsgLoanProducts.textContent = '请输入产品名称进行搜索';
+    return;
+  }
+  if (bankMsgLoanProducts) bankMsgLoanProducts.textContent = '搜索中...';
+  bankLoanProductsGrid.innerHTML = '';
+  try {
+    const token = getAuthToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    const payload = { q };
+    console.log('[贷款产品搜索] 即将提交的 payload：', payload);
+    const res = await fetch(`${API_BASE}/api/loan/searchproduct`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    const list = bankNormalizeLoanProducts(json);
+    bankLoanProductsCache = list;
+    bankRenderLoanProducts(list);
+    if (bankMsgLoanProducts) {
+      bankMsgLoanProducts.textContent = list.length
+        ? `已为关键字「${q}」找到 ${list.length} 个产品`
+        : (json?.message || `未找到与「${q}」匹配的产品`);
+    }
+  } catch (err) {
+    bankLoanProductsCache = [];
+    bankRenderLoanProducts([]);
+    if (bankMsgLoanProducts) bankMsgLoanProducts.textContent = `搜索失败：${err.message || '网络错误'}`;
   }
 }
 
@@ -483,6 +524,18 @@ if (bankLoanProductsGrid) {
 if (bankBtnLoanProductsRefresh) {
   bankBtnLoanProductsRefresh.addEventListener('click', () => {
     bankLoadLoanProducts();
+  });
+}
+
+if (bankBtnLoanProductSearch && bankInputLoanProductSearch) {
+  bankBtnLoanProductSearch.addEventListener('click', () => {
+    bankSearchLoanProducts(bankInputLoanProductSearch.value);
+  });
+  bankInputLoanProductSearch.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      bankSearchLoanProducts(bankInputLoanProductSearch.value);
+    }
   });
 }
 
@@ -700,16 +753,24 @@ async function submitLoanApproval(applicationId, decision, triggerBtn) {
     return;
   }
   const numericApplicationId = Number.parseInt(applicationId, 10);
+  console.log('[审批中心] 尝试提交审批', {
+    rawAttribute: applicationId,
+    parsedApplicationId: numericApplicationId,
+    decision,
+    approverId
+  });
   if (!Number.isFinite(numericApplicationId) || numericApplicationId <= 0) {
     msgApprove.textContent = '当前申请缺少有效的 applicationId，无法提交审批';
+    console.warn('[审批中心] applicationId 无效，终止提交');
     return;
   }
   const payload = {
     applicationId: numericApplicationId,
-    approverId,
+    userId: approverId,
     decision: Number(decision),
     remark: Number(decision) === 1 ? '审批通过' : '审批拒绝'
   };
+  console.log('[审批中心] 提交 payload：', payload);
   const token = getAuthToken();
   const headers = { 'Content-Type': 'application/json' };
   if (token) {
@@ -761,15 +822,15 @@ const approvalHistoryList = document.getElementById('approval-history-list');
 const msgApprovalHistory = document.getElementById('msg-approval-history');
 if (btnLoadApprovalHistory) {
   btnLoadApprovalHistory.onclick = async function(){
-    const applicationId = parseInt(document.getElementById('history-applicationId').value, 10);
     approvalHistoryList.innerHTML = '';
-    if (!applicationId) {
-      msgApprovalHistory.textContent = '请输入申请ID';
+    const currentUserId = getCurrentUserId();
+    if (!currentUserId) {
+      msgApprovalHistory.textContent = '未获取到用户ID，请重新登录后再试';
       return;
     }
-    msgApprovalHistory.textContent = '加载中...';
+    msgApprovalHistory.textContent = '加载审批历史中...';
     try {
-      const res = await fetch(`${API_BASE}/api/loan/approvals?applicationId=${encodeURIComponent(applicationId)}`);
+      const res = await fetch(`${API_BASE}/api/loan/approvals?userId=${encodeURIComponent(currentUserId)}`);
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
       }
@@ -777,13 +838,14 @@ if (btnLoadApprovalHistory) {
       const list = Array.isArray(json?.data) ? json.data : [];
       approvalHistoryList.innerHTML = list.map(item =>
         `<div class="expert">
-           <div>审批人：${item.approverId || item.approverName || '—'}</div>
+           ${item.applicationId ? `<div>申请ID：${item.applicationId}</div>` : ''}
+           <div>审批人ID：${item.approverId || '—'}</div>
            <div>结果：${item.decision || '—'}</div>
            <div>备注：${item.remark || '—'}</div>
            <div>时间：${item.date || item.createTime || '—'}</div>
          </div>`
       ).join('');
-      msgApprovalHistory.textContent = list.length ? '' : '暂无审批记录';
+      msgApprovalHistory.textContent = list.length ? '' : (json?.message || '暂无审批记录');
     } catch (err) {
       approvalHistoryList.innerHTML = '';
       msgApprovalHistory.textContent = `加载失败：${err.message || '网络错误'}`;

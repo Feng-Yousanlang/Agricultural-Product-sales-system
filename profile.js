@@ -18,6 +18,24 @@ function getCurrentUserId() {
   }
 }
 
+function resolveAvatarSrc(src) {
+  if (!src) return '';
+  const trimmed = String(src).trim();
+  if (!trimmed) return '';
+  // 已经是完整 http/https 地址，直接用
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+  // 相对路径时补全为后端域名 + 路径
+  try {
+    // 去掉可能重复的前导斜杠
+    const path = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+    return `${API_BASE}${path}`;
+  } catch {
+    return trimmed;
+  }
+}
+
 (function checkAuth() {
   const token = getAuthToken();
   if (!token) {
@@ -210,6 +228,8 @@ function displayProfile(data) {
   const identityLabel = identityMap[String(identityRaw)] || identityRaw || '—';
   const createTimeRaw = pickValue(data, ['createTime', 'create_time', 'created_at', 'createdAt'], '');
   const createTimeDisplay = createTimeRaw ? createTimeRaw.replace('T', ' ') : '—';
+  const avatarSrcRaw = pickValue(data, ['image_url', 'avatarUrl', 'avatar', 'imageUrl'], '');
+  const avatarSrc = resolveAvatarSrc(avatarSrcRaw);
 
   document.getElementById('display-userId').textContent =
     pickValue(data, ['userId', 'id'], localStorage.getItem('user_id') || '—');
@@ -223,6 +243,17 @@ function displayProfile(data) {
   document.getElementById('display-email').textContent =
     pickValue(data, ['email']);
   document.getElementById('display-createTime').textContent = createTimeDisplay;
+
+  const avatarDisplay = document.getElementById('display-avatar');
+  if (avatarDisplay) {
+    if (avatarSrc) {
+      console.log('[个人中心] 头像地址原始值 / 解析后:', avatarSrcRaw, '=>', avatarSrc);
+      const safeSrc = escapeHtml(avatarSrc);
+      avatarDisplay.innerHTML = `<img src="${safeSrc}" alt="用户头像" onerror="this.style.display='none'; this.insertAdjacentHTML('afterend','<span class=&quot;form-hint&quot;>头像加载失败</span>');">`;
+    } else {
+      avatarDisplay.innerHTML = '<span class="form-hint">尚未上传头像</span>';
+    }
+  }
 }
 
 const btnEditProfile = document.getElementById('btn-edit-profile');

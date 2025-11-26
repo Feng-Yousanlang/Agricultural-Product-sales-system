@@ -113,7 +113,12 @@
                 <p class="section-subtitle">银行端快速维护贷款产品，实时展示给农户</p>
             </div>
             <div class="loan-product-toolbar">
-                <button id="loan-products-refresh" class="btn btn-secondary">刷新列表</button>
+                <input type="text"
+                       id="loan-product-search-q"
+                       placeholder="按产品名称搜索"
+                       style="min-width: 180px; padding: 6px 10px; border-radius: 999px; border: 1px solid #c9d2e3; font-size: 13px; background: #f8f9fc; outline: none;">
+                <button id="loan-product-search-btn" class="btn btn-secondary" type="button">搜索</button>
+                <button id="loan-products-refresh" class="btn btn-secondary" type="button">刷新列表</button>
             </div>
         </div>
         <div class="loan-product-create">
@@ -181,6 +186,12 @@
         </div>
         <div class="list" id="pending-list"></div>
         <div class="msg" id="msg-approve"></div>
+        <div class="divider"></div>
+        <div class="form-inline" style="margin-top: 8px; flex-wrap: wrap; gap: 8px;">
+            <button id="btn-load-approval-history" class="btn btn-secondary" type="button">查看我的审批历史</button>
+        </div>
+        <div class="list" id="approval-history-list" style="margin-top: 8px;"></div>
+        <div class="msg" id="msg-approval-history"></div>
     </section>
 
     <section id="loan-status" class="card" data-identity="1">

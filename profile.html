@@ -51,6 +51,18 @@
         .info-item span {
             color: #333;
         }
+        .avatar-display {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .avatar-display img {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid #eee;
+        }
         .form-group {
             margin-bottom: 15px;
         }
@@ -177,6 +189,10 @@
             <div class="info-item">
                 <label>用户ID</label>
                 <span id="display-userId">—</span>
+            </div>
+            <div class="info-item avatar-display">
+                <label>头像</label>
+                <span id="display-avatar"><span class="form-hint">尚未上传头像</span></span>
             </div>
             <div class="info-item">
                 <label>用户名</label>

@@ -459,15 +459,15 @@ const planList = document.getElementById('plan-list');
 const msgPlan = document.getElementById('msg-plan');
 if (btnLoadPlan) {
   btnLoadPlan.onclick = async function(){
-    const applicationId = parseInt(document.getElementById('plan-applicationId').value,10);
     planList.innerHTML = '';
-    if (!applicationId) {
-      msgPlan.textContent = '请输入申请ID';
+    const userId = getCurrentUserId && getCurrentUserId();
+    if (!userId) {
+      msgPlan.textContent = '未获取到用户ID，请重新登录后再试';
       return;
     }
     msgPlan.textContent = '加载中...';
     try {
-      const res = await fetch(`${API_BASE}/api/loan/repayment-plan?applicationId=${encodeURIComponent(applicationId)}`);
+      const res = await fetch(`${API_BASE}/api/loan/repayment-plan?userId=${encodeURIComponent(userId)}`);
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
       }
@@ -490,12 +490,19 @@ function renderPlan(list){
     return;
   }
   planList.innerHTML = list.map(i=>{
-    const amount = i.amount ?? i.remainingAmount ?? i.RemainingAmout ?? '—';
+    const amount = i.amount ?? i.remainingAmount ?? i.RemainingAmount ?? i.RemainingAmout ?? '—';
+    const applicationId = i.applicationId ?? i.loanApplicationId ?? i.id ?? null;
+    const safeAppId = applicationId !== null && applicationId !== undefined
+      ? escapeHtml(String(applicationId))
+      : '';
+    const canRepay = Boolean(safeAppId);
     return `<div class="expert">
+      ${safeAppId ? `<div>申请ID：${safeAppId}</div>` : ''}
       <div>期数：${i.installmentNo || i.period || '—'}</div>
       <div>到期日：${i.dueDate || i.due_time || '—'}</div>
       <div>剩余金额：${amount}</div>
       <div>状态：${i.status || '—'}</div>
+      ${canRepay ? `<div class="appointment-card-actions"><button class="btn btn-secondary btn-repay-from-plan" data-application-id="${safeAppId}" data-amount="${escapeHtml(String(amount))}">去还款</button></div>` : ''}
     </div>`;
   }).join('');
 }
@@ -505,10 +512,10 @@ const repaymentsList = document.getElementById('repayments-list');
 const msgRepayments = document.getElementById('msg-repayments');
 if (btnLoadRepayments) {
   btnLoadRepayments.onclick = async function(){
-    const userId = parseInt(document.getElementById('history-userId').value, 10);
     repaymentsList.innerHTML = '';
+    const userId = getCurrentUserId && getCurrentUserId();
     if (!userId) {
-      msgRepayments.textContent = '请输入用户ID';
+      msgRepayments.textContent = '未获取到用户ID，请重新登录后再试';
       return;
     }
     msgRepayments.textContent = '加载中...';
@@ -536,6 +543,35 @@ if (btnLoadRepayments) {
 
 const formRepay = document.getElementById('form-repay');
 const msgRepay = document.getElementById('msg-repay');
+const repayApplicationDisplay = document.getElementById('repay-application-display');
+if (planList && formRepay) {
+  planList.addEventListener('click', (event) => {
+    const btn = event.target.closest('.btn-repay-from-plan');
+    if (!btn) return;
+    const appId = btn.getAttribute('data-application-id');
+    const amount = btn.getAttribute('data-amount');
+    const appInput = document.getElementById('repay-applicationId');
+    if (appId && appInput) {
+      appInput.value = appId;
+      if (repayApplicationDisplay) {
+        repayApplicationDisplay.textContent = `当前选择的申请ID：${appId}`;
+      }
+      const amountInput = document.getElementById('repay-amount');
+      if (amountInput && amount && amount !== '—') {
+        amountInput.value = amount;
+      }
+      const dateInput = document.getElementById('repay-date');
+      if (dateInput && !dateInput.value) {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        dateInput.value = `${yyyy}-${mm}-${dd}`;
+      }
+    }
+  });
+}
+
 if (formRepay) {
   formRepay.addEventListener('submit', async (e)=>{
     e.preventDefault();

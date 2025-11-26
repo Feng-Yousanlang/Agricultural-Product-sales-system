@@ -75,16 +75,14 @@
             <div>
                 <h3 style="margin:6px 0;">还款计划</h3>
                 <div class="form-inline">
-                    <input type="number" id="plan-applicationId" placeholder="申请ID">
-                    <button id="btn-load-plan" class="btn btn-secondary">查询计划</button>
+                    <button id="btn-load-plan" class="btn btn-secondary">查看我的还款计划</button>
                 </div>
                 <div class="list" id="plan-list"></div>
                 <div class="msg" id="msg-plan"></div>
                 <div class="divider"></div>
                 <h3 style="margin:6px 0;">还款历史</h3>
                 <div class="form-inline">
-                    <input type="number" id="history-userId" placeholder="用户ID">
-                    <button id="btn-load-repayments" class="btn btn-secondary">查询历史</button>
+                    <button id="btn-load-repayments" class="btn btn-secondary">查看我的还款历史</button>
                 </div>
                 <div class="list" id="repayments-list"></div>
                 <div class="msg" id="msg-repayments"></div>
@@ -93,12 +91,13 @@
                 <h3 style="margin:6px 0;">提交还款</h3>
                 <form id="form-repay" autocomplete="off" class="form">
                     <div class="row">
-                        <label for="repay-applicationId">申请ID</label>
-                        <input type="number" id="repay-applicationId" required>
+                        <label>申请ID</label>
+                        <span id="repay-application-display">请先在左侧选择还款计划</span>
+                        <input type="hidden" id="repay-applicationId">
                     </div>
                     <div class="row">
                         <label for="repay-amount">金额</label>
-                        <input type="number" id="repay-amount" required>
+                        <input type="number" id="repay-amount" step="0.01" min="0.01" required>
                     </div>
                     <div class="row">
                         <label for="repay-date">日期</label>
