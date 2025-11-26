@@ -108,76 +108,79 @@
 
     <section id="loan-product-manage" class="card" data-identity="4">
         <div class="card-header">
-            <h2>贷款产品管理</h2>
-        </div>
-        <div class="grid grid-2">
-            <form id="form-create-loan-product" class="form">
-                <h3>新增产品</h3>
-                <div class="row"><label for="product-name">名称</label><input id="product-name" required></div>
-                <div class="row"><label for="product-category">类型</label><input id="product-category" required></div>
-                <div class="row"><label for="product-max">最高额度</label><input type="number" id="product-max" required></div>
-                <div class="row"><label for="product-min">最低额度</label><input type="number" id="product-min" required></div>
-                <div class="row"><label for="product-rate">利率(%)</label><input type="number" step="0.01" id="product-rate" required></div>
-                <div class="row"><label for="product-term">期限(月)</label><input type="number" id="product-term" required></div>
-                <div class="row"><label for="product-desc">简介</label><textarea id="product-desc" rows="2"></textarea></div>
-                <button type="submit" class="btn">创建产品</button>
-                <div class="msg" id="msg-create-product"></div>
-            </form>
-            <div class="form-stack">
-                <form id="form-delete-product" class="form">
-                    <h3>删除产品</h3>
-                    <div class="row"><label for="delete-product-id">产品ID</label><input type="number" id="delete-product-id" required></div>
-                    <button type="submit" class="btn btn-danger">删除</button>
-                    <div class="msg" id="msg-delete-product"></div>
-                </form>
-                <form id="form-product-detail" class="form">
-                    <h3>产品详情</h3>
-                    <div class="row"><label for="detail-product-id">产品ID</label><input type="number" id="detail-product-id" required></div>
-                    <button type="submit" class="btn btn-secondary">查询详情</button>
-                    <div class="msg" id="msg-product-detail"></div>
-                </form>
-                <div class="detail-box" id="loan-product-detail"></div>
+            <div>
+                <h2>贷款产品管理</h2>
+                <p class="section-subtitle">银行端快速维护贷款产品，实时展示给农户</p>
+            </div>
+            <div class="loan-product-toolbar">
+                <button id="loan-products-refresh" class="btn btn-secondary">刷新列表</button>
             </div>
         </div>
+        <div class="loan-product-create">
+            <h3>新建贷款产品</h3>
+            <form id="form-loan-product-create" class="form two-col-grid" autocomplete="off">
+                <div class="row">
+                    <label for="loan-product-name">产品名称 <span class="required">*</span></label>
+                    <input type="text" id="loan-product-name" maxlength="40" required>
+                </div>
+                <div class="row">
+                    <label for="loan-product-category">产品标签</label>
+                    <input type="text" id="loan-product-category" placeholder="示例：普惠金融,绿色农业">
+                </div>
+                <div class="row">
+                    <label for="loan-product-min">最低额度(元)</label>
+                    <input type="number" id="loan-product-min" min="0" step="1000">
+                </div>
+                <div class="row">
+                    <label for="loan-product-max">最高额度(元)</label>
+                    <input type="number" id="loan-product-max" min="0" step="1000">
+                </div>
+                <div class="row">
+                    <label for="loan-product-rate">年化利率(%)</label>
+                    <input type="number" id="loan-product-rate" min="0" step="0.01">
+                </div>
+                <div class="row">
+                    <label for="loan-product-term">最长期限(月)</label>
+                    <input type="number" id="loan-product-term" min="1" step="1">
+                </div>
+                <div class="row wide">
+                    <label for="loan-product-desc">产品描述</label>
+                    <textarea id="loan-product-desc" rows="3" maxlength="300" placeholder="输入产品亮点、适用人群、申请条件等"></textarea>
+                </div>
+                <div class="row wide form-actions">
+                    <button type="submit" class="btn">提交新产品</button>
+                    <div class="msg inline" id="msg-loan-product-create"></div>
+                </div>
+            </form>
+        </div>
+        <div class="loan-products-list-header">
+            <h3>现有产品</h3>
+            <p>数据来源：GET /api/loan/products</p>
+        </div>
+        <div class="loan-products-grid" id="loan-products-grid"></div>
+        <div class="msg" id="msg-loan-products"></div>
     </section>
+
+    <div id="loan-product-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+        <div class="modal loan-product-modal">
+            <span class="modal-close" id="loan-product-modal-close">&times;</span>
+            <h3 id="loan-product-modal-title">贷款产品详情</h3>
+            <div id="loan-product-modal-body" class="loan-product-modal-body"></div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-danger" id="btn-delete-loan-product">删除该产品</button>
+                <button type="button" class="btn btn-secondary" id="loan-product-modal-cancel">关闭</button>
+            </div>
+            <div class="msg" id="msg-loan-product-modal"></div>
+        </div>
+    </div>
 
     <section id="loan-approvals" class="card" data-identity="4">
         <div class="card-header">
             <h2>审批中心</h2>
-            <button id="btn-load-pending" class="btn btn-secondary">加载待审批</button>
+            <button id="btn-load-pending" class="btn btn-secondary">刷新列表</button>
         </div>
         <div class="list" id="pending-list"></div>
-        <div class="divider"></div>
-        <form id="form-approve" autocomplete="off" class="form">
-            <div class="row">
-                <label for="approve-applicationId">申请ID</label>
-                <input type="number" id="approve-applicationId" required>
-            </div>
-            <div class="row">
-                <label for="approve-approverId">审批人ID</label>
-                <input type="number" id="approve-approverId" required>
-            </div>
-            <div class="row">
-                <label for="approve-decision">决定</label>
-                <select id="approve-decision" required>
-                    <option value="1">通过</option>
-                    <option value="0">拒绝</option>
-                </select>
-            </div>
-            <div class="row">
-                <label for="approve-remark">备注</label>
-                <input type="text" id="approve-remark">
-            </div>
-            <button type="submit" class="btn">提交审批</button>
-            <div class="msg" id="msg-approve"></div>
-        </form>
-        <div class="divider"></div>
-        <div class="form-inline">
-            <input type="number" id="history-applicationId" placeholder="申请ID">
-            <button id="btn-load-approval-history" class="btn btn-secondary">查看审批历史</button>
-        </div>
-        <div class="list" id="approval-history-list"></div>
-        <div class="msg" id="msg-approval-history"></div>
+        <div class="msg" id="msg-approve"></div>
     </section>
 
     <section id="loan-status" class="card" data-identity="1">

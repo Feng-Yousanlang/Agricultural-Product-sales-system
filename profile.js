@@ -74,6 +74,98 @@ if (logoutBtn) {
 
 let profileData = null;
 let editingAddressId = null;
+const AVATAR_HINT_DEFAULT = '支持 JPG/PNG，单张不超过 5MB';
+let avatarObjectUrl = null;
+
+function updateAvatarPreview(src = '', isBlob = false) {
+  const preview = document.getElementById('avatar-preview');
+  if (avatarObjectUrl && avatarObjectUrl !== src) {
+    URL.revokeObjectURL(avatarObjectUrl);
+    avatarObjectUrl = null;
+  }
+  if (!preview) return;
+  if (!src) {
+    preview.innerHTML = '<span class="form-hint">尚未上传头像</span>';
+    return;
+  }
+  preview.innerHTML = `<img src="${escapeHtml(src)}" alt="头像预览">`;
+  if (isBlob && src.startsWith('blob:')) {
+    avatarObjectUrl = src;
+  }
+}
+
+function resetAvatarUploadState(initialSrc = '') {
+  const fileInput = document.getElementById('edit-avatarFile');
+  const hint = document.getElementById('avatar-file-hint');
+  const hiddenInput = document.getElementById('edit-avatarUrl');
+  if (fileInput) {
+    fileInput.value = '';
+  }
+  if (hint) {
+    hint.textContent = AVATAR_HINT_DEFAULT;
+  }
+  if (hiddenInput) {
+    hiddenInput.value = initialSrc || '';
+  }
+  updateAvatarPreview(initialSrc);
+}
+
+function resolveAvatarUrl(json) {
+  if (!json) return '';
+  const candidates = ['url', 'imageUrl', 'image_url', 'avatar', 'avatarUrl', 'avatar_url', 'path'];
+  for (const key of candidates) {
+    const value = json[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  const data = json.data;
+  if (typeof data === 'string' && data.trim()) return data.trim();
+  if (data && typeof data === 'object') {
+    for (const key of candidates) {
+      const value = data[key];
+      if (typeof value === 'string' && value.trim()) return value.trim();
+    }
+  }
+  return '';
+}
+
+async function uploadAvatar(file) {
+  const token = getAuthToken();
+  if (!token) throw new Error('未登录，请重新登录');
+  const currentUserId = getCurrentUserId();
+  const resolvedUserId = currentUserId
+    || profileData?.userId
+    || profileData?.user_id
+    || profileData?.id
+    || null;
+  if (!resolvedUserId) {
+    throw new Error('无法获取用户ID，请重新登录');
+  }
+  const formData = new FormData();
+  formData.append('userId', resolvedUserId);
+  formData.append('file', file, file.name);
+  let res;
+  try {
+    res = await fetch(`${API_BASE}/api/user/upload/avatar`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData
+    });
+  } catch (err) {
+    throw new Error('网络异常，请稍后重试');
+  }
+  let json = {};
+  try {
+    json = await res.json();
+  } catch {/* ignore */}
+  if (!res.ok || (json.code && json.code !== 200)) {
+    throw new Error(json.message || `上传失败（HTTP ${res.status}）`);
+  }
+  const avatarUrl = resolveAvatarUrl(json);
+  if (!avatarUrl) {
+    throw new Error('上传成功但未返回图片地址');
+  }
+  return avatarUrl;
+}
 
 async function loadProfile() {
   const token = getAuthToken();
@@ -140,8 +232,8 @@ if (btnEditProfile) {
     document.getElementById('edit-realName').value = profileData.realName || '';
     document.getElementById('edit-phone').value = profileData.phone || '';
     document.getElementById('edit-email').value = profileData.email || '';
-    document.getElementById('edit-avatarUrl').value =
-      profileData.image_url || profileData.avatarUrl || '';
+    const avatarSrc = profileData.image_url || profileData.avatarUrl || '';
+    resetAvatarUploadState(avatarSrc);
     document.getElementById('profile-edit-form').classList.remove('hidden');
   });
 }
@@ -149,6 +241,8 @@ if (btnEditProfile) {
 const btnCancelEdit = document.getElementById('btn-cancel-edit');
 if (btnCancelEdit) {
   btnCancelEdit.addEventListener('click', () => {
+    const avatarSrc = profileData?.image_url || profileData?.avatarUrl || '';
+    resetAvatarUploadState(avatarSrc);
     document.getElementById('profile-edit-form').classList.add('hidden');
   });
 }
@@ -173,7 +267,10 @@ if (formEditProfile) {
     formData.append('real_name', document.getElementById('edit-realName').value.trim());
     formData.append('phone', document.getElementById('edit-phone').value.trim());
     formData.append('email', document.getElementById('edit-email').value.trim());
-    formData.append('image_url', document.getElementById('edit-avatarUrl').value.trim());
+    const avatarUrlValue = document.getElementById('edit-avatarUrl').value.trim();
+    if (avatarUrlValue) {
+      formData.append('image_url', avatarUrlValue);
+    }
 
     msgEl.textContent = '提交中...';
 
@@ -190,6 +287,42 @@ if (formEditProfile) {
       await loadProfile();
     } catch (err) {
       msgEl.textContent = `修改失败：${err.message || '网络错误'}`;
+    }
+  });
+}
+
+const avatarFileInput = document.getElementById('edit-avatarFile');
+if (avatarFileInput) {
+  avatarFileInput.addEventListener('change', async () => {
+    const file = avatarFileInput.files?.[0];
+    const hint = document.getElementById('avatar-file-hint');
+    const hiddenInput = document.getElementById('edit-avatarUrl');
+    const fallbackSrc = hiddenInput?.value || '';
+    if (!file) {
+      if (hint) hint.textContent = AVATAR_HINT_DEFAULT;
+      updateAvatarPreview(fallbackSrc);
+      return;
+    }
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      if (hint) hint.textContent = '图片过大，请选择小于 5MB 的文件';
+      avatarFileInput.value = '';
+      updateAvatarPreview(fallbackSrc);
+      return;
+    }
+    const objectUrl = URL.createObjectURL(file);
+    updateAvatarPreview(objectUrl, true);
+    if (hint) hint.textContent = '上传中...';
+    try {
+      const uploadedUrl = await uploadAvatar(file);
+      if (hiddenInput) hiddenInput.value = uploadedUrl;
+      updateAvatarPreview(uploadedUrl);
+      if (hint) hint.textContent = '上传成功';
+    } catch (err) {
+      console.error('上传头像失败:', err);
+      if (hint) hint.textContent = `上传失败：${err.message || '请稍后重试'}`;
+      avatarFileInput.value = '';
+      updateAvatarPreview(fallbackSrc);
     }
   });
 }

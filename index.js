@@ -318,114 +318,289 @@ if (btnSearchKnowledge) {
 
 
 
-// 贷款产品管理（新增 / 删除 / 详情）
-const formCreateProduct = document.getElementById('form-create-loan-product');
-const msgCreateProduct = document.getElementById('msg-create-product');
-if (formCreateProduct) {
-  formCreateProduct.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const payload = {
-      name: document.getElementById('product-name').value.trim(),
-      category: document.getElementById('product-category').value.trim(),
-      maxAmount: parseFloat(document.getElementById('product-max').value),
-      minAmount: parseFloat(document.getElementById('product-min').value),
-      interestRate: parseFloat(document.getElementById('product-rate').value),
-      term: parseInt(document.getElementById('product-term').value, 10),
-      description: document.getElementById('product-desc').value.trim()
-    };
-    if (!payload.name || !payload.category) {
-      msgCreateProduct.textContent = '请填写完整的产品信息';
+// 银行端贷款产品管理
+const bankLoanProductsGrid = document.getElementById('loan-products-grid');
+const bankMsgLoanProducts = document.getElementById('msg-loan-products');
+const bankBtnLoanProductsRefresh = document.getElementById('loan-products-refresh');
+const bankFormLoanProductCreate = document.getElementById('form-loan-product-create');
+const bankMsgLoanProductCreate = document.getElementById('msg-loan-product-create');
+const bankLoanProductModal = document.getElementById('loan-product-modal');
+const bankLoanProductModalBody = document.getElementById('loan-product-modal-body');
+const bankLoanProductModalClose = document.getElementById('loan-product-modal-close');
+const bankLoanProductModalCancel = document.getElementById('loan-product-modal-cancel');
+const bankBtnDeleteLoanProduct = document.getElementById('btn-delete-loan-product');
+const bankMsgLoanProductModal = document.getElementById('msg-loan-product-modal');
+let bankLoanProductsCache = [];
+let bankCurrentLoanProductIndex = -1;
+
+async function bankLoadLoanProducts() {
+  if (!bankLoanProductsGrid) return;
+  if (bankMsgLoanProducts) bankMsgLoanProducts.textContent = '加载中...';
+  try {
+    const res = await fetch(`${API_BASE}/api/loan/products`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    const list = bankNormalizeLoanProducts(json);
+    bankLoanProductsCache = list;
+    bankRenderLoanProducts(list);
+    if (bankMsgLoanProducts) {
+      bankMsgLoanProducts.textContent = list.length ? '' : (json?.message || '暂无贷款产品');
+    }
+  } catch (err) {
+    bankLoanProductsCache = [];
+    bankRenderLoanProducts([]);
+    if (bankMsgLoanProducts) bankMsgLoanProducts.textContent = `加载失败：${err.message || '网络错误'}`;
+  }
+}
+
+function bankNormalizeLoanProducts(payload) {
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.products)) return payload.products;
+  if (Array.isArray(payload)) return payload;
+  return [];
+}
+
+function bankRenderLoanProducts(list) {
+  if (!bankLoanProductsGrid) return;
+  if (!Array.isArray(list) || !list.length) {
+    bankLoanProductsGrid.innerHTML = '<div class="msg">暂无贷款产品</div>';
+    return;
+  }
+  bankLoanProductsGrid.innerHTML = list.map((product, index) => {
+    const id = bankResolveLoanProductId(product);
+    const name = product.name || product.productName || product.fpName || `产品#${id || index + 1}`;
+    const desc = product.description || product.fpDescription || '暂无描述';
+    const category = product.category || product.type || '未分类';
+    const amountRange = bankFormatAmountRange(product);
+    const rateText = bankFormatRate(product);
+    const termText = bankFormatTerm(product);
+    const tagsHtml = bankRenderLoanProductTags(
+      product.tags || product.tagList || product.labels || product.category || product.type
+    );
+    return `<div class="loan-product-card" data-bank-product-index="${index}" data-bank-product-id="${escapeHtml(String(id ?? ''))}">
+      <div class="loan-product-category">${escapeHtml(category)}</div>
+      <div class="loan-product-name">${escapeHtml(name)}</div>
+      <p class="loan-product-desc">${escapeHtml(desc)}</p>
+      <div class="loan-product-meta">
+        <div><small>额度范围</small><strong>${amountRange}</strong></div>
+        <div><small>年化利率</small><strong>${rateText}</strong></div>
+        <div><small>期限(月)</small><strong>${termText}</strong></div>
+        <div><small>产品ID</small><strong>${id || '—'}</strong></div>
+      </div>
+      ${tagsHtml ? `<div class="loan-product-tags">${tagsHtml}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function bankResolveLoanProductId(product = {}) {
+  return product.productId ?? product.id ?? product.fpId ?? product.loanProductId ?? null;
+}
+
+function bankFormatAmountRange(product = {}) {
+  const min = product.minAmount ?? product.min_amount ?? product.min ?? null;
+  const max = product.maxAmount ?? product.max_amount ?? product.max ?? null;
+  if (min === null && max === null) return '—';
+  if (min !== null && max !== null) return `${bankFormatCurrency(min)} ~ ${bankFormatCurrency(max)}`;
+  const value = bankFormatCurrency(min ?? max ?? 0);
+  return value || '—';
+}
+
+function bankFormatCurrency(value) {
+  if (value === null || value === undefined || value === '') return '';
+  const num = Number(value);
+  if (!Number.isFinite(num)) return String(value);
+  return num.toLocaleString('zh-CN', { maximumFractionDigits: 2 });
+}
+
+function bankFormatRate(product = {}) {
+  const rate = product.interestRate ?? product.annualRate ?? product.rate ?? null;
+  if (rate === null || rate === undefined) return '—';
+  return `${rate}%`;
+}
+
+function bankFormatTerm(product = {}) {
+  const term = product.term ?? product.loanTerm ?? product.maxTerm ?? null;
+  if (term === null || term === undefined) return '—';
+  return term;
+}
+
+function bankRenderLoanProductTags(tags) {
+  if (!tags) return '';
+  const arr = Array.isArray(tags)
+    ? tags
+    : String(tags).split(/[,，]/).map((item) => item.trim()).filter(Boolean);
+  if (!arr.length) return '';
+  return arr.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('');
+}
+
+function bankOpenLoanProductModal(product, index) {
+  if (!bankLoanProductModal || !bankLoanProductModalBody || !product) return;
+  bankCurrentLoanProductIndex = index;
+  const name = product.name || product.productName || '未命名产品';
+  const manager = product.fpManagerName || product.managerName || product.contactName || '—';
+  const managerPhone = product.fpManagerPhone || product.managerPhone || product.contactPhone || '—';
+  const managerEmail = product.fpManagerEmail || product.managerEmail || product.contactEmail || '—';
+  bankLoanProductModalBody.innerHTML = `
+    <div class="line"><span>产品名称</span><div>${escapeHtml(name)}</div></div>
+    <div class="line"><span>类别</span><div>${escapeHtml(product.category || product.type || '—')}</div></div>
+    <div class="line"><span>额度范围</span><div>${bankFormatAmountRange(product)}</div></div>
+    <div class="line"><span>年化利率</span><div>${bankFormatRate(product)}</div></div>
+    <div class="line"><span>期限(月)</span><div>${bankFormatTerm(product)}</div></div>
+    <div class="line"><span>产品ID</span><div>${escapeHtml(String(bankResolveLoanProductId(product) ?? '—'))}</div></div>
+    <div class="line"><span>负责人</span><div>${escapeHtml(manager)}</div></div>
+    <div class="line"><span>联系电话</span><div>${escapeHtml(managerPhone)}</div></div>
+    <div class="line"><span>邮箱</span><div>${escapeHtml(managerEmail)}</div></div>
+    <div class="line"><span>产品亮点</span><div>${escapeHtml(product.description || product.fpDescription || '—')}</div></div>
+  `;
+  if (bankMsgLoanProductModal) bankMsgLoanProductModal.textContent = '';
+  bankLoanProductModal.classList.remove('hidden');
+}
+
+function bankCloseLoanProductModal() {
+  if (!bankLoanProductModal) return;
+  bankLoanProductModal.classList.add('hidden');
+  if (bankLoanProductModalBody) bankLoanProductModalBody.innerHTML = '';
+  if (bankMsgLoanProductModal) bankMsgLoanProductModal.textContent = '';
+  bankCurrentLoanProductIndex = -1;
+}
+
+function bankGetCurrentLoanProduct() {
+  if (bankCurrentLoanProductIndex < 0) return null;
+  return bankLoanProductsCache[bankCurrentLoanProductIndex] || null;
+}
+
+if (bankLoanProductsGrid) {
+  bankLoanProductsGrid.addEventListener('click', (event) => {
+    const card = event.target.closest('.loan-product-card');
+    if (!card) return;
+    const index = Number(card.getAttribute('data-bank-product-index'));
+    if (!Number.isFinite(index)) return;
+    const product = bankLoanProductsCache[index];
+    bankOpenLoanProductModal(product, index);
+  });
+}
+
+if (bankBtnLoanProductsRefresh) {
+  bankBtnLoanProductsRefresh.addEventListener('click', () => {
+    bankLoadLoanProducts();
+  });
+}
+
+if (bankLoanProductModalClose) {
+  bankLoanProductModalClose.addEventListener('click', bankCloseLoanProductModal);
+}
+if (bankLoanProductModalCancel) {
+  bankLoanProductModalCancel.addEventListener('click', bankCloseLoanProductModal);
+}
+if (bankLoanProductModal) {
+  bankLoanProductModal.addEventListener('click', (event) => {
+    if (event.target === bankLoanProductModal) {
+      bankCloseLoanProductModal();
+    }
+  });
+}
+
+if (bankBtnDeleteLoanProduct) {
+  bankBtnDeleteLoanProduct.addEventListener('click', async () => {
+    const product = bankGetCurrentLoanProduct();
+    if (!product) {
+      if (bankMsgLoanProductModal) bankMsgLoanProductModal.textContent = '未找到当前产品';
       return;
     }
-    msgCreateProduct.textContent = '提交中...';
+    const productId = bankResolveLoanProductId(product);
+    if (!productId) {
+      if (bankMsgLoanProductModal) bankMsgLoanProductModal.textContent = '产品ID缺失，无法删除';
+      return;
+    }
+    if (!confirm(`确定删除产品「${product.name || product.productName || productId}」吗？该操作不可恢复`)) {
+      return;
+    }
+    const token = getAuthToken();
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+    if (bankMsgLoanProductModal) bankMsgLoanProductModal.textContent = '删除中...';
+    try {
+      const res = await fetch(`${API_BASE}/api/loan/products/${productId}`, {
+        method: 'DELETE',
+        headers
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.message || res.statusText);
+      if (bankMsgLoanProductModal) bankMsgLoanProductModal.textContent = json?.message || '删除成功';
+      bankCloseLoanProductModal();
+      bankLoadLoanProducts();
+    } catch (err) {
+      if (bankMsgLoanProductModal) bankMsgLoanProductModal.textContent = `删除失败：${err.message || '网络错误'}`;
+    }
+  });
+}
+
+if (bankFormLoanProductCreate) {
+  bankFormLoanProductCreate.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const name = document.getElementById('loan-product-name').value.trim();
+    const categoryInput = document.getElementById('loan-product-category');
+    const minAmountRaw = document.getElementById('loan-product-min').value;
+    const maxAmountRaw = document.getElementById('loan-product-max').value;
+    const rateRaw = document.getElementById('loan-product-rate').value;
+    const termRaw = document.getElementById('loan-product-term').value;
+    const description = document.getElementById('loan-product-desc').value.trim();
+
+    if (!name) {
+      if (bankMsgLoanProductCreate) bankMsgLoanProductCreate.textContent = '产品名称为必填项';
+      return;
+    }
+
+    const categoryRaw = categoryInput ? categoryInput.value.trim() : '';
+    const tagsFromInput = categoryRaw
+      ? categoryRaw.split(/[，,\s]+/).map((item) => item.trim()).filter(Boolean)
+      : [];
+    const resolvedCategory = tagsFromInput[0] || categoryRaw || '综合金融';
+
+    const payload = {
+      name,
+      productName: name,
+      category: resolvedCategory,
+      type: resolvedCategory,
+      description,
+      minAmount: minAmountRaw ? Number(minAmountRaw) : undefined,
+      maxAmount: maxAmountRaw ? Number(maxAmountRaw) : undefined,
+      interestRate: rateRaw ? Number(rateRaw) : undefined,
+      term: termRaw ? Number(termRaw) : undefined,
+      tags: tagsFromInput.length ? tagsFromInput : undefined
+    };
+    const token = getAuthToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (bankMsgLoanProductCreate) bankMsgLoanProductCreate.textContent = '提交中...';
     try {
       const res = await fetch(`${API_BASE}/api/loan/products`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers,
         body: JSON.stringify(payload)
       });
-      const json = await res.json().catch(()=>({}));
-      if (!res.ok) {
-        throw new Error(json?.message || res.statusText);
-      }
-      msgCreateProduct.textContent = json?.message || '创建成功';
-      formCreateProduct.reset();
-      // 贷款产品列表已移至loans.html，此处不再刷新
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.message || res.statusText);
+      if (bankMsgLoanProductCreate) bankMsgLoanProductCreate.textContent = json?.message || '创建成功';
+      bankFormLoanProductCreate.reset();
+      bankLoadLoanProducts();
     } catch (err) {
-      msgCreateProduct.textContent = `提交失败：${err.message || '网络错误'}`;
+      if (bankMsgLoanProductCreate) bankMsgLoanProductCreate.textContent = `创建失败：${err.message || '网络错误'}`;
     }
   });
 }
 
-const formDeleteProduct = document.getElementById('form-delete-product');
-const msgDeleteProduct = document.getElementById('msg-delete-product');
-if (formDeleteProduct) {
-  formDeleteProduct.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const id = parseInt(document.getElementById('delete-product-id').value, 10);
-    if (!id) {
-      msgDeleteProduct.textContent = '请输入产品ID';
-      return;
-    }
-    msgDeleteProduct.textContent = '删除中...';
-    try {
-      const res = await fetch(`${API_BASE}/api/loan/products/${id}`, {
-        method: 'DELETE'
-      });
-      const json = await res.json().catch(()=>({}));
-      if (!res.ok) {
-        throw new Error(json?.message || res.statusText);
-      }
-      msgDeleteProduct.textContent = json?.message || '删除成功';
-      formDeleteProduct.reset();
-      // 贷款产品列表已移至loans.html，此处不再刷新
-    } catch (err) {
-      msgDeleteProduct.textContent = `删除失败：${err.message || '网络错误'}`;
-    }
-  });
+if (bankLoanProductsGrid) {
+  bankLoadLoanProducts();
 }
 
-const formProductDetail = document.getElementById('form-product-detail');
-const msgProductDetail = document.getElementById('msg-product-detail');
-const detailBox = document.getElementById('loan-product-detail');
-if (formProductDetail) {
-  formProductDetail.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const id = parseInt(document.getElementById('detail-product-id').value, 10);
-    if (!id) {
-      msgProductDetail.textContent = '请输入产品ID';
-      return;
-    }
-    msgProductDetail.textContent = '查询中...';
-    detailBox.textContent = '';
-    try {
-      const res = await fetch(`${API_BASE}/api/loan/products/${id}`);
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-      const json = await res.json();
-      const data = json?.data && !Array.isArray(json.data) ? json.data : (!json.data ? json : null);
-      if (!data || Array.isArray(data)) {
-        throw new Error('未找到匹配产品');
-      }
-      detailBox.innerHTML = `
-        <div>名称：${data.name || data.fpName || '—'}</div>
-        <div>类型：${data.category || '—'}</div>
-        <div>额度：${(data.minAmount ?? '—')} - ${(data.maxAmount ?? '—')}</div>
-        <div>利率：${(data.interestRate ?? data.annualRate ?? '—')}%</div>
-        <div>期限(月)：${data.term ?? '—'}</div>
-        <div>负责人：${data.fpManagerName || '—'}</div>
-        <div>电话：${data.fpManagerPhone || '—'}</div>
-        <div>邮箱：${data.fpManagerEmail || '—'}</div>
-        <div>描述：${data.description || data.fpDescription || '—'}</div>`;
-      msgProductDetail.textContent = json?.message || '';
-    } catch (err) {
-      detailBox.textContent = '';
-      msgProductDetail.textContent = `查询失败：${err.message || '网络错误'}`;
-    }
-  });
+function escapeHtml(value) {
+  if (value === undefined || value === null) return '';
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 // ---------------- 贷款申请 ----------------
@@ -436,75 +611,150 @@ if (formProductDetail) {
 // ---------------- 审批中心 ----------------
 const btnLoadPending = document.getElementById('btn-load-pending');
 const pendingList = document.getElementById('pending-list');
-const formApprove = document.getElementById('form-approve');
 const msgApprove = document.getElementById('msg-approve');
 
-btnLoadPending.onclick = async function(){
-  pendingList.innerHTML = '';
-  msgApprove.textContent = '加载待审批...';
+function normalizePendingApprovals(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.records)) return payload.records;
+  if (Array.isArray(payload?.list)) return payload.list;
+  return [];
+}
+
+async function loadPendingApprovals(showLoading = true) {
+  if (!pendingList || !msgApprove) return;
+  if (showLoading) {
+    pendingList.innerHTML = '';
+    msgApprove.textContent = '加载待审批...';
+  }
   try {
     const res = await fetch(`${API_BASE}/api/loan/pending`);
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
     }
     const json = await res.json();
-    const list = (json && Array.isArray(json.data)) ? json.data : [];
-    renderPending(list);
+    const list = normalizePendingApprovals(json);
+    renderPendingApprovals(list);
     msgApprove.textContent = list.length ? '' : '暂无待审批申请';
   } catch (err) {
-    renderPending([]);
+    renderPendingApprovals([]);
     msgApprove.textContent = `加载失败：${err.message || '网络错误'}`;
   }
-};
-
-function renderPending(list){
-  pendingList.innerHTML = list.map(p=>
-    `<div class="expert">
-       <div class="name">申请#${p.applicationId}</div>
-       <div>用户：${p.userId||''}</div>
-       <div>产品：${p.productName||''}</div>
-       <div>金额：${p.amount||''}，期限(月)：${p.term||''}</div>
-       <div>申请时间：${p.applyTime||''}</div>
-     </div>`
-  ).join('');
 }
 
-formApprove.addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  const applicationId = parseInt(document.getElementById('approve-applicationId').value,10);
-  const approverId = parseInt(document.getElementById('approve-approverId').value,10);
-  const decision = parseInt(document.getElementById('approve-decision').value,10);
-  const remark = document.getElementById('approve-remark').value.trim();
-  
-  const requestData = {
-    applicationId: applicationId,
-    approverId: approverId,
-    decision: decision,
-    remark: remark
+function resolveApplicationId(item = {}) {
+  return item.applicationId
+    ?? item.loanApplicationId
+    ?? item.id
+    ?? item.application_id
+    ?? item.loanId
+    ?? null;
+}
+
+function renderPendingApprovals(list) {
+  if (!pendingList) return;
+  if (!Array.isArray(list) || !list.length) {
+    pendingList.innerHTML = '<div class="msg">暂无待审批申请</div>';
+    return;
+  }
+  pendingList.innerHTML = list.map((item) => {
+    const applicationId = resolveApplicationId(item);
+    const applicantName = item.userName || item.user?.name || `用户 #${item.userId || '—'}`;
+    const avatar = item.user?.avatar
+      ? `<img src="${escapeHtml(item.user.avatar)}" alt="${escapeHtml(applicantName)}" class="avatar-small">`
+      : '';
+    const amountText = item.amount ?? item.loanAmount ?? '—';
+    const termText = item.term ?? item.loanTerm ?? '—';
+    const applyTime = item.applyTime || item.createdAt || item.createTime || '';
+    const productName = item.productName || item.product?.name || '—';
+    const idText = applicationId !== null && applicationId !== undefined
+      ? String(applicationId)
+      : `N${Date.now()}${Math.random().toString(36).slice(2,6)}`;
+    const safeId = escapeHtml(idText);
+    return `<div class="expert loan-approval-card" data-application-id="${safeId}">
+      <div class="name">申请 #${escapeHtml(String(applicationId ?? '—'))}</div>
+      <div class="applicant">
+        ${avatar}
+        <div>
+          <div>申请人：${escapeHtml(applicantName)}</div>
+          <div>用户ID：${escapeHtml(item.userId || item.user?.id || '—')}</div>
+        </div>
+      </div>
+      <div>产品：${escapeHtml(productName)}</div>
+      <div>金额：${escapeHtml(amountText)}，期限(月)：${escapeHtml(termText)}</div>
+      <div>申请时间：${escapeHtml(applyTime || '—')}</div>
+      ${item.remark ? `<div>备注：${escapeHtml(item.remark)}</div>` : ''}
+      <div class="pending-actions">
+        <button class="btn btn-secondary btn-approval-action" data-application-id="${safeId}" data-decision="1">同意</button>
+        <button class="btn btn-danger btn-approval-action" data-application-id="${safeId}" data-decision="0">拒绝</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function submitLoanApproval(applicationId, decision, triggerBtn) {
+  if (!msgApprove) return;
+  const approverId = getCurrentUserId();
+  if (!approverId) {
+    msgApprove.textContent = '未获取到审批人信息，请重新登录';
+    return;
+  }
+  const numericApplicationId = Number.parseInt(applicationId, 10);
+  if (!Number.isFinite(numericApplicationId) || numericApplicationId <= 0) {
+    msgApprove.textContent = '当前申请缺少有效的 applicationId，无法提交审批';
+    return;
+  }
+  const payload = {
+    applicationId: numericApplicationId,
+    approverId,
+    decision: Number(decision),
+    remark: Number(decision) === 1 ? '审批通过' : '审批拒绝'
   };
-  
-  
   const token = getAuthToken();
-  const headers = {
-    'Content-Type': 'application/json'
-  };
+  const headers = { 'Content-Type': 'application/json' };
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  
+  const originalText = triggerBtn?.textContent;
+  if (triggerBtn) {
+    triggerBtn.disabled = true;
+    triggerBtn.textContent = '提交中...';
+  }
   msgApprove.textContent = '提交审批中...';
   try {
     const res = await fetch(`${API_BASE}/api/loan/approve`, {
       method: 'POST',
-      headers: headers,
-      body: JSON.stringify(requestData)
+      headers,
+      body: JSON.stringify(payload)
     });
-    const json = await res.json();
-    msgApprove.textContent = json?.message || (json?.code === 200 ? '审批提交成功' : '审批提交失败');
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(json?.message || res.statusText);
+    }
+    msgApprove.textContent = json?.message || '审批提交成功';
+    loadPendingApprovals(false);
   } catch (err) {
     msgApprove.textContent = `提交失败：${err.message || '网络错误'}`;
+  } finally {
+    if (triggerBtn) {
+      triggerBtn.disabled = false;
+      triggerBtn.textContent = originalText || '提交';
+    }
   }
-});
+}
+
+if (btnLoadPending && pendingList && msgApprove) {
+  btnLoadPending.addEventListener('click', () => loadPendingApprovals(true));
+  pendingList.addEventListener('click', (event) => {
+    const actionBtn = event.target.closest('.btn-approval-action');
+    if (!actionBtn) return;
+    const applicationId = actionBtn.getAttribute('data-application-id');
+    const decision = actionBtn.getAttribute('data-decision');
+    if (!applicationId || decision === null) return;
+    submitLoanApproval(applicationId, decision, actionBtn);
+  });
+  loadPendingApprovals(true);
+}
 
 const btnLoadApprovalHistory = document.getElementById('btn-load-approval-history');
 const approvalHistoryList = document.getElementById('approval-history-list');
