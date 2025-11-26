@@ -1,78 +1,326 @@
-接口名称：评论/回复（后端已完成）
-接口路径：/api/comment
-请求方式：POST
-参数：content,userId,productId,rootCommentId
-接口说明：用户的评论功能
-参数
-后端需要接收的信息:
+1️⃣ 获取专家列表（后端已完成）
+- 接口名称：专家列表
+接口路径：/api/experts/
+请求方式：GET
+接口说明：展示专家
+
+---
+请求参数：
+参数名
+类型
+必填
+说明
+expertId
+int
+是
+专家的id
+expertName
+string
+是
+专家姓名
+field
+string[]
+是
+研究方向
+expertDescription
+string
+是
+简介
+响应参数：
+参数名
+类型
+说明
+code
+
+int
+状态码
+200        表示成功
+400        参数错误
+404        资源丢失
+500        服务器内部错误
+message
+string
+返回信息
+experts
+List
+所有专家的集合
+expertId
+int
+专家的id
+expertName
+string
+专家姓名
+field
+string[]
+研究方向
+expertDescription
+string
+简介
+以下为事例：
 {
-    "content": //评论内容
-    "userId": //所属用户id
-    "productId": //所属商品id
-    "rootCommentId": //父评论id（为空说明该评论没有父评论）
-    "toCommentId"://回复的评论id（如果为空说明该评论没有回复其他评论）
-    
+  "experts": [
+    {
+      "expertId": "1", //id
+      "name": "伪王小唐", //姓名
+      "field": ["智慧农业", "养殖", ……] //研究方向（其实就是用来检索的tag
+      "expertDescription": "阿巴阿巴", //简介
+    }
+    … …
+  ]
 }
-然后后端将对应的评论添加到数据库中
 
 
-前端接收的消息：(前端只需要知道后端是否添加数据成功即可，失败的话则评论发送失败)
+---
+2️⃣ 获取专家详情（后端已完成）
+- 接口名称：专家列表
+接口路径：/api/experts/{expertId}
+请求方式：GET
+接口说明：展示选中专家的详细信息
+请求参数：
+参数名
+类型
+必填
+说明
+expertId
+int
+是
+专家的id
+expertName
+string
+是
+专家姓名
+field
+string[]
+是
+研究方向
+expertDescription
+string
+是
+简介
+expertImg
+string
+是
+专家的人头像URL
+example
+string
+是
+解决过哪些问题
+contact
+string
+是
+联系方式
+响应参数：
+参数名
+类型
+说明
+code
+
+int
+状态码
+200        表示成功
+400        参数错误
+404        资源丢失
+500        服务器内部错误
+message
+string
+返回信息
+expertId
+int
+专家的id
+expertName
+string
+专家姓名
+field
+string[]
+研究方向
+expertDescription
+string
+简介
+expertImg
+string
+专家的人头像URL
+example
+string
+解决过哪些问题
+expertPhone
+string
+专家电话
+expertEmail
+string
+专家邮箱
+以下为事例：
+{
+  "experts": [
+    {
+      "expertId": "1", //id
+      "name": "伪王小唐", //姓名
+      "field": ["智慧农业", "养殖", ……] //研究方向（其实就是用来检索的tag
+      "expertDescription": "阿巴阿巴", //简介
+      "expertImg": "https://icnd0yk23eui.feishu.cn/wiki/DxjWwQhYLixkzIkGARKcsVAKn2b", //图片url
+      "example": "我是问题", //解决过什么问题
+      "expertPhone" : "1111111111",
+      "expertEmail" : "23301012@bjtu.edu.cn"
+       //联系方式
+    }
+    … …
+  ]
+}
+实现效果：
+简历
+
+---
+3️⃣ 搜索专家(后端已完成）
+- 接口：GET /api/experts/search
+- 参数：q（关键词，可匹配姓名、专业领域、机构）
+- 返回示例：
+- {
+  "experts": [
+    {
+      "expertId": "1", //id
+      "name": "伪王小唐", //姓名
+      "field": ["智慧农业", "养殖", ……] 
+      "expertDescription": "阿巴阿巴", //简介
+    }
+    … …
+  ]
+}
+预约用户端接口（农户）
+一些数据库设计
+专家聊天记录表
+暂时无法在飞书文档外展示此内容
+1️⃣ 提交预约申请(后端已完成）
+- 接口： POST /api/expert-appointment/create
+- 说明： 用户提交预约请求，由专家稍后审核。
+- 请求体参数：
+- expertId, userId,date.startTime,endTime,topic,remark（这里存在问题：可能出现同名专家）
+暂时无法在飞书文档外展示此内容
+- 返回示例：
 {
   "code": 200,
-  "message": "成功",
-  "data":{
-     "productId"：...
-     "content": //评论内容
-    "rootCommentId": //父评论id（为空说明该评论没有父评论）
-    "toCommentId"://回复的评论id（如果为空说明该评论没有回复其他评论）
-    "sendTime"：...//发送时间
+  "message": "预约申请已提交，等待专家确认",
+  "data": {
+    "appointment_id": 501,
+    "status": "pending"
   }
 }
-接口名称：获取商品所有信息，包括评论(后端已完成)
-接口路径：/api/commentarea
-请求方式：GET
-请求参数：productId
-接口说明：后端向前端返回productId对应的商品的所有信息,包括其对应的评论。
+
+---
+2️⃣ 查看我的预约记录(后端已完成）
+- 接口： GET /api/expert-appointment/user/list
+- 说明： 用户查看自己发起的所有预约。
+- 参数：userId
+暂时无法在飞书文档外展示此内容
+- 返回示例：
 {
-     "code":200,
-     "message":"获取成功",
-     "data":
-     {
-         userId:...,
-         productName:...,
-         price:...,
-         producer:...,
-         salesVolumn:...,
-         productImg:...,
-         surplus:...,//surplus为剩余量
-         productComment：
-         [
-         {
-            productCommentId:...,
-            content:...,
-            sendTime:...,
-            userId:...,//发布该条评论的人的id
-            commentLikeCount:...,
-         }
-         ]         
-     }
+  "code": 200,
+  "data": [
+    {
+      "id": 501,
+      "expert": {
+        "id": 1,
+        "name": "李四",
+        "expertImg": "https://www.example.com/avatar.jpg",
+        "field": "智慧农业,养殖"
+      },
+      "date": "2025-11-20",
+      "time": "09:00-10:00",
+      "topic": "水稻病虫害防治咨询",
+      "status": "approved"
+    }
+  ]
 }
-接口名称：获取该评论的所有子评论
-接口路径：/api/comment/childcomment
-请求方式：GET
-请求参数：product_comment_id
-接口说明：后端向前端返回product_comment_id对应的所有子评论,即所有root_comment_id为该product_comment_id的评论
+
+---
+3️⃣ 取消预约(后端已完成）
+- 接口： POST /api/expert-appointment/cancel
+- 说明： 用户主动取消未开始的预约。
+- 请求体参数：
+- appointmentId
+- 返回示例：
 {
-     "code":200,
-     "message":"成功返回子评论"，
-     "data":
-     {
-           productCommentId:...,//该子评论的id
-           toCommentId：...该评论回复的评论的评论id
-           content:...,
-           sendTime:...,
-           userId:...,//该子评论的发出者
-           commentLikeCount:...//点赞数
-           
-     }
+  "code": 200,
+  "message": "预约已取消"
+}
+
+专家端接口（专家操作）（后端已完成）
+4️⃣ 获取待审核预约列表（后端已完成）
+- 接口： GET /api/expert-appointment/pending
+- 说明： 专家查看待审批的预约请求。
+- 参数: user_id,page,,size
+暂时无法在飞书文档外展示此内容
+- 返回示例：
+{
+  "code": 200,
+  "message":"成功"
+  "data": [
+    {
+      "appointment_id": 501,
+      "user": {
+        "id": 101,
+        "name": "张三",
+        "avatar": "https://example.com/u1.jpg"
+      },
+      "date": "2025-11-20",
+      "time": "09:00-10:00",
+      "topic": "病虫害防治咨询",
+      "remark": "希望能了解病害防治流程",
+      "status": "pending"
+    }
+  ]
+}
+
+---
+5️⃣ 审批预约（同意 / 拒绝）（后端已完成）
+- 接口： POST /api/expert-appointment/review
+- 说明： 专家审核预约请求。
+- 请求体参数：appointmentId,userId,action,comment（非必填）
+暂时无法在飞书文档外展示此内容
+- 返回示例：
+{
+  "code": 200,
+  "message": "预约已审批",
+  "data": {
+    "appointment_id": 501,
+    "status": "approved"
+  }
+}
+
+---
+6️⃣ 查看我的预约日程（后端已完成）
+- 接口： GET /api/expert-appointment/schedule
+- 说明： 专家查看自己的预约日程表（含待进行与已完成的预约）。
+- 参数：expert_id,date(可选)
+暂时无法在飞书文档外展示此内容
+- 返回示例：
+{
+  "code": 200,
+  "data": [
+    {
+      "id": 501,
+      "user_name": "张三",
+      "date": "2025-11-20",
+      "time": "09:00-10:00",
+      "topic": "稻田病虫害",
+      "status": "approved"
+    },
+    {
+      "id": 502,
+      "user_name": "王五",
+      "date": "2025-11-20",
+      "time": "10:00-11:00",
+      "topic": "农药使用建议",
+      "status": "pending"
+    }
+  ]
+}
+
+---
+7️⃣ 更新预约状态（专家执行后更新完成）（后端已完成）
+- 接口： POST /api/expert-appointment/update-status
+- 说明： 专家在咨询完成后更新状态。
+- 请求体参数：appointmentId,expert_id,status(status有两个状态completed和no_show），meetTime
+- 返回示例：
+{
+  "code": 200,
+  "message": "状态已更新为 completed"
 }

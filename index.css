@@ -572,6 +572,101 @@ body {
     overflow-y: auto;
 }
 
+.expert-modal-content {
+    background: linear-gradient(145deg, #fffaf2, #f1e1c5);
+    border: 1px solid rgba(119, 78, 38, 0.2);
+    box-shadow:
+        0 25px 50px rgba(91, 59, 39, 0.35),
+        0 0 0 1px rgba(119, 78, 38, 0.25);
+}
+
+.expert-modal-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+@media (min-width: 900px) {
+    .expert-modal-layout {
+        flex-direction: row;
+        align-items: flex-start;
+    }
+}
+
+.expert-detail-card {
+    flex: 1;
+    background: linear-gradient(135deg, #fffdf7, #f8e6c8);
+    border-radius: 18px;
+    padding: 20px;
+    border: 1px solid rgba(168, 116, 62, 0.25);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+.expert-appointment-form {
+    flex: 1;
+    background: linear-gradient(135deg, #fef7ec, #f2dbb4);
+    border-radius: 18px;
+    padding: 20px;
+    border: 1px solid rgba(139, 92, 46, 0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.expert-appointment-form h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #4b2b12;
+}
+
+.expert-appointment-form .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.expert-appointment-form label {
+    font-size: 14px;
+    color: #5b3b27;
+    font-weight: 600;
+}
+
+.expert-appointment-form input,
+.expert-appointment-form select,
+.expert-appointment-form textarea {
+    border-radius: 10px;
+    border: 1px solid rgba(139, 92, 46, 0.3);
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    background: rgba(255, 255, 255, 0.8);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.expert-appointment-form input:focus,
+.expert-appointment-form select:focus,
+.expert-appointment-form textarea:focus {
+    border-color: #d29b5c;
+    box-shadow: 0 0 0 3px rgba(210, 155, 92, 0.2);
+    outline: none;
+    background: #fff;
+}
+
+.expert-appointment-form textarea {
+    resize: vertical;
+}
+
+.expert-appointment-form .form-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.expert-appointment-form .msg {
+    min-height: 20px;
+    font-size: 13px;
+    color: #8b4513;
+}
+
 .modal-close {
     position: absolute;
     top: 12px;
@@ -656,6 +751,160 @@ body {
 }
 
 /* 专家卡片 */
+/* 专家列表网格布局 */
+.experts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    padding: 10px 0;
+}
+
+.experts-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.experts-search {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.experts-search input {
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(139, 92, 46, 0.4);
+    background: rgba(255, 255, 255, 0.85);
+    font-size: 14px;
+    min-width: 220px;
+}
+
+.experts-search input:focus {
+    outline: none;
+    border-color: #d29b5c;
+    box-shadow: 0 0 0 3px rgba(210, 155, 92, 0.15);
+}
+
+@media (max-width: 600px) {
+    .experts-toolbar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .experts-search input {
+        width: 100%;
+    }
+}
+
+/* 专家卡片样式 */
+.expert-card {
+    background: linear-gradient(135deg, #fdf3e1 0%, #f3d7b0 60%, #e4ba8c 100%);
+    border: 1px solid rgba(111, 73, 35, 0.2);
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: all 0.3s ease;
+    box-shadow: 0 12px 24px rgba(86, 54, 25, 0.12);
+    position: relative;
+    overflow: hidden;
+}
+
+.expert-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #8c5a2d, #d29a5b);
+}
+
+.expert-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 18px 30px rgba(86, 54, 25, 0.18);
+    border-color: rgba(111, 73, 35, 0.45);
+}
+
+.expert-card-clickable {
+    cursor: pointer;
+}
+
+/* 专家头像 */
+.expert-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin: 0 auto;
+    border: 3px solid #4CAF50;
+    background: #f5f5f5;
+}
+
+.expert-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.expert-avatar-placeholder {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    margin: 0 auto;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    border: 3px solid #4CAF50;
+}
+
+/* 专家信息 */
+.expert-info {
+    text-align: center;
+    flex: 1;
+}
+
+.expert-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.expert-fields {
+    color: #4CAF50;
+    font-size: 14px;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.expert-desc {
+    color: #666;
+    font-size: 13px;
+    line-height: 1.5;
+    margin-top: 8px;
+    text-align: left;
+}
+
+/* 可点击的专家卡片 */
+.expert-card-clickable {
+    cursor: pointer;
+}
+
+.expert-card-clickable:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: #4CAF50;
+}
+
+/* 兼容旧的专家样式 */
 .expert {
     border: 1px solid #eef;
     border-radius: 10px;
@@ -684,6 +933,25 @@ body {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
+}
+
+.appointment-card {
+    background: linear-gradient(135deg, #fff7e6, #f6e0ba);
+    border: 1px solid rgba(139, 92, 46, 0.25);
+    border-radius: 14px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    padding: 16px;
+}
+
+.appointment-card .name {
+    font-size: 15px;
+    color: #4b2b12;
+}
+
+.appointment-card-actions {
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-end;
 }
 
 /* 融资服务模块样式（竖版可读） */

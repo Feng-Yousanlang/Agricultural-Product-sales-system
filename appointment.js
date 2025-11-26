@@ -32,12 +32,20 @@ function getAuthToken() {
 if (typeof getCurrentUserId === 'undefined') {
 function getCurrentUserId() {
   try {
-    const raw = localStorage.getItem('user_id');
+    const candidateKeys = ['user_id', 'userId', 'userID'];
+    for (const key of candidateKeys) {
+      const raw = localStorage.getItem(key);
+      if (raw !== null && raw !== undefined && raw !== '') {
     const id = parseInt(raw, 10);
-    return Number.isFinite(id) ? id : null;
+        if (Number.isFinite(id)) {
+          return id;
+        }
+      }
+    }
+    return null;
   } catch {
     return null;
-    }
+  }
   }
 }
 
@@ -65,7 +73,7 @@ function escapeAttr(value) {
 
 (function displayUserId() {
   try {
-    const userId = localStorage.getItem('user_id');
+    const userId = localStorage.getItem('user_id') || localStorage.getItem('userId') || localStorage.getItem('userID');
     const userIdDisplay = document.getElementById('user-id-display');
     if (userIdDisplay && userId) {
       userIdDisplay.textContent = `用户ID: ${userId}`;
@@ -88,71 +96,7 @@ if (logoutBtn) {
 }
 
 // ---------------- 农户端预约功能（identity=1或2） ----------------
-// 提交预约申请
-const formAppointmentCreate = document.getElementById('form-appointment-create');
-const msgAppointmentCreate = document.getElementById('msg-appointment-create');
-if (formAppointmentCreate) {
-  formAppointmentCreate.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const currentUserId = getCurrentUserId();
-    if (!currentUserId) {
-      msgAppointmentCreate.textContent = '未获取到用户ID，请重新登录后再试';
-      return;
-    }
-    const expertName = document.getElementById('appointment-expertName').value.trim();
-    const timeRange = document.getElementById('appointment-time').value.trim();
-    const date = document.getElementById('appointment-date').value;
-    const topic = document.getElementById('appointment-topic').value.trim();
-    const remark = document.getElementById('appointment-remark').value.trim();
-    
-    // 从时间段中提取开始时间和结束时间（格式：09:00-10:00）
-    let startTime = '';
-    let endTime = '';
-    if (timeRange) {
-      const parts = timeRange.split('-');
-      if (parts.length === 2) {
-        startTime = parts[0].trim();
-        endTime = parts[1].trim();
-      }
-    }
-    
-    if (!currentUserId || !expertName || !date || !startTime || !endTime || !topic) {
-      msgAppointmentCreate.textContent = '请完善预约信息';
-      return;
-    }
-    
-    const payload = {
-      user_ID: currentUserId,
-      userId: currentUserId, // 保留兼容性
-      expertName: expertName,
-      expert_name: expertName, // 保留兼容性
-      date: date,
-      startTime: startTime,
-      endTime: endTime,
-      topic: topic,
-      remark: remark || '',
-      status: 'pending' // 默认状态为待审批
-    };
-    msgAppointmentCreate.textContent = '提交中...';
-    try {
-      // 根据文档，提交预约申请接口为 /api/expert-appointment/create
-      const res = await fetch(`${API_BASE_REF}/api/expert-appointment/create`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const json = await res.json().catch(()=>({}));
-      if (!res.ok) {
-        throw new Error(json?.message || res.statusText);
-      }
-      msgAppointmentCreate.textContent = json?.message || '预约申请已提交，等待专家确认';
-      formAppointmentCreate.reset();
-      loadUserAppointments();
-    } catch (err) {
-      msgAppointmentCreate.textContent = `提交失败：${err.message || '网络错误'}`;
-    }
-  });
-}
+// 提交预约申请功能已移至专家详情弹窗的预约按钮
 
 // 查看我的预约记录
 const btnLoadUserAppointments = document.getElementById('btn-load-user-appointments');
@@ -172,7 +116,7 @@ async function loadUserAppointments(showLoading = true){
   }
   try {
     // 根据文档，查看我的预约记录接口为 /api/expert-appointment/user/list
-    const url = `${API_BASE_REF}/api/expert-appointment/user/list?user_id=${encodeURIComponent(userId)}`;
+    const url = `${API_BASE_REF}/api/expert-appointment/user/list?userId=${encodeURIComponent(userId)}`;
     const res = await fetch(url);
     if (!res.ok) {
       const errText = await res.text().catch(()=>res.statusText);
@@ -196,29 +140,40 @@ function renderUserAppointments(list){
   }
   userAppointmentsList.innerHTML = list.map(item=>{
     const appointmentId = item.id ?? item.appointment_id ?? item.appointmentId ?? item.appointmentID ?? '';
-    const status = item.status || '';
+    const rawStatus = item.status || '';
+    const status = typeof rawStatus === 'string' ? rawStatus.toLowerCase() : rawStatus;
     const expertName = item.expert?.name || item.expertName || item.expert_name || '';
-    const expertId = item.expert?.id || '';
-    const expertImg = item.expert?.expertImg || item.expert?.avatar || '';
-    const expertField = item.expert?.field || '';
+    const expertId = item.expert?.id || item.expertId || '';
+    const expertImg = item.expert?.expertImg || item.expert?.avatar || item.expertImg || '';
+    const expertField = item.expert?.field || item.field || '';
     const dateStr = item.date || item.appointmentDate || '';
-    const timeStr = item.time || item.time_slot || '';
+    const startTime = item.startTime || item.start_time || '';
+    const endTime = item.endTime || item.end_time || '';
+    const legacyTime = item.time || item.time_slot || '';
+    const timeDisplay = startTime && endTime ? `${startTime}-${endTime}` : (startTime || endTime || legacyTime);
     const topic = item.topic || '';
-    const canCancel = expertName && dateStr && timeStr && (status === 'pending' || status === 'approved');
-    const statusText = status === 'pending' ? '待审批' : status === 'approved' ? '已批准' : status === 'completed' ? '已完成' : status === 'rejected' ? '已拒绝' : status === 'cancelled' ? '已取消' : status;
-    return `<div class="expert">
-      <div class="name">预约#${appointmentId}</div>
+    const canCancel = Boolean(appointmentId) && ['pending', 'approved'].includes(status);
+    const statusText = status === 'pending' ? '待审批'
+      : status === 'approved' ? '已批准'
+      : status === 'completed' ? '已完成'
+      : status === 'rejected' ? '已拒绝'
+      : status === 'cancelled' ? '已取消'
+      : rawStatus || '—';
+    return `<div class="expert appointment-card">
+      <div class="name">预约 #${appointmentId || '—'}</div>
       ${expertImg ? `<div class="avatar"><img src="${escapeAttr(expertImg)}" alt="${escapeAttr(expertName)}" style="width:40px;height:40px;border-radius:50%;"></div>` : ''}
       <div>专家：${expertName || '—'}${expertId ? ` (ID: ${expertId})` : ''}</div>
       ${expertField ? `<div>专家领域：${escapeAttr(expertField)}</div>` : ''}
-      <div>日期：${dateStr || '—'} ${timeStr || ''}</div>
+      <div>日期：${dateStr || '—'} ${timeDisplay || ''}</div>
       <div>主题：${topic || '—'}</div>
       <div>状态：${statusText}</div>
-      ${canCancel ? `<button class="btn btn-danger btn-cancel-appointment"
+      ${canCancel ? `<div class="appointment-card-actions">
+      <button class="btn btn-danger btn-cancel-appointment"
         data-app-id="${appointmentId}"
         data-expert-name="${escapeAttr(expertName)}"
         data-date="${escapeAttr(dateStr)}"
-        data-time="${escapeAttr(timeStr)}">取消预约</button>` : ''}
+          data-time="${escapeAttr(timeDisplay)}">取消预约</button>
+      </div>` : ''}
     </div>`;
   }).join('');
 }
@@ -232,14 +187,15 @@ if (userAppointmentsList) {
   userAppointmentsList.addEventListener('click', async (e)=>{
     const btn = e.target.closest('.btn-cancel-appointment');
     if (!btn) return;
+    const appointmentId = btn.getAttribute('data-app-id');
     const expertName = btn.getAttribute('data-expert-name');
     const dateStr = btn.getAttribute('data-date');
     const timeStr = btn.getAttribute('data-time');
-    if (!expertName || !dateStr || !timeStr) {
-      alert('无法获取专家姓名或时间段，取消失败');
+    if (!appointmentId) {
+      alert('无法获取预约ID，取消失败');
       return;
     }
-    const confirmed = window.confirm(`确定取消与「${expertName}」在 ${dateStr} ${timeStr} 的预约吗？`);
+    const confirmed = window.confirm(`确定取消预约#${appointmentId}${expertName ? `（专家：${expertName}）` : ''}${dateStr && timeStr ? `（${dateStr} ${timeStr}）` : ''}吗？`);
     if (!confirmed) return;
     const originalText = btn.textContent;
     btn.disabled = true;
@@ -248,11 +204,7 @@ if (userAppointmentsList) {
     try {
       // 根据文档，取消预约接口为 /api/expert-appointment/cancel
       const payload = {
-        user_id: getCurrentUserId(),
-        expert_name: expertName,
-        expertName: expertName,
-        date: dateStr,
-        time: timeStr
+        appointmentId: appointmentId
       };
       const res = await fetch(`${API_BASE_REF}/api/expert-appointment/cancel`, {
         method: 'POST',
@@ -297,7 +249,8 @@ async function loadPendingAppointments(showLoading = true) {
   }
   try {
     // 根据文档，获取待审核预约列表接口为 /api/expert-appointment/pending
-    const requestUrl = `${API_BASE_REF}/api/expert-appointment/pending?user_id=${encodeURIComponent(expertId)}`;
+    // 参数：userId, page, size
+    const requestUrl = `${API_BASE_REF}/api/expert-appointment/pending?userId=${encodeURIComponent(expertId)}&page=1&size=100`;
     const res = await fetch(requestUrl);
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
@@ -348,7 +301,7 @@ if (btnLoadPendingAppointments) {
   btnLoadPendingAppointments.addEventListener('click', ()=>loadPendingAppointments());
 }
 
-async function submitAppointmentReview(appointmentId, action, comment = '') {
+async function submitAppointmentReview(appointmentId, action, comment = '', triggerBtn = null) {
   const expertId = getCurrentUserId();
   if (!expertId) {
     msgPendingAppointments.textContent = '未获取到专家ID，请重新登录后再试';
@@ -358,15 +311,24 @@ async function submitAppointmentReview(appointmentId, action, comment = '') {
     msgPendingAppointments.textContent = '缺少必要的预约信息';
     return;
   }
+  const numericId = Number(appointmentId);
+  const normalizedAppointmentId = Number.isFinite(numericId) ? numericId : appointmentId;
+  const normalizedAction = (action === '同意' || action === 'approved' || action === 1 || action === '1') ? 1 : 0;
   const payload = {
-    appointment_id: parseInt(appointmentId, 10),
-    user_id: expertId,
-    action
+    appointmentId: normalizedAppointmentId,
+    userId: expertId,  // 文档要求是userId
+    action: normalizedAction
   };
   if (comment) {
     payload.comment = comment;
   }
   msgPendingAppointments.textContent = '提交审批中...';
+  let originalText = '';
+  if (triggerBtn) {
+    triggerBtn.disabled = true;
+    originalText = triggerBtn.textContent;
+    triggerBtn.textContent = '提交中...';
+  }
   try {
     const res = await fetch(`${API_BASE_REF}/api/expert-appointment/review`, {
       method: 'POST',
@@ -382,6 +344,11 @@ async function submitAppointmentReview(appointmentId, action, comment = '') {
     loadSchedule(false);
   } catch (err) {
     msgPendingAppointments.textContent = `审批失败：${err.message || '网络错误'}`;
+  } finally {
+    if (triggerBtn) {
+      triggerBtn.disabled = false;
+      triggerBtn.textContent = originalText || triggerBtn.textContent;
+    }
   }
 }
 
@@ -390,14 +357,14 @@ if (pendingAppointmentsList) {
     const approveBtn = e.target.closest('.btn-approve-appointment');
     if (approveBtn) {
       const appointmentId = approveBtn.getAttribute('data-appointment-id');
-      submitAppointmentReview(appointmentId, '同意');
+      submitAppointmentReview(appointmentId, 'approved', '', approveBtn);
       return;
     }
     const rejectBtn = e.target.closest('.btn-reject-appointment');
     if (rejectBtn) {
       const appointmentId = rejectBtn.getAttribute('data-appointment-id');
       const comment = prompt('请输入拒绝理由（可选）：') || '';
-      submitAppointmentReview(appointmentId, '拒绝', comment.trim());
+      submitAppointmentReview(appointmentId, 'rejected', comment.trim(), rejectBtn);
     }
   });
 }
@@ -422,15 +389,25 @@ if (formReviewAppointment) {
       return;
     }
     
-    if (action !== '同意' && action !== '拒绝') {
+    // 将中文操作转换为英文
+    let actionValue = action;
+    if (action === '同意') {
+      actionValue = 1;
+    } else if (action === '拒绝') {
+      actionValue = 0;
+    } else if (action === 'approved' || action === '1') {
+      actionValue = 1;
+    } else if (action === 'rejected' || action === '0') {
+      actionValue = 0;
+    } else {
       msgReviewAppointment.textContent = '审批操作必须选择"同意"或"拒绝"';
       return;
     }
     
     const payload = {
-      appointment_id: appointmentId,
-      user_id: expertId,  // 使用从 localStorage 获取的 user_id
-      action: action
+      appointmentId: appointmentId,
+      userId: expertId,  // 文档要求是userId
+      action: actionValue
     };
     
     if (comment) {
@@ -463,7 +440,26 @@ if (formReviewAppointment) {
 const scheduleList = document.getElementById('schedule-list');
 const msgSchedule = document.getElementById('msg-schedule');
 const btnLoadSchedule = document.getElementById('btn-load-schedule');
+const SCHEDULE_REFRESH_DELAY_MS = 2500;
+const SCHEDULE_MSG_HOLD_MS = 6000;
 let scheduleDataList = []; // 保存预约数据，供表单提交时使用
+let scheduleMsgTimer = null;
+
+function setScheduleMessage(text, autoClear = true) {
+  if (!msgSchedule) return;
+  msgSchedule.textContent = text;
+  if (scheduleMsgTimer) {
+    clearTimeout(scheduleMsgTimer);
+    scheduleMsgTimer = null;
+  }
+  if (autoClear && text) {
+    scheduleMsgTimer = setTimeout(()=>{
+      if (msgSchedule.textContent === text) {
+        msgSchedule.textContent = '';
+      }
+    }, SCHEDULE_MSG_HOLD_MS);
+  }
+}
 
 function buildMeetTime(dateStr = '', timeRange = '') {
   const start = typeof timeRange === 'string' ? timeRange.split('-')[0]?.trim() : '';
@@ -471,34 +467,66 @@ function buildMeetTime(dateStr = '', timeRange = '') {
   return `${dateStr} ${start}`;
 }
 
+function extractScheduleList(json) {
+  if (!json) return [];
+  if (Array.isArray(json)) return json;
+  const data = json?.data;
+  const containers = [json, data];
+  const candidateKeys = ['list', 'records', 'rows', 'appointments', 'items', 'data'];
+  for (const container of containers) {
+    if (Array.isArray(container)) {
+      return container;
+    }
+    if (container && typeof container === 'object') {
+      for (const key of candidateKeys) {
+        const value = container[key];
+        if (Array.isArray(value)) {
+          return value;
+        }
+      }
+    }
+  }
+  return [];
+}
+
 async function loadSchedule(showLoading = true) {
   if (!scheduleList) return;
   const userId = getCurrentUserId();  // 从 localStorage 获取 user_id
   if (!userId) {
-    msgSchedule.textContent = '未获取到用户ID，请重新登录后再试';
+    setScheduleMessage('未获取到用户ID，请重新登录后再试');
     scheduleList.innerHTML = '';
     return;
   }
   if (showLoading) {
-    msgSchedule.textContent = '加载中...';
+    setScheduleMessage('加载中...', false);
     scheduleList.innerHTML = '';
   }
   try {
     // 根据文档，查看预约日程接口为 /api/expert-appointment/schedule
-    // 使用 userId 作为参数名，值来自 localStorage 的 user_id
-    const requestUrl = `${API_BASE_REF}/api/expert-appointment/schedule?userId=${encodeURIComponent(userId)}`;
-    const res = await fetch(requestUrl);
+    // 参数：expertId, date(可选) —— 兼容部分环境仍接受 userId
+    const params = new URLSearchParams();
+    params.set('expertId', userId);
+    params.set('userId', userId);
+    const dateInput = document.getElementById('schedule-date-filter');
+    if (dateInput && dateInput.value) {
+      params.set('date', dateInput.value);
+    }
+    const res = await fetch(`${API_BASE_REF}/api/expert-appointment/schedule?${params.toString()}`);
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
     }
-    const json = await res.json();
-    const list = Array.isArray(json?.data) ? json.data : [];
+    const json = await res.json().catch(()=>({}));
+    const list = extractScheduleList(json);
     scheduleDataList = list; // 保存预约数据
     renderSchedule(list);
-    msgSchedule.textContent = list.length ? '' : '暂无预约日程';
+    if (list.length) {
+      setScheduleMessage('', false);
+    } else {
+      setScheduleMessage('暂无预约日程');
+    }
   } catch (err) {
     scheduleList.innerHTML = '';
-    msgSchedule.textContent = `加载失败：${err.message || '网络错误'}`;
+    setScheduleMessage(`加载失败：${err.message || '网络错误'}`);
   }
 }
 
@@ -512,7 +540,10 @@ function renderSchedule(list) {
     const appointmentId = item.id ?? item.appointment_id ?? item.appointmentId ?? '';
     const userName = item.user_name || item.userName || item.user?.name || '—';
     const dateStr = item.date || item.appointmentDate || '—';
-    const timeStr = item.time || item.time_slot || '—';
+    const startTime = item.startTime || item.start_time || '';
+    const endTime = item.endTime || item.end_time || '';
+    const legacyTime = item.time || item.time_slot || '';
+    const timeStr = startTime && endTime ? `${startTime}-${endTime}` : legacyTime || startTime || endTime || '—';
     const topic = item.topic || '—';
     const status = item.status || '';
     const statusText = status === 'approved' ? '已批准' : status === 'pending' ? '待审批' : status === 'completed' ? '已完成' : status === 'no_show' ? '未到场' : status === 'rejected' ? '已拒绝' : status;
@@ -557,26 +588,25 @@ if (scheduleList) {
 async function submitAppointmentStatus(appointmentId, status, dateStr, timeStr) {
   const userId = getCurrentUserId();
   if (!userId) {
-    msgSchedule.textContent = '未获取到用户ID，请重新登录后再试';
+    setScheduleMessage('未获取到用户ID，请重新登录后再试');
     return;
   }
   if (!appointmentId || !status) {
-    msgSchedule.textContent = '缺少必要的预约信息';
+    setScheduleMessage('缺少必要的预约信息');
     return;
   }
-  // 组合预约日期和时间作为 meetTime（仅使用开始时间）
+  // 根据文档，使用meetTime（只传开始时间）
   const meetTime = buildMeetTime(dateStr, timeStr);
   if (!meetTime) {
-    msgSchedule.textContent = '缺少预约时间信息';
+    setScheduleMessage('缺少预约时间信息');
     return;
   }
   const payload = {
-    appointment_id: parseInt(appointmentId, 10),
-    user_id: userId,
+    appointmentId: parseInt(appointmentId, 10),
     status,
     meetTime: meetTime
   };
-  msgSchedule.textContent = '提交更新中...';
+  setScheduleMessage('提交更新中...', false);
   try {
     const res = await fetch(`${API_BASE_REF}/api/expert-appointment/update-status`, {
       method: 'POST',
@@ -587,10 +617,12 @@ async function submitAppointmentStatus(appointmentId, status, dateStr, timeStr) 
     if (!res.ok) {
       throw new Error(json?.message || res.statusText);
     }
-    msgSchedule.textContent = json?.message || '状态已更新';
-    loadSchedule(false);
+    const successMsg = json?.message || '状态已更新';
+    setScheduleMessage(successMsg);
+    setTimeout(()=>loadSchedule(false), SCHEDULE_REFRESH_DELAY_MS);
   } catch (err) {
-    msgSchedule.textContent = `更新失败：${err.message || '网络错误'}`;
+    const errorMsg = `更新失败：${err.message || '网络错误'}`;
+    setScheduleMessage(errorMsg);
   }
 }
 
@@ -643,17 +675,20 @@ if (formUpdateStatus) {
       return id && parseInt(id, 10) === appointmentId;
     });
     const dateStr = appointment ? (appointment.date || appointment.appointmentDate || '') : '';
-    const timeStr = appointment ? (appointment.time || appointment.time_slot || '') : '';
-    const meetTime = buildMeetTime(dateStr, timeStr);
+    const startTime = appointment ? (appointment.startTime || appointment.start_time || '') : '';
+    const endTime = appointment ? (appointment.endTime || appointment.end_time || '') : '';
+    const legacyTime = appointment ? (appointment.time || appointment.time_slot || '') : '';
+    const timeStr = startTime && endTime ? `${startTime}-${endTime}` : legacyTime || startTime || endTime || '';
     
+    // 根据文档，使用meetTime（只传开始时间）
+    const meetTime = buildMeetTime(dateStr, timeStr);
     if (!meetTime) {
       msgUpdateStatus.textContent = '未找到该预约的时间信息，请先刷新预约列表';
       return;
     }
     
     const payload = {
-      appointment_id: appointmentId,
-      user_id: userId,  // 使用从 localStorage 获取的 user_id
+      appointmentId: appointmentId,
       status: status,
       meetTime: meetTime
     };
@@ -676,6 +711,460 @@ if (formUpdateStatus) {
       loadSchedule(false);
     } catch (err) {
       msgUpdateStatus.textContent = `更新失败：${err.message || '网络错误'}`;
+    }
+  });
+}
+
+// ---------------- 专家列表 ----------------
+const expertsList = document.getElementById('experts-list');
+const msgExperts = document.getElementById('msg-experts');
+const expertSearchInput = document.getElementById('expert-search-input');
+const btnExpertSearch = document.getElementById('btn-expert-search');
+const btnExpertReset = document.getElementById('btn-expert-reset');
+const btnExpertRefresh = document.getElementById('btn-expert-refresh');
+const EXPERTS_PAGE_SIZE = 8;
+let expertsCache = [];
+let expertsFilteredIndices = [];
+let expertsDisplayOffset = 0;
+let expertsSearchMode = false;
+
+async function fetchExperts(){
+  if (!expertsList || !msgExperts) return;
+  msgExperts.textContent = '加载中...';
+  try {
+    const res = await fetch(`${API_BASE_REF}/api/experts/`);
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+    const json = await res.json();
+    
+    let experts = null;
+    if (json.experts) {
+      experts = json.experts;
+    } else if (json.data) {
+      if (Array.isArray(json.data)) {
+        experts = json.data;
+      } else if (json.data.experts) {
+        experts = json.data.experts;
+      }
+    } else if (Array.isArray(json)) {
+      experts = json;
+    }
+    
+    if (Array.isArray(experts)) {
+      expertsCache = experts;
+      expertsFilteredIndices = expertsCache.map((_, idx)=>idx);
+      applyExpertsSearch(expertSearchInput?.value || '');
+      return;
+    }
+    console.error('专家数据格式错误:', json);
+    throw new Error('响应格式错误：未找到专家列表');
+  } catch (err) {
+    console.error('专家加载错误:', err);
+    expertsCache = [];
+    expertsFilteredIndices = [];
+    if (expertsList) {
+      expertsList.innerHTML = '<div class="empty">加载专家失败</div>';
+    }
+    if (msgExperts) {
+      msgExperts.textContent = `加载失败：${err.message || '网络错误'}`;
+    }
+  }
+}
+
+function applyExpertsSearch(keyword = ''){
+  if (!expertsList) return;
+  const trimmed = (keyword || '').trim();
+  expertsSearchMode = Boolean(trimmed);
+  expertsDisplayOffset = 0;
+  if (!expertsCache.length) {
+    expertsFilteredIndices = [];
+    expertsList.innerHTML = '<div class="empty">暂无专家数据</div>';
+    if (msgExperts) msgExperts.textContent = '暂无专家数据';
+    return;
+  }
+  const allIndices = expertsCache.map((_, idx)=>idx);
+  if (!expertsSearchMode) {
+    expertsFilteredIndices = allIndices;
+    renderExpertsView();
+    if (msgExperts) {
+      msgExperts.textContent = allIndices.length > EXPERTS_PAGE_SIZE
+        ? '展示前 8 位专家，可点击“换一批”查看更多'
+        : '';
+    }
+    return;
+  }
+  const matches = allIndices.filter(idx=>{
+    const data = expertsCache[idx];
+    const name = (data.expertName || data.name || '').trim();
+    return name.includes(trimmed);
+  });
+  expertsFilteredIndices = matches;
+  renderExpertsView();
+  if (msgExperts) {
+    msgExperts.textContent = matches.length ? `找到 ${matches.length} 位匹配的专家` : '未找到匹配的专家';
+  }
+}
+
+function renderExpertsView(){
+  if (!expertsList) return;
+  if (!expertsFilteredIndices.length) {
+    expertsList.innerHTML = '<div class="empty">暂无匹配的专家</div>';
+    return;
+  }
+  let indicesToRender = expertsFilteredIndices;
+  if (!expertsSearchMode && expertsFilteredIndices.length > EXPERTS_PAGE_SIZE) {
+    if (expertsDisplayOffset >= expertsFilteredIndices.length) {
+      expertsDisplayOffset = 0;
+    }
+    indicesToRender = expertsFilteredIndices.slice(expertsDisplayOffset, expertsDisplayOffset + EXPERTS_PAGE_SIZE);
+  }
+  renderExpertsByIndices(indicesToRender);
+}
+
+function renderExpertsByIndices(indices){
+  if (!expertsList) return;
+  if (!indices.length) {
+    expertsList.innerHTML = '<div class="empty">暂无匹配的专家</div>';
+    return;
+  }
+  expertsList.innerHTML = indices.map(idx=>{
+    const e = expertsCache[idx];
+    if (!e) return '';
+    const expertId = e.expertId || e.id || '';
+    const expertName = e.expertName || e.name || '未命名';
+    const fieldsText = formatField(e.field);
+    const description = e.expertDescription || e.description || '';
+    const expertImg = e.expertImg || '';
+    return `<div class="expert-card expert-card-clickable" data-expert-index="${idx}" data-expert-id="${expertId}">
+      ${expertImg ? `<div class="expert-avatar"><img src="${escapeAttr(expertImg)}" alt="${escapeAttr(expertName)}"></div>` : '<div class="expert-avatar-placeholder">👨‍🔬</div>'}
+      <div class="expert-info">
+        <div class="expert-name">${escapeAttr(expertName)}</div>
+        <div class="expert-fields">${escapeAttr(fieldsText)}</div>
+        ${description ? `<div class="expert-desc">${escapeAttr(description.length > 60 ? description.substring(0, 60) + '...' : description)}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+if (btnExpertSearch) {
+  btnExpertSearch.addEventListener('click', ()=>{
+    applyExpertsSearch(expertSearchInput?.value || '');
+  });
+}
+
+if (expertSearchInput) {
+  expertSearchInput.addEventListener('keydown', (event)=>{
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      applyExpertsSearch(expertSearchInput.value || '');
+    }
+  });
+}
+
+if (btnExpertReset) {
+  btnExpertReset.addEventListener('click', ()=>{
+    if (expertSearchInput) expertSearchInput.value = '';
+    applyExpertsSearch('');
+  });
+}
+
+if (btnExpertRefresh) {
+  btnExpertRefresh.addEventListener('click', ()=>{
+    if (!expertsCache.length) {
+      fetchExperts();
+      return;
+    }
+    if (expertsSearchMode) {
+      applyExpertsSearch(expertSearchInput?.value || '');
+      return;
+    }
+    if (!expertsFilteredIndices.length) return;
+    expertsDisplayOffset = (expertsDisplayOffset + EXPERTS_PAGE_SIZE) % Math.max(expertsFilteredIndices.length, 1);
+    renderExpertsView();
+  });
+}
+
+function formatField(fieldValue){
+  if (!fieldValue) return '';
+  if (Array.isArray(fieldValue)) {
+    return fieldValue.filter(Boolean).join('、');
+  }
+  if (typeof fieldValue === 'string') {
+    return fieldValue.split(/[,，]/).map(s=>s.trim()).filter(Boolean).join('、');
+  }
+  return String(fieldValue);
+}
+
+function extractExpertsFromResponse(json, scene){
+  if (!json) return [];
+  const data = json.data;
+  if (data && Array.isArray(data.experts)) {
+    return data.experts;
+  }
+  if (Array.isArray(json.experts)) {
+    return json.experts;
+  }
+  if (Array.isArray(data)) {
+    return data;
+  }
+  if (Array.isArray(json)) {
+    return json;
+  }
+  if (data && typeof data === 'object') {
+    return [data];
+  }
+  return [];
+}
+
+// 专家详情弹窗相关元素
+const expertDetailModal = document.getElementById('expert-detail-modal');
+const expertDetailContent = document.getElementById('expert-detail-content');
+const expertModalClose = document.getElementById('expert-modal-close');
+const expertAppointmentForm = document.getElementById('expert-appointment-form');
+const appointmentDateInput = document.getElementById('appointment-date');
+const appointmentTimeSelect = document.getElementById('appointment-time-slot');
+const appointmentTopicInput = document.getElementById('appointment-topic');
+const appointmentRemarkInput = document.getElementById('appointment-remark');
+const appointmentFormMsg = document.getElementById('msg-expert-appointment');
+let currentExpertData = null;
+
+function resolveExpertId(expertData) {
+  if (!expertData) return null;
+  return expertData.expertId || expertData.id || expertData.expert_id || null;
+}
+
+// 打开专家详情弹窗
+function setDefaultAppointmentDate() {
+  if (!appointmentDateInput) return;
+  const today = new Date();
+  const iso = today.toISOString().split('T')[0];
+  appointmentDateInput.min = iso;
+  if (!appointmentDateInput.value) {
+    appointmentDateInput.value = iso;
+  }
+}
+
+function resetAppointmentForm() {
+  if (!expertAppointmentForm) return;
+  expertAppointmentForm.reset();
+  expertAppointmentForm.dataset.expertId = '';
+  expertAppointmentForm.dataset.expertName = '';
+  setDefaultAppointmentDate();
+  if (appointmentFormMsg) {
+    appointmentFormMsg.textContent = '';
+  }
+}
+
+setDefaultAppointmentDate();
+
+function prepareAppointmentForm(expertData) {
+  if (!expertAppointmentForm) return;
+  expertAppointmentForm.dataset.expertId = resolveExpertId(expertData) || '';
+  expertAppointmentForm.dataset.expertName = expertData.expertName || expertData.name || '';
+  expertAppointmentForm.reset();
+  setDefaultAppointmentDate();
+  if (appointmentFormMsg) {
+    appointmentFormMsg.textContent = '';
+  }
+  if (appointmentTimeSelect) {
+    appointmentTimeSelect.selectedIndex = 0;
+  }
+}
+
+function openExpertDetailModal(expertData) {
+  if (!expertDetailModal || !expertDetailContent) return;
+  // 记录当前专家数据，并补齐 expertId 字段
+  currentExpertData = {
+    ...expertData,
+    expertId: resolveExpertId(expertData)
+  };
+  prepareAppointmentForm(currentExpertData);
+  
+  const fieldsText = formatField(expertData.field);
+  expertDetailContent.innerHTML = `
+    <div class="expert-detail-header">
+      ${expertData.expertImg ? `<div class="expert-detail-avatar"><img src="${escapeAttr(expertData.expertImg)}" alt="${escapeAttr(expertData.expertName)}"></div>` : '<div class="expert-detail-avatar-placeholder">👨‍🔬</div>'}
+      <div class="expert-detail-title">
+        <h2>${escapeAttr(expertData.expertName)}</h2>
+        <div class="expert-detail-fields">${escapeAttr(fieldsText)}</div>
+      </div>
+    </div>
+    <div class="expert-detail-body">
+      ${expertData.expertDescription ? `<div class="expert-detail-item">
+        <div class="expert-detail-label">简介：</div>
+        <div class="expert-detail-value">${escapeAttr(expertData.expertDescription)}</div>
+      </div>` : ''}
+      ${expertData.example ? `<div class="expert-detail-item">
+        <div class="expert-detail-label">案例：</div>
+        <div class="expert-detail-value">${escapeAttr(expertData.example)}</div>
+      </div>` : ''}
+      ${expertData.expertPhone ? `<div class="expert-detail-item">
+        <div class="expert-detail-label">电话：</div>
+        <div class="expert-detail-value">${escapeAttr(expertData.expertPhone)}</div>
+      </div>` : ''}
+      ${expertData.expertEmail ? `<div class="expert-detail-item">
+        <div class="expert-detail-label">邮箱：</div>
+        <div class="expert-detail-value">${escapeAttr(expertData.expertEmail)}</div>
+      </div>` : ''}
+      ${expertData.contact ? `<div class="expert-detail-item">
+        <div class="expert-detail-label">联系方式：</div>
+        <div class="expert-detail-value">${escapeAttr(expertData.contact)}</div>
+      </div>` : ''}
+    </div>
+  `;
+  expertDetailModal.style.display = 'flex';
+}
+
+// 关闭专家详情弹窗
+function closeExpertDetailModal() {
+  if (!expertDetailModal) return;
+  expertDetailModal.style.display = 'none';
+  currentExpertData = null;
+  resetAppointmentForm();
+}
+
+// 点击专家卡片时，先尝试获取完整详情
+async function openExpertDetailModalWithFetch(expertData) {
+  // 如果有expertId，尝试获取完整详情
+  if (expertData.expertId) {
+    try {
+      const detailRes = await fetch(`${API_BASE_REF}/api/experts/${expertData.expertId}`);
+      if (detailRes.ok) {
+        const detailJson = await detailRes.json();
+        const detailCandidates = extractExpertsFromResponse(detailJson, 'detail-fetch');
+        if (detailCandidates.length) {
+          expertData = { ...expertData, ...detailCandidates[0] };
+        } else {
+          const data = detailJson?.data && !Array.isArray(detailJson.data) ? detailJson.data : detailJson;
+          if (data && !Array.isArray(data)) {
+            expertData = { ...expertData, ...data };
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('获取专家详情失败，使用基础信息:', err);
+    }
+  }
+  openExpertDetailModal(expertData);
+}
+
+// 点击专家卡片打开弹窗
+if (expertsList) {
+  fetchExperts();
+  expertsList.addEventListener('click', (e)=>{
+    const card = e.target.closest('.expert-card-clickable');
+    if (!card) return;
+    const expertIndex = Number(card.getAttribute('data-expert-index'));
+    if (!Number.isFinite(expertIndex) || !expertsCache[expertIndex]) {
+      console.warn('未找到对应的专家数据，无法打开详情');
+      return;
+    }
+    const expertData = { ...expertsCache[expertIndex] };
+    openExpertDetailModalWithFetch(expertData);
+  });
+}
+
+// 关闭弹窗按钮
+if (expertModalClose) {
+  expertModalClose.onclick = closeExpertDetailModal;
+}
+
+// 点击弹窗外部关闭
+if (expertDetailModal) {
+  expertDetailModal.onclick = (e)=>{
+    if (e.target === expertDetailModal) {
+      closeExpertDetailModal();
+    }
+  };
+}
+
+// 预约表单提交
+if (expertAppointmentForm) {
+  expertAppointmentForm.addEventListener('submit', async (event)=>{
+    event.preventDefault();
+    if (!currentExpertData) {
+      alert('请先选择专家');
+      return;
+    }
+    const expertId = resolveExpertId(currentExpertData);
+    if (!expertId) {
+      alert('无法获取专家ID，请刷新页面后重试');
+      return;
+    }
+    const userId = getCurrentUserId();
+    if (!userId) {
+      alert('未获取到用户ID，请重新登录后再试');
+      return;
+    }
+    const date = appointmentDateInput?.value?.trim();
+    if (!date) {
+      if (appointmentFormMsg) appointmentFormMsg.textContent = '请选择预约日期';
+      return;
+    }
+    const timeRange = appointmentTimeSelect?.value;
+    if (!timeRange) {
+      if (appointmentFormMsg) appointmentFormMsg.textContent = '请选择预约时间段';
+      return;
+    }
+    const [startTime, endTime] = timeRange.split('-').map(part => part.trim());
+    if (!startTime || !endTime) {
+      if (appointmentFormMsg) appointmentFormMsg.textContent = '时间段格式不正确';
+      return;
+    }
+    const topic = appointmentTopicInput?.value?.trim();
+    if (!topic) {
+      if (appointmentFormMsg) appointmentFormMsg.textContent = '请输入预约主题';
+      return;
+    }
+    const remark = (appointmentRemarkInput?.value || '').trim();
+    
+    const payload = {
+      expertId: expertId,
+      userId: userId,
+      date: date,
+      startTime: startTime,
+      endTime: endTime,
+      topic: topic,
+      remark: remark,
+      status: 'pending'
+    };
+
+    const submitBtn = expertAppointmentForm.querySelector('button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.dataset.original = submitBtn.textContent;
+      submitBtn.textContent = '提交中...';
+    }
+    if (appointmentFormMsg) appointmentFormMsg.textContent = '提交中...';
+
+    try {
+      const res = await fetch(`${API_BASE_REF}/api/expert-appointment/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json().catch(()=>({}));
+      if (!res.ok) {
+        throw new Error(json?.message || res.statusText);
+      }
+      if (appointmentFormMsg) {
+        appointmentFormMsg.textContent = json?.message || '预约申请已提交，等待专家确认';
+      }
+      if (typeof loadUserAppointments === 'function') {
+        loadUserAppointments(false);
+      }
+      setTimeout(()=>{
+        closeExpertDetailModal();
+      }, 1000);
+    } catch (err) {
+      const message = err?.message || '网络错误';
+      if (appointmentFormMsg) appointmentFormMsg.textContent = `提交失败：${message}`;
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = submitBtn.dataset.original || '提交预约';
+      }
     }
   });
 }
