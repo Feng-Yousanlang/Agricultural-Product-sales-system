@@ -1806,7 +1806,11 @@ async function likeProductComment(commentId, triggerBtn) {
   if (commentStatusMsg) commentStatusMsg.textContent = '';
   try {
     const payload = { productCommentId: numericId, action };
-    const res = await fetch(`${API_BASE}/api/comment/like`, {
+    console.log('[评论点赞] 提交 payload：', payload);
+    const endpoint = action === 'cancel'
+      ? `${API_BASE}/api/comment/dislike`
+      : `${API_BASE}/api/comment/like`;
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)

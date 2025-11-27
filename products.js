@@ -121,7 +121,8 @@ if (formAddProduct) {
     const name = document.getElementById('farmer-product-name').value.trim();
     const price = parseFloat(document.getElementById('farmer-product-price').value);
     const totalVolumn = parseInt(document.getElementById('farmer-product-surplus').value, 10);
-    const img = document.getElementById('farmer-product-img').value.trim();
+    const imgInput = document.getElementById('farmer-product-img');
+    const imgFile = imgInput?.files?.[0] || null;
     const producer = document.getElementById('farmer-product-producer')?.value.trim() || '';
     
     if (!name || Number.isNaN(price) || price < 0 || Number.isNaN(totalVolumn) || totalVolumn < 0) {
@@ -132,23 +133,29 @@ if (formAddProduct) {
     msgAddProduct.textContent = '提交中...';
     try {
       // 根据文档，发布新类型商品接口为 /api/products/farmer/newProduct
-      // 请求参数：productName, price, userId, productImg(可选), totalVolumn, producer(可选)
-      const payloadForApi = {
+      // 请求参数：productName, price, userId, productImg(文件，可选), totalVolumn, producer(可选)
+      const formData = new FormData();
+      formData.append('productName', name);
+      formData.append('price', String(price));
+      formData.append('userId', String(currentUserId));
+      formData.append('totalVolumn', String(totalVolumn));
+      if (producer) {
+        formData.append('producer', producer);
+      }
+      if (imgFile) {
+        formData.append('file', imgFile, imgFile.name || 'product.jpg');
+      }
+      console.log('[农户上传商品] FormData payload：', {
         productName: name,
         price,
         userId: currentUserId,
-        totalVolumn
-      };
-      if (img) {
-        payloadForApi.productImg = img;
-      }
-      if (producer) {
-        payloadForApi.producer = producer;
-      }
+        totalVolumn,
+        producer,
+        hasImage: Boolean(imgFile)
+      });
       const res = await fetch(`${API_BASE}/api/products/farmer/newProduct`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payloadForApi)
+        body: formData
       });
       const json = await res.json().catch(()=>({}));
       if (!res.ok || (json?.code && Number(json.code) !== 200)) {
@@ -251,10 +258,12 @@ if (farmerProductsGrid) {
       }
       if (!confirm('确认下架该商品？下架后如有订单将被取消。')) return;
       try {
+        const payload = { productId: parseInt(productId, 10) };
+        console.log('[农户下架商品] 提交 payload：', payload);
         const res = await fetch(`${API_BASE}/api/products/farmer/deleteProduct`, {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productId: parseInt(productId, 10) })
+          body: JSON.stringify(payload)
         });
         const json = await res.json().catch(()=>({}));
         if (!res.ok) {
