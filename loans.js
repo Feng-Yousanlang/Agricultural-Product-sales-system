@@ -1,5 +1,5 @@
 // 后端API基础地址
-const API_BASE = 'http://10.61.194.227:8080';
+const API_BASE = 'http://10.61.12.174:8080';
 
 function getAuthToken() {
   try {
@@ -58,6 +58,12 @@ if (logoutBtn) {
 const loanProductsGrid = document.getElementById('loan-products-grid');
 const msgLoanProducts = document.getElementById('msg-loan-products');
 const btnLoanProductsRefresh = document.getElementById('loan-products-refresh');
+const btnLoanProductsPrev = document.getElementById('loan-products-prev');
+const btnLoanProductsNext = document.getElementById('loan-products-next');
+const loanProductsPageInfo = document.getElementById('loan-products-page-info');
+let loanProductsData = [];
+let loanProductsPage = 1;
+const LOAN_PRODUCTS_PAGE_SIZE = 6;
 const formLoanProductCreate = document.getElementById('form-loan-product-create');
 const msgLoanProductCreate = document.getElementById('msg-loan-product-create');
 const loanProductModal = document.getElementById('loan-product-modal');
@@ -80,13 +86,15 @@ async function loadLoanProducts() {
     const json = await res.json();
     const list = normalizeLoanProducts(json);
     loanProductsCache = list;
-    renderLoanProducts(list);
+    loanProductsData = list;
+    renderLoanProductsPage(1);
     if (msgLoanProducts) {
       msgLoanProducts.textContent = list.length ? '' : (json?.message || '暂无贷款产品');
     }
   } catch (err) {
     loanProductsCache = [];
-    renderLoanProducts([]);
+    loanProductsData = [];
+    renderLoanProductsPage(1);
     if (msgLoanProducts) {
       msgLoanProducts.textContent = `加载失败：${err.message || '网络错误'}`;
     }
@@ -94,19 +102,26 @@ async function loadLoanProducts() {
 }
 
 function normalizeLoanProducts(payload) {
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload?.products)) return payload.products;
+  if (!payload) return [];
   if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload.data)) return payload.data;
+  if (Array.isArray(payload.data?.records)) return payload.data.records;
+  if (Array.isArray(payload.data?.list)) return payload.data.list;
+  if (Array.isArray(payload.products)) return payload.products;
   return [];
 }
 
-function renderLoanProducts(list) {
+function renderLoanProductsPage(page = 1) {
   if (!loanProductsGrid) return;
+  const total = loanProductsData.length;
+  const totalPages = total ? Math.max(1, Math.ceil(total / LOAN_PRODUCTS_PAGE_SIZE)) : 1;
+  loanProductsPage = Math.min(Math.max(page, 1), totalPages);
+  const start = (loanProductsPage - 1) * LOAN_PRODUCTS_PAGE_SIZE;
+  const list = loanProductsData.slice(start, start + LOAN_PRODUCTS_PAGE_SIZE);
   if (!Array.isArray(list) || !list.length) {
     loanProductsGrid.innerHTML = '<div class="msg">暂无贷款产品</div>';
-    return;
-  }
-  loanProductsGrid.innerHTML = list.map((product, index) => {
+  } else {
+    loanProductsGrid.innerHTML = list.map((product, index) => {
     const id = resolveLoanProductId(product);
     const name = product.name || product.productName || product.fpName || `产品#${id || index + 1}`;
     const desc = product.description || product.fpDescription || '暂无描述';
@@ -127,7 +142,17 @@ function renderLoanProducts(list) {
       </div>
       ${tagsHtml ? `<div class="loan-product-tags">${tagsHtml}</div>` : ''}
     </div>`;
-  }).join('');
+    }).join('');
+  }
+  if (loanProductsPageInfo) {
+    loanProductsPageInfo.textContent = total ? `${loanProductsPage}/${totalPages}` : '0/0';
+  }
+  if (btnLoanProductsPrev) {
+    btnLoanProductsPrev.disabled = loanProductsPage <= 1;
+  }
+  if (btnLoanProductsNext) {
+    btnLoanProductsNext.disabled = loanProductsPage >= totalPages;
+  }
 }
 
 function resolveLoanProductId(product = {}) {
@@ -223,6 +248,12 @@ if (btnLoanProductsRefresh) {
   btnLoanProductsRefresh.onclick = () => {
     loadLoanProducts();
   };
+}
+if (btnLoanProductsPrev) {
+  btnLoanProductsPrev.addEventListener('click', () => renderLoanProductsPage(loanProductsPage - 1));
+}
+if (btnLoanProductsNext) {
+  btnLoanProductsNext.addEventListener('click', () => renderLoanProductsPage(loanProductsPage + 1));
 }
 
 if (loanProductModalClose) {

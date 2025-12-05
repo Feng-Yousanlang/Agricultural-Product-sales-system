@@ -17,7 +17,7 @@ var API_BASE_REF = (function() {
     // 如果 API_BASE 未声明，会抛出 ReferenceError，这里捕获
   }
   // 如果都不存在，使用默认值
-  return 'http://10.61.194.227:8080';
+  return 'http://10.61.12.174:8080';
 })();
 
 function getAuthToken() {

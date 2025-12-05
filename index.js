@@ -1,5 +1,5 @@
 // 后端API基础地址
-const API_BASE = 'http://10.61.194.227:8080';
+const API_BASE = 'http://10.61.12.174:8080';
 // 挂载到 window 对象，供其他脚本文件使用
 if (typeof window !== 'undefined') {
   window.API_BASE = API_BASE;
@@ -183,11 +183,20 @@ function stopAuto(){ if(timer){ clearInterval(timer); timer=null; } }
 dotsEl.addEventListener('click', e=>{
   const t = e.target; if(!t.classList.contains('dot')) return; idx = parseInt(t.getAttribute('data-i'),10)||0; updateSlide();
 });
-document.getElementById('news-refresh').onclick = ()=>{ idx=0; fetchNews(); };
+const newsRefreshBtn = document.getElementById('news-refresh');
+if (newsRefreshBtn) {
+  newsRefreshBtn.onclick = ()=>{ idx=0; fetchNews(); };
+}
 
 // ---------------- 金融产品 ----------------
 const productsGrid = document.getElementById('products-grid');
 const msgProducts = document.getElementById('msg-products');
+const productsPrevBtn = document.getElementById('products-prev');
+const productsNextBtn = document.getElementById('products-next');
+const productsPageInfo = document.getElementById('products-page-info');
+let productsData = [];
+let productsPage = 1;
+const PRODUCTS_PAGE_SIZE = 6;
 
 async function fetchProducts(){
   msgProducts.textContent = '加载中...';
@@ -213,7 +222,8 @@ async function fetchProducts(){
     }
     
     if (Array.isArray(products)) {
-      renderProducts(products);
+      productsData = products;
+      renderProductsPage(1);
       msgProducts.textContent = products.length ? '' : '暂无金融产品';
       return;
     }
@@ -221,13 +231,20 @@ async function fetchProducts(){
     throw new Error('响应格式错误：未找到产品列表');
   } catch (err) {
     console.error('金融产品加载错误:', err);
-    renderProducts([]);
+    productsData = [];
+    renderProductsPage(1);
     msgProducts.textContent = `加载失败：${err.message || '网络错误'}`;
   }
 }
 
-function renderProducts(list){
-  productsGrid.innerHTML = list.map(p=>
+function renderProductsPage(page = 1){
+  if (!productsGrid) return;
+  const total = productsData.length;
+  const totalPages = total ? Math.max(1, Math.ceil(total / PRODUCTS_PAGE_SIZE)) : 1;
+  productsPage = Math.min(Math.max(page, 1), totalPages);
+  const start = (productsPage - 1) * PRODUCTS_PAGE_SIZE;
+  const pageList = productsData.slice(start, start + PRODUCTS_PAGE_SIZE);
+  productsGrid.innerHTML = pageList.map(p=>
     `<div class="product">
        <div class="name">${p.fpName}</div>
        <div class="desc">${p.fpDescription||''}</div>
@@ -235,9 +252,27 @@ function renderProducts(list){
        <div class="tags">${(p.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}</div>
      </div>`
   ).join('');
+  if (productsPageInfo) {
+    productsPageInfo.textContent = total ? `${productsPage}/${totalPages}` : '0/0';
+  }
+  if (productsPrevBtn) {
+    productsPrevBtn.disabled = productsPage <= 1;
+  }
+  if (productsNextBtn) {
+    productsNextBtn.disabled = productsPage >= totalPages;
+  }
 }
 
-document.getElementById('products-refresh').onclick = fetchProducts;
+const productsRefreshBtn = document.getElementById('products-refresh');
+if (productsRefreshBtn) {
+  productsRefreshBtn.onclick = fetchProducts;
+}
+if (productsPrevBtn) {
+  productsPrevBtn.addEventListener('click', () => renderProductsPage(productsPage - 1));
+}
+if (productsNextBtn) {
+  productsNextBtn.addEventListener('click', () => renderProductsPage(productsPage + 1));
+}
 
 // 初始化
 fetchNews();

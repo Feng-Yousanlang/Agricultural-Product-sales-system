@@ -1,4 +1,4 @@
-const API_BASE = 'http://10.61.194.227:8080';
+const API_BASE = 'http://10.61.12.174:8080';
 // 使用本地占位图，避免外网域名（via.placeholder.com）在实验环境中解析失败
 const DEFAULT_PRODUCT_IMAGE = 'default-product.png';
 
