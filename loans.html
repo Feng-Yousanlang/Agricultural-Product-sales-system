@@ -3,112 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>贷款服务中心</title>
+    <title>贷款服务中心 - 三农服务平台</title>
     <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 <header class="topbar">
-    <div class="brand">三农服务平台</div>
+    <div class="brand">
+        <i class="fa-solid fa-seedling"></i>
+        <span>三农服务平台</span>
+    </div>
     <nav class="nav">
         <a href="index.html">首页</a>
-        <a href="loans.html" style="background:rgba(255,255,255,0.2);color:#fff;">融资服务</a>
-        <a href="appointment.html">预约服务</a>
-        <a href="products.html" data-identity="1">农产品服务</a>
+        <a href="loans.html" class="current">融资服务</a>
+        <a href="appointment.html" data-identity="1">专家预约</a>
+        <a href="buy.html" data-identity="1">农产品商城</a>
+        <a href="knowledge.html" data-identity="1">知识库</a>
+        <a href="products.html" data-identity="1">农产品管理</a>
     </nav>
     <div class="user">
         <span id="user-id-display" class="user-id"></span>
-        <a href="profile.html" class="btn btn-secondary" style="margin-right:8px;">个人中心</a>
-        <button id="btn-logout" class="btn">退出登录</button>
+        <a href="profile.html" class="btn btn-secondary">
+            <i class="fa-regular fa-user" style="margin-right: 6px;"></i>个人中心
+        </a>
+        <button id="btn-logout" class="btn-secondary" style="border:none; color: rgba(255,255,255,0.7);">退出</button>
     </div>
 </header>
 
 <main class="container">
-    <section id="loan-products" class="card">
+    <section id="loan-products" class="card col-span-12">
         <div class="card-header">
             <h2>贷款产品</h2>
-            <button id="loan-products-refresh" class="btn btn-secondary">刷新</button>
+            <div class="form-inline" style="gap:8px; display:flex;">
+                <button id="loan-products-refresh" class="btn btn-outline">刷新</button>
+                <div style="display:inline-flex; gap:4px;">
+                    <button id="loan-products-prev" class="btn btn-outline" type="button"><i class="fa-solid fa-chevron-left"></i></button>
+                    <span id="loan-products-page-info" class="page-info" style="display:flex; align-items:center; padding:0 8px; font-size:13px; color:#666;">1/1</span>
+                    <button id="loan-products-next" class="btn btn-outline" type="button"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+            </div>
         </div>
         <div class="grid" id="loan-products-grid"></div>
         <div class="msg" id="msg-loan-products"></div>
-        <div class="form-inline" style="justify-content:flex-end; margin-top:8px; gap:8px;">
-            <button id="loan-products-prev" class="btn btn-secondary" type="button">上一页</button>
-            <span id="loan-products-page-info" class="page-info">1/1</span>
-            <button id="loan-products-next" class="btn btn-secondary" type="button">下一页</button>
-        </div>
     </section>
 
-    <section id="loan-apply" class="card">
+    <!-- 申请与记录区域 -->
+    <section id="loan-apply" class="card col-span-4">
         <div class="card-header">
             <h2>贷款申请</h2>
         </div>
         <form id="form-loan-apply" autocomplete="off" class="form">
-            <div class="row">
-                <label for="apply-productName">产品名称</label>
-                <input type="text" id="apply-productName" required>
+            <div class="form-group">
+                <label for="apply-productName" class="form-label">产品名称</label>
+                <input type="text" id="apply-productName" class="form-input" required>
             </div>
-            <div class="row">
-                <label for="apply-amount">金额</label>
-                <input type="number" id="apply-amount" required>
+            <div class="form-group">
+                <label for="apply-amount" class="form-label">金额</label>
+                <input type="number" id="apply-amount" class="form-input" required>
             </div>
-            <div class="row">
-                <label for="apply-term">期限(月)</label>
-                <input type="number" id="apply-term" required>
+            <div class="form-group">
+                <label for="apply-term" class="form-label">期限(月)</label>
+                <input type="number" id="apply-term" class="form-input" required>
             </div>
-            <div class="row">
-                <label for="apply-document">资质材料（单文件）</label>
-                <input type="file" id="apply-document" accept=".pdf,.jpg,.png,.jpeg,.doc,.docx">
+            <div class="form-group">
+                <label for="apply-document" class="form-label">资质材料（单文件）</label>
+                <input type="file" id="apply-document" accept=".pdf,.jpg,.png,.jpeg,.doc,.docx" class="form-input">
             </div>
-            <button type="submit" class="btn">提交申请</button>
+            <button type="submit" class="btn" style="margin-top:8px;">提交申请</button>
             <div class="msg" id="msg-loan-apply"></div>
         </form>
     </section>
 
-    <section id="loan-applications" class="card">
+    <section id="loan-applications" class="card col-span-8">
         <div class="card-header">
-            <h2>我的申请</h2>
-            <button id="btn-load-applications" class="btn btn-secondary">刷新</button>
+            <h2>我的申请记录</h2>
+            <button id="btn-load-applications" class="btn btn-secondary" style="color:var(--text-secondary); border-color:var(--border-color);">刷新</button>
         </div>
         <div class="list" id="applications-list"></div>
         <div class="msg" id="msg-applications"></div>
     </section>
 
-    <section id="loan-repay" class="card">
+    <section id="loan-repay" class="card col-span-12">
         <div class="card-header">
             <h2>还款管理</h2>
         </div>
-        <div class="two-col">
+        <div class="two-col" style="display:grid; grid-template-columns: 2fr 1fr; gap:32px;">
             <div>
-                <h3 style="margin:6px 0;">还款计划</h3>
-                <div class="form-inline">
-                    <button id="btn-load-plan" class="btn btn-secondary">查看我的还款计划</button>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <h3 style="margin:0; font-size:16px;">还款计划</h3>
+                    <button id="btn-load-plan" class="btn btn-secondary" style="font-size:12px; padding:4px 8px; color:var(--text-secondary); border-color:var(--border-color);">刷新计划</button>
                 </div>
-                <div class="list" id="plan-list"></div>
+                <div class="list" id="plan-list" style="max-height:300px; overflow-y:auto; border:1px solid #f0f0f0; border-radius:2px; padding:8px;"></div>
                 <div class="msg" id="msg-plan"></div>
-                <div class="divider"></div>
-                <h3 style="margin:6px 0;">还款历史</h3>
-                <div class="form-inline">
-                    <button id="btn-load-repayments" class="btn btn-secondary">查看我的还款历史</button>
+                
+                <div class="divider" style="height:1px; background:#eee; margin:24px 0;"></div>
+                
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <h3 style="margin:0; font-size:16px;">还款历史</h3>
+                    <button id="btn-load-repayments" class="btn btn-outline" style="font-size:12px; padding:4px 8px;">刷新历史</button>
                 </div>
-                <div class="list" id="repayments-list"></div>
+                <div class="list" id="repayments-list" style="max-height:300px; overflow-y:auto; border:1px solid #f0f0f0; border-radius:2px; padding:8px;"></div>
                 <div class="msg" id="msg-repayments"></div>
             </div>
-            <div>
-                <h3 style="margin:6px 0;">提交还款</h3>
-                <form id="form-repay" autocomplete="off" class="form">
+            
+            <div style="background:#f9f9f9; padding:20px; border-radius:2px;">
+                <h3 style="margin-top:0; margin-bottom:16px;">提交还款</h3>
+                <form id="form-repay" autocomplete="off" class="form" style="display:flex; flex-direction:column; gap:16px;">
                     <div class="row">
-                        <label>申请ID</label>
-                        <span id="repay-application-display">请先在左侧选择还款计划</span>
+                        <label style="display:block; margin-bottom:6px; font-size:13px;">关联申请</label>
+                        <span id="repay-application-display" style="display:block; padding:8px; background:#fff; border:1px dashed #ddd; font-size:13px; color:#666;">请先在左侧选择还款计划</span>
                         <input type="hidden" id="repay-applicationId">
                     </div>
                     <div class="row">
-                        <label for="repay-amount">金额</label>
-                        <input type="number" id="repay-amount" step="0.01" min="0.01" required>
+                        <label for="repay-amount" style="display:block; margin-bottom:6px; font-size:13px;">还款金额</label>
+                        <input type="number" id="repay-amount" step="0.01" min="0.01" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:2px;" required>
                     </div>
                     <div class="row">
-                        <label for="repay-date">日期</label>
-                        <input type="date" id="repay-date" required>
+                        <label for="repay-date" style="display:block; margin-bottom:6px; font-size:13px;">还款日期</label>
+                        <input type="date" id="repay-date" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:2px;" required>
                     </div>
-                    <button type="submit" class="btn">提交</button>
+                    <button type="submit" class="btn" style="margin-top:8px;">确认提交</button>
                     <div class="msg" id="msg-repay"></div>
                 </form>
             </div>
@@ -119,4 +133,3 @@
 <script src="loans.js"></script>
 </body>
 </html>
-

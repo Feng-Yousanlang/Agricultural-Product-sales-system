@@ -75,15 +75,24 @@ const msgLoanProductModal = document.getElementById('msg-loan-product-modal');
 let loanProductsCache = [];
 let currentLoanProductIndex = -1;
 
+function getAuthHeaders(contentType) {
+  const token = getAuthToken();
+  const headers = {};
+  if (contentType) headers['Content-Type'] = contentType;
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return headers;
+}
+
 async function loadLoanProducts() {
   if (!loanProductsGrid) return;
   if (msgLoanProducts) msgLoanProducts.textContent = '加载中...';
   try {
-    const res = await fetch(`${API_BASE}/api/loan/products`);
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
+    const urlMain = `${API_BASE}/api/loan/products`;
+    const res = await fetch(urlMain, { headers: getAuthHeaders(), credentials: 'include' });
+    const json = await res.json().catch(()=>({}));
+    if (!res.ok || (typeof json.code !== 'undefined' && Number(json.code) !== 200)) {
+      throw new Error(json?.message || `HTTP ${res.status}`);
     }
-    const json = await res.json();
     const list = normalizeLoanProducts(json);
     loanProductsCache = list;
     loanProductsData = list;
@@ -92,11 +101,48 @@ async function loadLoanProducts() {
       msgLoanProducts.textContent = list.length ? '' : (json?.message || '暂无贷款产品');
     }
   } catch (err) {
-    loanProductsCache = [];
-    loanProductsData = [];
-    renderLoanProductsPage(1);
-    if (msgLoanProducts) {
-      msgLoanProducts.textContent = `加载失败：${err.message || '网络错误'}`;
+    try {
+      const urlAlt = `${API_BASE}/api/loan/products/`;
+      const res2 = await fetch(urlAlt, { headers: getAuthHeaders(), credentials: 'include' });
+      const json2 = await res2.json().catch(()=>({}));
+      if (!res2.ok || (typeof json2.code !== 'undefined' && Number(json2.code) !== 200)) {
+        throw new Error(json2?.message || `HTTP ${res2.status}`);
+      }
+      const list2 = normalizeLoanProducts(json2);
+      loanProductsCache = list2;
+      loanProductsData = list2;
+      renderLoanProductsPage(1);
+      if (msgLoanProducts) {
+        msgLoanProducts.textContent = list2.length ? '' : (json2?.message || '暂无贷款产品');
+      }
+    } catch (err2) {
+      try {
+        const payload = { q: '%' };
+        const res3 = await fetch(`${API_BASE}/api/loan/searchproduct`, {
+          method: 'POST',
+          headers: getAuthHeaders('application/json'),
+          body: JSON.stringify(payload),
+          credentials: 'include'
+        });
+        const json3 = await res3.json().catch(()=>({}));
+        if (!res3.ok || (typeof json3.code !== 'undefined' && Number(json3.code) !== 200)) {
+          throw new Error(json3?.message || `HTTP ${res3.status}`);
+        }
+        const list3 = normalizeLoanProducts(json3);
+        loanProductsCache = list3;
+        loanProductsData = list3;
+        renderLoanProductsPage(1);
+        if (msgLoanProducts) {
+          msgLoanProducts.textContent = list3.length ? '' : (json3?.message || '暂无贷款产品');
+        }
+      } catch (err3) {
+        loanProductsCache = [];
+        loanProductsData = [];
+        renderLoanProductsPage(1);
+        if (msgLoanProducts) {
+          msgLoanProducts.textContent = `加载失败：${(err?.message || '').trim() || (err2?.message || err3?.message || '网络错误')}`;
+        }
+      }
     }
   }
 }
@@ -104,10 +150,17 @@ async function loadLoanProducts() {
 function normalizeLoanProducts(payload) {
   if (!payload) return [];
   if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload.data)) return payload.data;
-  if (Array.isArray(payload.data?.records)) return payload.data.records;
-  if (Array.isArray(payload.data?.list)) return payload.data.list;
+  const data = payload.data ?? payload.result ?? null;
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.records)) return data.records;
+  if (Array.isArray(data?.list)) return data.list;
   if (Array.isArray(payload.products)) return payload.products;
+  if (data && typeof data === 'object') {
+    const cand = ['items','rows','products'];
+    for (const k of cand) {
+      if (Array.isArray(data[k])) return data[k];
+    }
+  }
   return [];
 }
 
@@ -130,10 +183,10 @@ function renderLoanProductsPage(page = 1) {
     const rateText = formatRate(product);
     const termText = formatTerm(product);
     const tagsHtml = renderLoanProductTags(product.tags || product.tagList || product.labels);
-    return `<div class="loan-product-card" data-product-index="${index}" data-product-id="${escapeHtml(String(id ?? ''))}">
+    return `<div class="list-card loan-product-card" data-product-index="${index}" data-product-id="${escapeHtml(String(id ?? ''))}">
       <div class="loan-product-category">${escapeHtml(category)}</div>
-      <div class="loan-product-name">${escapeHtml(name)}</div>
-      <p class="loan-product-desc">${escapeHtml(desc)}</p>
+      <div class="name">${escapeHtml(name)}</div>
+      <div class="loan-product-desc">${escapeHtml(desc)}</div>
       <div class="loan-product-meta">
         <div><small>额度范围</small><strong>${amountRange}</strong></div>
         <div><small>年化利率</small><strong>${rateText}</strong></div>
@@ -467,7 +520,7 @@ async function loadApplications(){
 
 function renderApplications(list){
   applicationsList.innerHTML = list.map(a=>
-    `<div class="expert">
+    `<div class="list-card">
        <div class="name">申请#${a.applicationId}</div>
        <div>产品：${a.productName||''}</div>
        <div>金额：${a.amount||''}</div>
@@ -527,13 +580,13 @@ function renderPlan(list){
       ? escapeHtml(String(applicationId))
       : '';
     const canRepay = Boolean(safeAppId);
-    return `<div class="expert">
+    return `<div class="list-card">
       ${safeAppId ? `<div>申请ID：${safeAppId}</div>` : ''}
       <div>期数：${i.installmentNo || i.period || '—'}</div>
       <div>到期日：${i.dueDate || i.due_time || '—'}</div>
       <div>剩余金额：${amount}</div>
       <div>状态：${i.status || '—'}</div>
-      ${canRepay ? `<div class="appointment-card-actions"><button class="btn btn-secondary btn-repay-from-plan" data-application-id="${safeAppId}" data-amount="${escapeHtml(String(amount))}">去还款</button></div>` : ''}
+      ${canRepay ? `<div class="action-row"><button class="btn btn-secondary btn-repay-from-plan" data-application-id="${safeAppId}" data-amount="${escapeHtml(String(amount))}">去还款</button></div>` : ''}
     </div>`;
   }).join('');
 }
@@ -558,7 +611,8 @@ if (btnLoadRepayments) {
       const json = await res.json();
       const list = Array.isArray(json?.data) ? json.data : [];
       repaymentsList.innerHTML = list.map(item=>
-        `<div class="expert">
+        `<div class="list-card">
+           <div class="name">还款记录</div>
            <div>申请ID：${item.applicationId || '—'}</div>
            <div>金额：${item.amount || item.payAmount || '—'}</div>
            <div>日期：${item.payDate || item.date || '—'}</div>
@@ -636,4 +690,3 @@ if (formRepay) {
     }
   });
 }
-

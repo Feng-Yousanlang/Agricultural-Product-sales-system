@@ -3,26 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>首页</title>
+    <title>三农服务平台 - 智慧农业金融一体化解决方案</title>
     <link rel="stylesheet" href="index.css">
+    <!-- 引入 Font Awesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 <header class="topbar">
-    <div class="brand">三农服务平台</div>
+    <div class="brand">
+        <i class="fa-solid fa-seedling"></i>
+        <span>三农服务平台</span>
+    </div>
     <nav class="nav">
-        <a href="index.html" style="background:rgba(255,255,255,0.2);color:#fff;">首页</a>
+        <a href="index.html" class="current">首页</a>
         <a href="loans.html" data-identity="1">融资服务</a>
-        <a href="appointment.html" data-identity="1">预约服务</a>
-        <a href="products.html" data-identity="1">农产品服务</a>
+        <a href="appointment.html" data-identity="1">专家预约</a>
+        <a href="buy.html" data-identity="1">农产品商城</a>
+        <a href="knowledge.html" data-identity="1">知识库</a>
+        <a href="products.html" data-identity="1">农产品管理</a>
     </nav>
     <div class="user">
         <span id="user-id-display" class="user-id"></span>
-        <a href="profile.html" class="btn btn-secondary" style="margin-right:8px;">个人中心</a>
-        <button id="btn-logout" class="btn">退出登录</button>
+        <a href="profile.html" class="btn btn-secondary">
+            <i class="fa-regular fa-user" style="margin-right: 6px;"></i>个人中心
+        </a>
+        <button id="btn-logout" class="btn-secondary" style="border:none; color: rgba(255,255,255,0.7);">退出</button>
     </div>
 </header>
 
 <main class="container">
+    <!-- 核心功能入口 (Feature Cards) -->
+    <section class="features-grid" data-identity="1">
+        <a href="loans.html" class="feature-card">
+            <div class="feature-icon"><i class="fa-solid fa-sack-dollar"></i></div>
+            <div class="feature-content">
+                <h3>贷款融资</h3>
+                <p>普惠金融低息贷款，快速审批，助力农业生产资金周转。</p>
+            </div>
+        </a>
+        <a href="appointment.html" class="feature-card">
+            <div class="feature-icon"><i class="fa-solid fa-user-doctor"></i></div>
+            <div class="feature-content">
+                <h3>专家预约</h3>
+                <p>百名农业专家在线答疑，预约上门指导，解决技术难题。</p>
+            </div>
+        </a>
+        <a href="products.html" class="feature-card">
+            <div class="feature-icon"><i class="fa-solid fa-basket-shopping"></i></div>
+            <div class="feature-content">
+                <h3>农产商城</h3>
+                <p>优质农产品直供直销，拓宽销售渠道，增加农民收入。</p>
+            </div>
+        </a>
+    </section>
+
+    <!-- 新闻轮播区 -->
     <section id="news" class="card" data-identity="1">
         <div class="carousel" id="news-carousel">
             <div class="slides" id="news-slides"></div>
@@ -31,310 +66,260 @@
         <div class="msg" id="msg-news"></div>
     </section>
 
+    <!-- 右侧侧边栏：知识库与快捷入口 -->
+    <div class="sidebar-col" data-identity="1">
+        <section id="knowledge" class="card" style="flex: 1;">
+            <div class="card-header">
+                <h2>农业知识库</h2>
+                <a href="knowledge.html" class="btn btn-secondary" style="color: #666; border-color: #ddd; font-size: 12px; padding: 4px 10px;">更多</a>
+            </div>
+            <div class="list" id="knowledge-list">
+                <!-- 列表由JS填充 -->
+            </div>
+            <div class="msg" id="msg-knowledge"></div>
+        </section>
+        
+
+    </div>
+
+    <!-- 推荐金融产品 -->
     <section id="products" class="card" data-identity="1">
         <div class="card-header">
-            <h2>金融产品</h2>
+            <h2>热门金融产品</h2>
+            <div class="form-inline" style="gap:8px;">
+                <button id="products-prev" class="btn btn-secondary" style="color:#666; border-color:#ddd;"><i class="fa-solid fa-chevron-left"></i></button>
+                <button id="products-next" class="btn btn-secondary" style="color:#666; border-color:#ddd;"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
         </div>
-        <div class="grid" id="products-grid"></div>
-        <div class="form-inline" style="justify-content:flex-end; margin-top:8px; gap:8px;">
-            <button id="products-prev" class="btn btn-secondary" type="button">上一页</button>
-            <span id="products-page-info" class="page-info">1/1</span>
-            <button id="products-next" class="btn btn-secondary" type="button">下一页</button>
-        </div>
+        <div class="product-grid" id="products-grid"></div>
         <div class="msg" id="msg-products"></div>
     </section>
 
-    <section id="knowledge" class="card" data-identity="1">
-        <div class="card-header">
-            <h2>农业知识库</h2>
-            <button id="btn-load-knowledge" class="btn btn-secondary">刷新列表</button>
-        </div>
-        <div class="form-inline" style="flex-wrap:wrap;">
-            <input type="number" id="knowledge-page" placeholder="页码" min="1" value="1">
-            <input type="number" id="knowledge-size" placeholder="每页条数" min="1" value="6">
-        </div>
-        <div class="list" id="knowledge-list"></div>
-        <div class="msg" id="msg-knowledge"></div>
-        <div class="divider"></div>
-        <div class="form-inline" style="flex-wrap:wrap;">
-            <input type="text" id="knowledge-keyword" placeholder="关键词（标题）">
-            <input type="number" id="knowledge-search-page" placeholder="页码" min="1" value="1">
-            <input type="number" id="knowledge-search-size" placeholder="每页条数" min="1" value="6">
-            <button id="btn-search-knowledge" class="btn btn-secondary">搜索</button>
-        </div>
-        <div class="list" id="knowledge-search-list"></div>
-        <div class="msg" id="msg-knowledge-search"></div>
-    </section>
-
-    <section id="appointment-preview" class="card" data-identity="1">
-        <div class="card-header">
-            <h2>专家预约服务</h2>
-            <a href="appointment.html" class="btn btn-secondary">前往预约页面</a>
-        </div>
-        <p>
-            一站式专家预约平台，支持农户在线预约、管理咨询记录，专家可在线审批、查看日程。点击“前往预约页面”即可进入完整功能。
-        </p>
-    </section>
-
-    <!-- 专家审批预约（专家端，identity=3） -->
+    <!-- 专家端/银行端专属模块 (保持原ID以便JS兼容) -->
+    
+    <!-- 专家审批预约 -->
     <section id="expert-appointment-review" class="card" data-identity="3">
         <div class="card-header">
             <h2>专家审批预约</h2>
-            <button id="btn-load-pending-appointments" class="btn btn-secondary">刷新待审批列表</button>
+            <button id="btn-load-pending-appointments" class="btn btn-secondary" style="color:#666; border-color:#ddd;">刷新</button>
         </div>
         <div class="list" id="pending-appointments-list"></div>
         <div class="msg" id="msg-pending-appointments"></div>
     </section>
 
-    <!-- 专家预约日程（专家端，identity=3） -->
+    <!-- 专家日程 -->
     <section id="expert-appointment-schedule" class="card" data-identity="3">
         <div class="card-header">
             <h2>我的预约日程</h2>
-            <button id="btn-load-schedule" class="btn btn-secondary">刷新日程</button>
+            <button id="btn-load-schedule" class="btn btn-secondary" style="color:#666; border-color:#ddd;">刷新</button>
         </div>
         <div class="list" id="schedule-list"></div>
         <div class="msg" id="msg-schedule"></div>
     </section>
 
-    <!-- 融资服务模块 -->
-    <section id="loan-services" class="card" data-identity="1">
-        <div class="card-header">
-            <h2>贷款办理 & 还款管理</h2>
-            <a href="loans.html" class="btn btn-secondary">前往贷款中心</a>
-        </div>
-        <p>
-            提供贷款申请、我的申请进度查询以及还款计划、还款记录等全流程服务。点击“前往贷款中心”即可办理相关业务。
-        </p>
-    </section>
-
+    <!-- 银行产品管理 -->
     <section id="loan-product-manage" class="card" data-identity="4">
         <div class="card-header">
             <div>
                 <h2>贷款产品管理</h2>
-                <p class="section-subtitle">银行端快速维护贷款产品，实时展示给农户</p>
+                <p style="font-size:12px; color:#666; margin-top:4px;">银行端快速维护贷款产品，实时展示给农户</p>
             </div>
-            <div class="loan-product-toolbar">
-                <input type="text"
-                       id="loan-product-search-q"
-                       placeholder="按产品名称搜索"
-                       style="min-width: 180px; padding: 6px 10px; border-radius: 999px; border: 1px solid #c9d2e3; font-size: 13px; background: #f8f9fc; outline: none;">
-                <button id="loan-product-search-btn" class="btn btn-secondary" type="button">搜索</button>
-                <button id="loan-products-refresh" class="btn btn-secondary" type="button">刷新列表</button>
+            <div class="loan-product-toolbar" style="display:flex; gap:8px;">
+                <input type="text" id="loan-product-search-q" placeholder="搜索产品" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 2px;">
+                <button id="loan-product-search-btn" class="btn">搜索</button>
+                <button id="loan-products-refresh" class="btn btn-secondary" style="color:#666; border-color:#ddd;">刷新</button>
             </div>
         </div>
-        <div class="loan-product-create">
-            <h3>新建贷款产品</h3>
-            <form id="form-loan-product-create" class="form two-col-grid" autocomplete="off">
+        
+        <div class="loan-product-create" style="background:#f9f9f9; padding:20px; border-radius:2px; margin-bottom:24px;">
+            <h3 style="margin-top:0; margin-bottom:16px; font-size:16px;">新建贷款产品</h3>
+            <form id="form-loan-product-create" class="form" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:16px;">
                 <div class="row">
-                    <label for="loan-product-name">产品名称 <span class="required">*</span></label>
-                    <input type="text" id="loan-product-name" maxlength="40" required>
-                </div>
-                <div class="row">
-                    <label for="loan-product-category">产品标签</label>
-                    <input type="text" id="loan-product-category" placeholder="示例：普惠金融,绿色农业">
+                    <label style="display:block; margin-bottom:6px; font-size:13px;">产品名称 <span style="color:red">*</span></label>
+                    <input type="text" id="loan-product-name" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:2px;" required>
                 </div>
                 <div class="row">
-                    <label for="loan-product-min">最低额度(元)</label>
-                    <input type="number" id="loan-product-min" min="0" step="1000">
+                    <label style="display:block; margin-bottom:6px; font-size:13px;">产品标签</label>
+                    <input type="text" id="loan-product-category" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:2px;">
                 </div>
                 <div class="row">
-                    <label for="loan-product-max">最高额度(元)</label>
-                    <input type="number" id="loan-product-max" min="0" step="1000">
+                    <label style="display:block; margin-bottom:6px; font-size:13px;">年化利率(%)</label>
+                    <input type="number" id="loan-product-rate" step="0.01" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:2px;">
+                </div>
+                 <div class="row">
+                    <label style="display:block; margin-bottom:6px; font-size:13px;">最低额度(元)</label>
+                    <input type="number" id="loan-product-min" step="1000" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:2px;">
                 </div>
                 <div class="row">
-                    <label for="loan-product-rate">年化利率(%)</label>
-                    <input type="number" id="loan-product-rate" min="0" step="0.01">
+                    <label style="display:block; margin-bottom:6px; font-size:13px;">最高额度(元)</label>
+                    <input type="number" id="loan-product-max" step="1000" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:2px;">
                 </div>
                 <div class="row">
-                    <label for="loan-product-term">最长期限(月)</label>
-                    <input type="number" id="loan-product-term" min="1" step="1">
+                    <label style="display:block; margin-bottom:6px; font-size:13px;">最长期限(月)</label>
+                    <input type="number" id="loan-product-term" step="1" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:2px;">
                 </div>
-                <div class="row wide">
-                    <label for="loan-product-desc">产品描述</label>
-                    <textarea id="loan-product-desc" rows="3" maxlength="300" placeholder="输入产品亮点、适用人群、申请条件等"></textarea>
+                <div class="row" style="grid-column: span 3;">
+                    <label style="display:block; margin-bottom:6px; font-size:13px;">产品描述</label>
+                    <textarea id="loan-product-desc" rows="2" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:2px;"></textarea>
                 </div>
-                <div class="row wide form-actions">
+                <div class="row" style="grid-column: span 3; text-align:right;">
                     <button type="submit" class="btn">提交新产品</button>
-                    <div class="msg inline" id="msg-loan-product-create"></div>
                 </div>
             </form>
+            <div class="msg" id="msg-loan-product-create"></div>
         </div>
+
         <div class="loan-products-list-header">
-            <h3>现有产品</h3>
-            <p>数据来源：GET /api/loan/products</p>
+            <h3 style="font-size:16px; margin-bottom:16px;">现有产品列表</h3>
         </div>
-        <div class="loan-products-grid" id="loan-products-grid"></div>
+        <div class="loan-products-grid" id="loan-products-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap:16px;"></div>
         <div class="msg" id="msg-loan-products"></div>
     </section>
 
-    <div id="loan-product-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
-        <div class="modal loan-product-modal">
-            <span class="modal-close" id="loan-product-modal-close">&times;</span>
-            <h3 id="loan-product-modal-title">贷款产品详情</h3>
-            <div id="loan-product-modal-body" class="loan-product-modal-body"></div>
-            <div class="modal-actions">
-                <button type="button" class="btn btn-danger" id="btn-delete-loan-product">删除该产品</button>
-                <button type="button" class="btn btn-secondary" id="loan-product-modal-cancel">关闭</button>
-            </div>
-            <div class="msg" id="msg-loan-product-modal"></div>
-        </div>
-    </div>
-
+    <!-- 银行审批中心 -->
     <section id="loan-approvals" class="card" data-identity="4">
         <div class="card-header">
             <h2>审批中心</h2>
-            <button id="btn-load-pending" class="btn btn-secondary">刷新列表</button>
+            <button id="btn-load-pending" class="btn btn-secondary" style="color:#666; border-color:#ddd;">刷新</button>
         </div>
         <div class="list" id="pending-list"></div>
         <div class="msg" id="msg-approve"></div>
-        <div class="divider"></div>
-        <div class="form-inline" style="margin-top: 8px; flex-wrap: wrap; gap: 8px;">
-            <button id="btn-load-approval-history" class="btn btn-secondary" type="button">查看我的审批历史</button>
+        
+        <div class="divider" style="height:1px; background:#eee; margin:24px 0;"></div>
+        
+        <div class="card-header">
+             <h2>我的审批历史</h2>
+             <button id="btn-load-approval-history" class="btn btn-secondary" style="color:#666; border-color:#ddd;">刷新</button>
         </div>
-        <div class="list" id="approval-history-list" style="margin-top: 8px;"></div>
+        <div class="list" id="approval-history-list"></div>
         <div class="msg" id="msg-approval-history"></div>
     </section>
 
-    <section id="loan-status" class="card" data-identity="1">
+    <!-- 贷款状态字典 (仅管理员/特定角色可见) -->
+    <section id="loan-status" class="card" data-identity="1" style="display:none;"> <!-- 暂时隐藏，普通用户不需要看 -->
         <div class="card-header">
-            <h2>贷款状态字典</h2>
+            <h2>贷款状态</h2>
             <button id="btn-load-status" class="btn btn-secondary">刷新</button>
         </div>
         <div class="list" id="loan-status-list"></div>
         <div class="msg" id="msg-loan-status"></div>
-        <div class="divider"></div>
-        <div class="grid grid-2">
-            <form id="form-create-loan-status" class="form">
-                <h3>新增状态</h3>
-                <div class="row"><label for="status-code">状态代码</label><input type="number" id="status-code" required></div>
-                <div class="row"><label for="status-name">状态名称</label><input type="text" id="status-name" required></div>
-                <div class="row"><label for="status-desc">描述</label><textarea id="status-desc" rows="2"></textarea></div>
-                <button type="submit" class="btn">新增状态</button>
-                <div class="msg" id="msg-create-loan-status"></div>
-            </form>
-            <div class="form-stack">
-                <form id="form-update-loan-status" class="form">
-                    <h3>修改状态</h3>
-                    <div class="row"><label for="update-status-id">状态ID</label><input type="number" id="update-status-id" required></div>
-                    <div class="row"><label for="update-status-name">状态名称</label><input type="text" id="update-status-name" required></div>
-                    <div class="row"><label for="update-status-desc">描述</label><textarea id="update-status-desc" rows="2"></textarea></div>
-                    <button type="submit" class="btn">修改状态</button>
-                    <div class="msg" id="msg-update-loan-status"></div>
-                </form>
-                <form id="form-delete-loan-status" class="form">
-                    <h3>删除状态</h3>
-                    <div class="row"><label for="delete-status-id">状态ID</label><input type="number" id="delete-status-id" required></div>
-                    <button type="submit" class="btn btn-danger">删除状态</button>
-                    <div class="msg" id="msg-delete-loan-status"></div>
-                </form>
-            </div>
-        </div>
     </section>
 
-    <!-- 商品模块 -->
+    <!-- 农产品商城展示 (买家端)
     <section id="agricultural-products" class="card" data-identity="2">
         <div class="card-header">
             <h2>农产品商城</h2>
-            <div class="card-actions">
-                <button id="btn-refresh-products" class="btn btn-secondary">刷新商品</button>
-            </div>
+            <button id="btn-refresh-products" class="btn btn-secondary" style="color:#666; border-color:#ddd;">刷新</button>
         </div>
         <div class="product-grid" id="product-catalog-list"></div>
         <div class="msg" id="msg-product-catalog"></div>
     </section>
 
-    <div id="product-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
-        <div class="modal modal-large">
-            <button class="modal-close" id="btn-close-product-modal" aria-label="关闭">×</button>
-            <div class="product-modal-body">
-                <div class="detail-box">
-                    <div class="msg" id="modal-product-msg">加载商品详情中...</div>
-                    <div id="modal-product-info"></div>
-                </div>
-            <div class="comment-block">
-                <h3>评论区</h3>
-                <div class="comment-input-box">
-                    <textarea id="comment-content-input" rows="3" placeholder="分享你的看法..." disabled></textarea>
-                    <div class="comment-input-actions">
-                        <span class="reply-tip hidden" id="replying-to">
-                            回复 <strong id="reply-target-name"></strong>
-                            <button type="button" class="link-btn" id="btn-cancel-reply">取消</button>
-                        </span>
-                        <button type="button" class="btn" id="btn-submit-comment" disabled>发布评论</button>
-                    </div>
-                    <div class="msg" id="msg-comment"></div>
-                </div>
-                <div class="msg" id="modal-comment-msg"></div>
-                <div class="comment-list" id="modal-comment-list"></div>
-            </div>
-            </div>
-            <div class="product-modal-actions">
-                <div class="modal-selected-name" id="modal-selected-name"></div>
-                <div class="modal-action-buttons">
-                    <button type="button" class="btn btn-secondary" id="btn-modal-add-cart">加入购物车</button>
-                    <button type="button" class="btn" id="btn-modal-purchase">直接购买</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="purchase-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
-        <div class="modal">
-            <h3 id="purchase-modal-title">填写信息</h3>
-            <p class="subtle" id="purchase-modal-product-name"></p>
-            <form id="form-purchase-modal">
-                <div class="row" id="purchase-modal-amount-row">
-                    <label for="purchase-modal-amount">购买数量</label>
-                    <input type="number" id="purchase-modal-amount" min="1" value="1" required>
-                </div>
-                <div class="row" id="purchase-modal-address-group">
-                    <label for="purchase-modal-address">收货地址</label>
-                    <div class="address-field">
-                        <div class="address-select-stack">
-                            <select id="purchase-modal-address-select">
-                                <option value="">选择保存的地址</option>
-                            </select>
-                            <button type="button" class="btn btn-secondary" id="btn-refresh-address">刷新</button>
-                        </div>
-                        <input type="text" id="purchase-modal-address" placeholder="请选择或输入详细地址">
-                    </div>
-                </div>
-                <div class="msg" id="msg-purchase-modal"></div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" id="btn-purchase-cancel">取消</button>
-                    <button type="submit" class="btn">确认提交</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- 购物车展示 -->
+    购物车 (买家端) 
     <section id="buyer-cart" class="card" data-identity="2">
         <div class="card-header">
             <h2>我的购物车</h2>
-            <div class="card-actions">
-                <button id="btn-refresh-cart" class="btn btn-secondary">刷新购物车</button>
-            </div>
+            <button id="btn-refresh-cart" class="btn btn-secondary" style="color:#666; border-color:#ddd;">刷新</button>
         </div>
         <div class="list" id="cart-display-list"></div>
         <div class="msg" id="msg-cart-display"></div>
     </section>
 
-    <!-- 购买记录展示 -->
+    购买记录 (买家端) 
     <section id="buyer-orders" class="card" data-identity="2">
         <div class="card-header">
             <h2>我的购买记录</h2>
-            <div class="card-actions">
-                <button id="btn-refresh-orders" class="btn btn-secondary">刷新购买记录</button>
-            </div>
+            <button id="btn-refresh-orders" class="btn btn-secondary" style="color:#666; border-color:#ddd;">刷新</button>
         </div>
         <div class="list" id="orders-display-list"></div>
         <div class="msg" id="msg-orders-display"></div>
-    </section>
+    </section> -->
+
 </main>
+
+<!-- 模态框保持不变，样式会自动继承 -->
+<div id="loan-product-modal" class="modal-backdrop hidden">
+    <div class="modal card" style="max-width:600px; margin: 100px auto;">
+        <div class="card-header">
+            <h3 id="loan-product-modal-title">贷款产品详情</h3>
+            <span class="modal-close" id="loan-product-modal-close" style="cursor:pointer; font-size:20px;">&times;</span>
+        </div>
+        <div id="loan-product-modal-body" style="padding:16px 0;"></div>
+        <div class="modal-actions" style="display:flex; justify-content:flex-end; gap:12px; margin-top:16px;">
+            <button type="button" class="btn btn-danger" id="btn-delete-loan-product" style="background:#ff4d4f; border:none;">删除该产品</button>
+            <button type="button" class="btn btn-secondary" id="loan-product-modal-cancel" style="color:#666; border-color:#ddd;">关闭</button>
+        </div>
+        <div class="msg" id="msg-loan-product-modal"></div>
+    </div>
+</div>
+
+<!-- 商品详情模态框 -->
+<div id="product-modal" class="modal-backdrop hidden">
+    <div class="modal card" style="max-width:800px; margin: 60px auto;">
+        <div class="card-header">
+            <h3>商品详情</h3>
+            <button class="modal-close" id="btn-close-product-modal" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+        </div>
+        <div class="product-modal-body" style="display:grid; grid-template-columns: 1fr 1fr; gap:24px;">
+            <div class="detail-box">
+                <div class="msg" id="modal-product-msg">加载中...</div>
+                <div id="modal-product-info"></div>
+            </div>
+            <div class="comment-block">
+                <h4 style="margin-top:0;">评论区</h4>
+                <div class="comment-input-box">
+                    <textarea id="comment-content-input" rows="3" placeholder="分享你的看法..." style="width:100%; padding:8px; border:1px solid #ddd; border-radius:2px;" disabled></textarea>
+                    <div class="comment-input-actions" style="margin-top:8px; display:flex; justify-content:space-between; align-items:center;">
+                        <span class="reply-tip hidden" id="replying-to" style="font-size:12px; color:#666;">
+                            回复 <strong id="reply-target-name"></strong>
+                            <button type="button" id="btn-cancel-reply" style="border:none; background:none; color:blue; cursor:pointer;">取消</button>
+                        </span>
+                        <button type="button" class="btn" id="btn-submit-comment" disabled>发布</button>
+                    </div>
+                    <div class="msg" id="msg-comment"></div>
+                </div>
+                <div class="comment-list" id="modal-comment-list" style="margin-top:16px; max-height:300px; overflow-y:auto;"></div>
+            </div>
+        </div>
+        <div class="product-modal-actions" style="margin-top:24px; padding-top:16px; border-top:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
+            <div class="modal-selected-name" id="modal-selected-name" style="font-weight:600;"></div>
+            <div class="modal-action-buttons" style="display:flex; gap:12px;">
+                <button type="button" class="btn btn-secondary" id="btn-modal-add-cart" style="color:#666; border-color:#ddd;">加入购物车</button>
+                <button type="button" class="btn" id="btn-modal-purchase">直接购买</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 购买确认模态框 -->
+<div id="purchase-modal" class="modal-backdrop hidden">
+    <div class="modal card" style="max-width:500px; margin: 100px auto;">
+        <h3 id="purchase-modal-title">确认购买信息</h3>
+        <p class="subtle" id="purchase-modal-product-name" style="color:#666; margin-bottom:16px;"></p>
+        <form id="form-purchase-modal">
+            <div class="row" style="margin-bottom:16px;">
+                <label for="purchase-modal-amount" style="display:block; margin-bottom:6px;">购买数量</label>
+                <input type="number" id="purchase-modal-amount" min="1" value="1" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:2px;" required>
+            </div>
+            <div class="row" style="margin-bottom:16px;">
+                <label for="purchase-modal-address" style="display:block; margin-bottom:6px;">收货地址</label>
+                <div class="address-field">
+                    <select id="purchase-modal-address-select" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:2px; margin-bottom:8px;">
+                        <option value="">选择保存的地址</option>
+                    </select>
+                    <input type="text" id="purchase-modal-address" placeholder="或输入新地址" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:2px;">
+                </div>
+            </div>
+            <div class="msg" id="msg-purchase-modal"></div>
+            <div class="modal-actions" style="display:flex; justify-content:flex-end; gap:12px;">
+                <button type="button" class="btn btn-secondary" id="btn-purchase-cancel" style="color:#666; border-color:#ddd;">取消</button>
+                <button type="submit" class="btn">确认提交</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <script src="index.js"></script>
 <script src="appointment.js"></script>
 </body>
 </html>
-

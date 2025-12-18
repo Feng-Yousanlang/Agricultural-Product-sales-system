@@ -5,64 +5,79 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>农产品服务 - 农户端</title>
     <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 <header class="topbar">
-    <div class="brand">三农服务平台</div>
+    <div class="brand">
+        <i class="fa-solid fa-seedling"></i>
+        <span>三农服务平台</span>
+    </div>
     <nav class="nav">
-        <a href="index.html">首页</a>
-        <a href="loans.html" data-identity="1">融资服务</a>
-        <a href="appointment.html" data-identity="1">预约服务</a>
-        <a href="products.html" data-identity="1"style="background:rgba(255,255,255,0.2);color:#fff;">农产品服务</a>
+        <a href="index.html" class="all">首页</a>
+        <a href="loans.html" data-identity="all">融资服务</a>
+        <a href="appointment.html" data-identity="all">专家预约</a>
+        <a href="buy.html" data-identity="all">农产品商城</a>
+        <a href="knowledge.html" data-identity="all">知识库</a>
+        <a href="products.html" data-identity="all" class="current">农产品管理</a>
     </nav>
     <div class="user">
         <span id="user-id-display" class="user-id"></span>
-        <button id="btn-logout" class="btn">退出登录</button>
+        <a href="profile.html" class="btn btn-secondary"><i class="fa-regular fa-user" style="margin-right: 6px;"></i>个人中心</a>
+        <button id="btn-logout" class="btn-secondary" style="border:none; color: rgba(255,255,255,0.7);">退出</button>
     </div>
 </header>
 
 <main class="container">
-    <section id="farmer-product-upload" class="card">
+    <section id="farmer-product-upload" class="card col-span-4">
         <div class="card-header">
             <h2>农产品上传</h2>
             <span class="card-subtitle">填写基本信息后即可上架到商城</span>
         </div>
-        <form id="form-add-product" class="form">
+        <form id="form-add-product" class="form" enctype="multipart/form-data" autocomplete="on" style="display:grid; grid-template-columns: repeat(2, 1fr); gap:16px;">
             <div class="row">
-                <label for="farmer-product-name">商品名称</label>
-                <input type="text" id="farmer-product-name" placeholder="请输入商品名称" required>
+                <label class="form-label" for="farmer-product-name">商品名称</label>
+                <input class="form-input" type="text" id="farmer-product-name" name="productName" placeholder="请输入商品名称" required autocomplete="name">
             </div>
             <div class="row">
-                <label for="farmer-product-price">单价（元）</label>
-                <input type="number" id="farmer-product-price" placeholder="请输入单价" step="0.01" min="0" required>
+                <label class="form-label" for="farmer-product-price">单价（元）</label>
+                <input class="form-input" type="number" id="farmer-product-price" name="price" placeholder="请输入单价" step="0.01" min="0" required inputmode="decimal" autocomplete="off">
             </div>
             <div class="row">
-                <label for="farmer-product-surplus">数量</label>
-                <input type="number" id="farmer-product-surplus" placeholder="请输入库存数量" min="0" required>
+                <label class="form-label" for="farmer-product-surplus">数量</label>
+                <input class="form-input" type="number" id="farmer-product-surplus" name="totalVolumn" placeholder="请输入库存数量" min="0" step="1" required inputmode="numeric" autocomplete="off">
             </div>
             <div class="row">
-                <label for="farmer-product-img">商品图片（可选）</label>
-                <input type="file" id="farmer-product-img" accept="image/*">
+                <label class="form-label" for="farmer-product-producer">经销商 / 生产者（可选）</label>
+                <input class="form-input" type="text" id="farmer-product-producer" name="producer" placeholder="如：XX合作社" autocomplete="organization">
             </div>
-            <div class="row">
-                <label for="farmer-product-producer">经销商 / 生产者（可选）</label>
-                <input type="text" id="farmer-product-producer" placeholder="如：XX合作社">
+            <div class="row" style="grid-column: span 2;">
+                <label class="form-label" for="farmer-product-img">商品图片（可选）</label>
+                <input class="form-input" type="file" id="farmer-product-img" name="file" accept="image/*">
+                <div class="thumb" id="product-img-preview" style="margin-top:12px;">
+                    <img id="product-img-preview-img" src="default-product.png" alt="商品图片预览">
+                </div>
             </div>
-            <button type="submit" class="btn">提交上架</button>
-            <div class="msg" id="msg-add-product"></div>
+            <div class="row" style="grid-column: span 2; text-align:right;">
+                <button type="submit" class="btn">提交上架</button>
+            </div>
+            <div class="msg" id="msg-add-product" style="grid-column: span 2;"></div>
         </form>
     </section>
 
-    <section id="farmer-product-list" class="card">
+    <section id="farmer-product-list" class="card col-span-8">
         <div class="card-header">
             <h2>我发布的农产品</h2>
-            <button id="btn-refresh-farmer-products" class="btn btn-secondary">刷新列表</button>
+            <div>
+                <button id="btn-refresh-farmer-products" class="btn btn-outline" style="margin-right:8px;">刷新</button>
+                <button id="btn-show-all-farmer-products" class="btn">查看全部</button>
+            </div>
         </div>
         <div class="product-grid" id="farmer-products-grid"></div>
         <div class="msg" id="msg-farmer-products"></div>
     </section>
 
-    <section id="farmer-pending-orders" class="card">
+    <section id="farmer-pending-orders" class="card col-span-6">
         <div class="card-header">
             <h2>待发货订单</h2>
             <button id="btn-refresh-pending-orders" class="btn btn-secondary">刷新</button>
@@ -71,7 +86,7 @@
         <div class="msg" id="msg-pending-orders"></div>
     </section>
 
-    <section id="farmer-sold-products" class="card">
+    <section id="farmer-sold-products" class="card col-span-6">
         <div class="card-header">
             <h2>已售出商品</h2>
             <button id="btn-refresh-sold-products" class="btn btn-secondary">刷新</button>
@@ -80,7 +95,7 @@
         <div class="msg" id="msg-sold-products"></div>
     </section>
 
-    <section id="farmer-status-products" class="card">
+    <section id="farmer-status-products" class="card col-span-12">
         <div class="card-header">
             <h2>按状态查看商品</h2>
         </div>
@@ -97,7 +112,16 @@
     </section>
 </main>
 
+<div id="farmer-products-modal" class="modal-backdrop hidden">
+    <div class="modal modal-large card" style="max-width:960px; margin: 60px auto;">
+        <button class="modal-close" id="farmer-products-modal-close">×</button>
+        <div class="card-header">
+            <h2>我的商品</h2>
+        </div>
+        <div id="farmer-products-modal-content"></div>
+    </div>
+    </div>
+
 <script src="products.js"></script>
 </body>
 </html>
-

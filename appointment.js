@@ -159,7 +159,7 @@ function renderUserAppointments(list){
       : status === 'rejected' ? '已拒绝'
       : status === 'cancelled' ? '已取消'
       : rawStatus || '—';
-    return `<div class="expert appointment-card">
+    return `<div class="list-card appointment-card">
       <div class="name">预约 #${appointmentId || '—'}</div>
       ${expertImg ? `<div class="avatar"><img src="${escapeAttr(expertImg)}" alt="${escapeAttr(expertName)}" style="width:40px;height:40px;border-radius:50%;"></div>` : ''}
       <div>专家：${expertName || '—'}${expertId ? ` (ID: ${expertId})` : ''}</div>
@@ -167,7 +167,7 @@ function renderUserAppointments(list){
       <div>日期：${dateStr || '—'} ${timeDisplay || ''}</div>
       <div>主题：${topic || '—'}</div>
       <div>状态：${statusText}</div>
-      ${canCancel ? `<div class="appointment-card-actions">
+      ${canCancel ? `<div class="action-row">
       <button class="btn btn-danger btn-cancel-appointment"
         data-app-id="${appointmentId}"
         data-expert-name="${escapeAttr(expertName)}"
@@ -281,7 +281,7 @@ function renderPendingAppointments(list) {
     const topic = item.topic || '—';
     const remark = item.remark || '';
     const status = item.status || 'pending';
-    return `<div class="expert">
+    return `<div class="list-card">
       <div class="name">预约#${appointmentId}</div>
       ${avatar ? `<div class="avatar"><img src="${escapeAttr(avatar)}" alt="${escapeAttr(userName)}" style="width:40px;height:40px;border-radius:50%;"></div>` : ''}
       <div>申请人：${userName}${userId ? ` (ID: ${userId})` : ''}</div>
@@ -549,7 +549,7 @@ function renderSchedule(list) {
     const statusText = status === 'approved' ? '已批准' : status === 'pending' ? '待审批' : status === 'completed' ? '已完成' : status === 'no_show' ? '未到场' : status === 'rejected' ? '已拒绝' : status;
     // 只有已批准状态的预约可以更新状态
     const canUpdate = status === 'approved';
-    return `<div class="expert">
+    return `<div class="list-card">
       <div class="name">预约#${appointmentId}</div>
       <div>农户：${userName}</div>
       <div>日期：${dateStr} ${timeStr}</div>
@@ -836,10 +836,10 @@ function renderExpertsByIndices(indices){
     const fieldsText = formatField(e.field);
     const description = e.expertDescription || e.description || '';
     const expertImg = e.expertImg || '';
-    return `<div class="expert-card expert-card-clickable" data-expert-index="${idx}" data-expert-id="${expertId}">
-      ${expertImg ? `<div class="expert-avatar"><img src="${escapeAttr(expertImg)}" alt="${escapeAttr(expertName)}"></div>` : '<div class="expert-avatar-placeholder">👨‍🔬</div>'}
+    return `<div class="list-card expert-card-clickable" data-expert-index="${idx}" data-expert-id="${expertId}">
+      ${expertImg ? `<div class="avatar"><img src="${escapeAttr(expertImg)}" alt="${escapeAttr(expertName)}"></div>` : '<div class="avatar">👨‍🔬</div>'}
       <div class="expert-info">
-        <div class="expert-name">${escapeAttr(expertName)}</div>
+        <div class="name">${escapeAttr(expertName)}</div>
         <div class="expert-fields">${escapeAttr(fieldsText)}</div>
         ${description ? `<div class="expert-desc">${escapeAttr(description.length > 60 ? description.substring(0, 60) + '...' : description)}</div>` : ''}
       </div>
@@ -1185,4 +1185,3 @@ if (expertAppointmentForm) {
     console.error('初始化专家功能失败:', e);
   }
 })();
-

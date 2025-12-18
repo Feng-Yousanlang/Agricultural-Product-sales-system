@@ -163,6 +163,12 @@ if (formAddProduct) {
       }
       msgAddProduct.textContent = json?.message || '商品上传成功';
       formAddProduct.reset();
+      try {
+        const previewImg = document.getElementById('product-img-preview-img');
+        if (previewImg) {
+          previewImg.src = DEFAULT_PRODUCT_IMAGE;
+        }
+      } catch {}
       loadFarmerProducts(false);
     } catch (err) {
       msgAddProduct.textContent = `提交失败：${err.message || '网络错误'}`;
@@ -170,10 +176,35 @@ if (formAddProduct) {
   });
 }
 
+// 商品图片预览
+try {
+  const imgInput = document.getElementById('farmer-product-img');
+  const previewImg = document.getElementById('product-img-preview-img');
+  if (imgInput && previewImg) {
+    imgInput.addEventListener('change', ()=>{
+      const file = imgInput.files && imgInput.files[0];
+      if (file) {
+        const url = URL.createObjectURL(file);
+        previewImg.src = url;
+        previewImg.onload = function(){
+          try { URL.revokeObjectURL(url); } catch {}
+        };
+      } else {
+        previewImg.src = DEFAULT_PRODUCT_IMAGE;
+      }
+    });
+  }
+} catch {}
+
 // 农户商品列表
 const farmerProductsGrid = document.getElementById('farmer-products-grid');
 const msgFarmerProducts = document.getElementById('msg-farmer-products');
 const btnRefreshFarmerProducts = document.getElementById('btn-refresh-farmer-products');
+const btnShowAllFarmerProducts = document.getElementById('btn-show-all-farmer-products');
+let farmerProductsData = [];
+const farmerProductsModal = document.getElementById('farmer-products-modal');
+const farmerProductsModalContent = document.getElementById('farmer-products-modal-content');
+const farmerProductsModalClose = document.getElementById('farmer-products-modal-close');
 
 function normalizeFarmerProducts(json) {
   if (!json) return [];
@@ -193,7 +224,9 @@ function renderFarmerProducts(list) {
     farmerProductsGrid.innerHTML = '<div class="empty">暂无商品</div>';
     return;
   }
-  farmerProductsGrid.innerHTML = list.map(item=>{
+  const sorted = sortProducts(list);
+  const sliced = sorted.slice(0, 3);
+  farmerProductsGrid.innerHTML = sliced.map(item=>{
     const safeImg = resolveProductImage(item.productImg || item.imageUrl);
     const fallbackImg = escapeAttr(DEFAULT_PRODUCT_IMAGE);
     const price = item.price ?? item.productPrice ?? '—';
@@ -207,10 +240,28 @@ function renderFarmerProducts(list) {
       <div>剩余量：${escapeAttr(surplus)}</div>
       <div>销量：${escapeAttr(sales)}</div>
       <div>发售商：${escapeAttr(item.producer || item.owner || '—')}</div>
-      <div class="thumb"><img src="${safeImg}" alt="${escapeAttr(item.productName || '')}" onerror="this.onerror=null;this.src='${fallbackImg}'"></div>
+      <div class="thumb"><img src="${safeImg}" alt="${escapeAttr(item.productName || '')}" loading="lazy" onerror="this.onerror=null;this.src='${fallbackImg}'"></div>
       ${productId ? `<button class="btn btn-danger btn-delete-product" data-product-id="${escapeAttr(productId)}">下架商品</button>` : ''}
     </div>`;
   }).join('');
+}
+
+function getItemTimestamp(item) {
+  const t = item.createTime ?? item.createdTime ?? item.updateTime ?? item.updatedTime ?? null;
+  if (t) {
+    const ms = Date.parse(String(t));
+    if (!Number.isNaN(ms)) return ms;
+  }
+  const idNum = parseInt(item.productId ?? item.id ?? '0', 10);
+  return Number.isFinite(idNum) ? idNum : 0;
+}
+
+function sortProducts(list) {
+  try {
+    return [...list].sort((a,b)=> getItemTimestamp(b) - getItemTimestamp(a));
+  } catch {
+    return list;
+  }
 }
 
 async function loadFarmerProducts(showLoading = true) {
@@ -233,6 +284,7 @@ async function loadFarmerProducts(showLoading = true) {
     }
     const json = await res.json();
     const list = normalizeFarmerProducts(json);
+    farmerProductsData = list;
     renderFarmerProducts(list);
     msgFarmerProducts.textContent = list.length ? '' : '暂无商品';
   } catch (err) {
@@ -243,6 +295,10 @@ async function loadFarmerProducts(showLoading = true) {
 
 if (btnRefreshFarmerProducts) {
   btnRefreshFarmerProducts.addEventListener('click', ()=>loadFarmerProducts());
+}
+
+if (btnShowAllFarmerProducts) {
+  btnShowAllFarmerProducts.addEventListener('click', ()=>openFarmerProductsModal());
 }
 
 if (farmerProductsGrid) {
@@ -271,6 +327,83 @@ if (farmerProductsGrid) {
         }
         alert(json?.message || '下架成功');
         loadFarmerProducts(); // 刷新商品列表
+      } catch (err) {
+        alert(`下架失败：${err.message || '网络错误'}`);
+      }
+    }
+    const card = e.target.closest('.product');
+    if (card && !e.target.closest('.btn')) {
+      openFarmerProductsModal();
+    }
+  });
+}
+
+function openFarmerProductsModal() {
+  if (!farmerProductsModal || !farmerProductsModalContent) return;
+  renderFarmerProductsModalGrid();
+  farmerProductsModal.classList.remove('hidden');
+}
+
+function closeFarmerProductsModal() {
+  if (!farmerProductsModal) return;
+  farmerProductsModal.classList.add('hidden');
+}
+
+function renderFarmerProductsModalGrid() {
+  if (!farmerProductsModalContent) return;
+  const sorted = sortProducts(farmerProductsData);
+  const html = sorted.map(item => {
+    const safeImg = resolveProductImage(item.productImg || item.imageUrl);
+    const fallbackImg = escapeAttr(DEFAULT_PRODUCT_IMAGE);
+    const price = item.price ?? item.productPrice ?? '—';
+    const surplus = item.surplus ?? item.stock ?? '—';
+    const sales = item.salesVolume ?? item.sales ?? '—';
+    const productId = item.productId ?? item.id ?? '';
+    const producer = item.producer || item.owner || '—';
+    return `
+      <div class="product-card">
+        <div class="product-card-thumb"><img src="${safeImg}" alt="${escapeAttr(item.productName || item.name || '')}" loading="lazy" onerror="this.onerror=null;this.src='${fallbackImg}'"></div>
+        <div class="product-card-info">
+          <div class="product-card-name">${escapeAttr(item.productName || item.name || '未命名商品')}</div>
+          <div class="product-card-price">${price !== '—' ? `¥${escapeAttr(price)}` : '—'}</div>
+          <div class="product-card-meta"><span>库存 ${escapeAttr(surplus)}</span><span>销量 ${escapeAttr(sales)}</span></div>
+          <div class="product-desc">ID：${escapeAttr(productId)}｜发售商：${escapeAttr(producer)}</div>
+          ${productId ? `<div class="product-modal-actions"><button class="btn btn-danger btn-delete-product" data-product-id="${escapeAttr(productId)}">下架商品</button></div>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+  farmerProductsModalContent.innerHTML = `<div class="product-grid">${html}</div>`;
+}
+
+if (farmerProductsModalClose) {
+  farmerProductsModalClose.addEventListener('click', closeFarmerProductsModal);
+}
+
+if (farmerProductsModalContent) {
+  farmerProductsModalContent.addEventListener('click', async (e)=>{
+    const btn = e.target.closest('.btn-delete-product');
+    if (btn) {
+      const productId = btn.getAttribute('data-product-id');
+      if (!productId) {
+        alert('缺少商品ID');
+        return;
+      }
+      if (!confirm('确认下架该商品？下架后如有订单将被取消。')) return;
+      try {
+        const payload = { productId: parseInt(productId, 10) };
+        const res = await fetch(`${API_BASE}/api/products/farmer/deleteProduct`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json().catch(()=>({}));
+        if (!res.ok) {
+          throw new Error(json?.message || res.statusText);
+        }
+        alert(json?.message || '下架成功');
+        await loadFarmerProducts(false);
+        renderFarmerProductsModalGrid();
       } catch (err) {
         alert(`下架失败：${err.message || '网络错误'}`);
       }
@@ -554,4 +687,3 @@ function renderStatusProducts(list, status) {
 if (btnLoadStatusProducts) {
   btnLoadStatusProducts.addEventListener('click', ()=>loadStatusProducts());
 }
-

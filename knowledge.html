@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>农业知识库 - 三农服务平台</title>
+    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<header class="topbar">
+    <div class="brand">
+        <i class="fa-solid fa-seedling"></i>
+        <span>三农服务平台</span>
+    </div>
+    <nav class="nav">
+        <a href="index.html">首页</a>
+        <a href="loans.html">融资服务</a>
+        <a href="appointment.html">专家预约</a>
+        <a href="buy.html">农产品商城</a>
+        <a href="knowledge.html" class="current">知识库</a>
+        <a href="products.html" data-identity="1">农产品管理</a>
+    </nav>
+    <div class="user">
+        <span id="user-id-display" class="user-id"></span>
+        <a href="profile.html" class="btn btn-secondary">
+            <i class="fa-regular fa-user" style="margin-right: 6px;"></i>个人中心
+        </a>
+        <button id="btn-logout" class="btn-secondary" style="border:none; color: rgba(255,255,255,0.7);">退出</button>
+    </div>
+</header>
+
+<main class="container">
+    <!-- 侧边栏：分类导航 -->
+    <aside class="col-span-3 card">
+        <div class="card-header">
+            <h2>知识分类</h2>
+        </div>
+        <div class="list">
+            <a href="#" class="knowledge-item" style="padding-left: 8px; border-left: 3px solid var(--primary-color); background: #f9f9f9;">
+                <span class="knowledge-title" style="font-weight: 600;">全部文章</span>
+                <span class="knowledge-date"><i class="fa-solid fa-chevron-right"></i></span>
+            </a>
+            <a href="#" class="knowledge-item">
+                <span class="knowledge-title">种植技术</span>
+            </a>
+            <a href="#" class="knowledge-item">
+                <span class="knowledge-title">养殖技术</span>
+            </a>
+            <a href="#" class="knowledge-item">
+                <span class="knowledge-title">农业政策</span>
+            </a>
+            <a href="#" class="knowledge-item">
+                <span class="knowledge-title">市场行情</span>
+            </a>
+            <a href="#" class="knowledge-item">
+                <span class="knowledge-title">病虫害防治</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- 主内容区：文章列表 -->
+    <section class="col-span-9 card">
+        <div class="card-header">
+            <h2>最新知识</h2>
+            <div class="form-inline" style="display: flex; gap: 8px;">
+                <input type="text" placeholder="搜索知识..." style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 2px;">
+                <button class="btn">搜索</button>
+            </div>
+        </div>
+        <div class="list">
+            <!-- 模拟文章列表 -->
+            <div class="knowledge-item">
+                <div style="flex: 1;">
+                    <a href="#" class="knowledge-title" style="font-size: 16px; font-weight: 600; display: block; margin-bottom: 6px;">2025年春季小麦田间管理技术指导意见</a>
+                    <p style="color: #666; font-size: 13px; margin: 0; line-height: 1.5;">针对当前小麦苗情特点，提出春季麦田管理技术意见，重点抓好镇压划锄、肥水管理...</p>
+                    <div style="margin-top: 8px; font-size: 12px; color: #999;">
+                        <span style="margin-right: 12px;"><i class="fa-regular fa-folder"></i> 种植技术</span>
+                        <span style="margin-right: 12px;"><i class="fa-regular fa-clock"></i> 2025-03-15</span>
+                        <span><i class="fa-regular fa-eye"></i> 1,234 阅读</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="knowledge-item">
+                <div style="flex: 1;">
+                    <a href="#" class="knowledge-title" style="font-size: 16px; font-weight: 600; display: block; margin-bottom: 6px;">生猪养殖场生物安全防护技术要点</a>
+                    <p style="color: #666; font-size: 13px; margin: 0; line-height: 1.5;">加强非洲猪瘟常态化防控，落实生物安全措施，确保生猪稳产保供。</p>
+                    <div style="margin-top: 8px; font-size: 12px; color: #999;">
+                        <span style="margin-right: 12px;"><i class="fa-regular fa-folder"></i> 养殖技术</span>
+                        <span style="margin-right: 12px;"><i class="fa-regular fa-clock"></i> 2025-03-14</span>
+                        <span><i class="fa-regular fa-eye"></i> 856 阅读</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="knowledge-item">
+                <div style="flex: 1;">
+                    <a href="#" class="knowledge-title" style="font-size: 16px; font-weight: 600; display: block; margin-bottom: 6px;">关于加大对新型农业经营主体信贷支持的通知</a>
+                    <p style="color: #666; font-size: 13px; margin: 0; line-height: 1.5;">金融监管总局发布通知，要求银行业金融机构单列信贷计划，优化贷款服务...</p>
+                    <div style="margin-top: 8px; font-size: 12px; color: #999;">
+                        <span style="margin-right: 12px;"><i class="fa-regular fa-folder"></i> 农业政策</span>
+                        <span style="margin-right: 12px;"><i class="fa-regular fa-clock"></i> 2025-03-12</span>
+                        <span><i class="fa-regular fa-eye"></i> 2,102 阅读</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="knowledge-item">
+                <div style="flex: 1;">
+                    <a href="#" class="knowledge-title" style="font-size: 16px; font-weight: 600; display: block; margin-bottom: 6px;">全国农产品批发市场一周价格行情监测</a>
+                    <p style="color: #666; font-size: 13px; margin: 0; line-height: 1.5;">本周“农产品批发价格200指数”为128.56，比上周下降1.23个点...</p>
+                    <div style="margin-top: 8px; font-size: 12px; color: #999;">
+                        <span style="margin-right: 12px;"><i class="fa-regular fa-folder"></i> 市场行情</span>
+                        <span style="margin-right: 12px;"><i class="fa-regular fa-clock"></i> 2025-03-10</span>
+                        <span><i class="fa-regular fa-eye"></i> 567 阅读</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 分页 -->
+        <div style="margin-top: 24px; display: flex; justify-content: center; gap: 8px;">
+            <button class="btn btn-secondary" style="color: #666; border-color: #ddd;">上一页</button>
+            <button class="btn">1</button>
+            <button class="btn btn-secondary" style="color: #666; border-color: #ddd;">2</button>
+            <button class="btn btn-secondary" style="color: #666; border-color: #ddd;">3</button>
+            <button class="btn btn-secondary" style="color: #666; border-color: #ddd;">...</button>
+            <button class="btn btn-secondary" style="color: #666; border-color: #ddd;">下一页</button>
+        </div>
+    </section>
+</main>
+
+<script>
+    // 简单的模拟脚本，用于显示用户ID和退出功能（复制自index.js的简化版）
+    document.addEventListener('DOMContentLoaded', () => {
+        const userId = localStorage.getItem('userId');
+        const userRole = localStorage.getItem('userRole');
+        
+        if (userId) {
+            document.getElementById('user-id-display').textContent = `用户: ${userId} (${getRoleName(userRole)})`;
+        } else {
+            // 未登录，跳转到登录页或显示登录按钮
+             document.querySelector('.user').innerHTML = '<a href="login.html" class="btn">登录 / 注册</a>';
+        }
+
+        const btnLogout = document.getElementById('btn-logout');
+        if (btnLogout) {
+            btnLogout.onclick = () => {
+                localStorage.removeItem('userId');
+                localStorage.removeItem('userRole');
+                window.location.href = 'login.html';
+            }
+        }
+    });
+
+    function getRoleName(role) {
+        const roles = { '1': '农户', '2': '买家', '3': '专家', '4': '银行', '5': '管理员' };
+        return roles[role] || '未知';
+    }
+</script>
+</body>
+</html>

@@ -287,10 +287,11 @@ const knowledgeSearchList = document.getElementById('knowledge-search-list');
 const msgKnowledgeSearch = document.getElementById('msg-knowledge-search');
 
 async function loadKnowledgeList(){
-  const page = parseInt(document.getElementById('knowledge-page').value, 10) || 1;
-  const size = parseInt(document.getElementById('knowledge-size').value, 10) || 10;
+  const page = 1;
+  const size = 6;
+  if (!knowledgeList) return;
   knowledgeList.innerHTML = '';
-  msgKnowledge.textContent = '加载中...';
+  if (msgKnowledge) msgKnowledge.textContent = '加载中...';
   try {
     const res = await fetch(`${API_BASE}/api/knowledge/list?page=${page}&page_size=${size}`);
     if (!res.ok) {
@@ -299,17 +300,15 @@ async function loadKnowledgeList(){
     const json = await res.json();
     const list = Array.isArray(json?.data) ? json.data : [];
     knowledgeList.innerHTML = list.map(item=>
-      `<div class="expert">
-         <div class="name">${item.title || '未命名'}</div>
-         <div>来源：${item.source || '—'}</div>
-         <div>发布日期：${item.publish || '—'}</div>
-         <a href="${item.url}" target="_blank" rel="noopener">查看原文</a>
-       </div>`
+      `<a href="${item.url || '#'}" class="knowledge-item" target="_blank" rel="noopener">
+         <span class="knowledge-title" title="${item.title || ''}">${item.title || '未命名'}</span>
+         <span class="knowledge-date">${item.publish || ''}</span>
+       </a>`
     ).join('');
-    msgKnowledge.textContent = list.length ? '' : (json?.message || '暂无数据');
+    if (msgKnowledge) msgKnowledge.textContent = list.length ? '' : (json?.message || '暂无数据');
   } catch (err) {
     knowledgeList.innerHTML = '';
-    msgKnowledge.textContent = `加载失败：${err.message || '网络错误'}`;
+    if (msgKnowledge) msgKnowledge.textContent = `加载失败：${err.message || '网络错误'}`;
   }
 }
 if (btnLoadKnowledge) {
@@ -336,7 +335,7 @@ if (btnSearchKnowledge) {
       const json = await res.json();
       const list = Array.isArray(json?.data) ? json.data : [];
       knowledgeSearchList.innerHTML = list.map(item=>
-        `<div class="expert">
+        `<div class="list-card">
            <div class="name">${item.title || '未命名'}</div>
            <div>来源：${item.source || '—'}</div>
            <div>发布日期：${item.publish || '—'}</div>
@@ -872,7 +871,7 @@ if (btnLoadApprovalHistory) {
       const json = await res.json();
       const list = Array.isArray(json?.data) ? json.data : [];
       approvalHistoryList.innerHTML = list.map(item =>
-        `<div class="expert">
+        `<div class="list-card">
            ${item.applicationId ? `<div>申请ID：${item.applicationId}</div>` : ''}
            <div>审批人ID：${item.approverId || '—'}</div>
            <div>结果：${item.decision || '—'}</div>
@@ -905,10 +904,9 @@ async function loadLoanStatus(){
     const json = await res.json();
     const list = Array.isArray(json?.data) ? json.data : [];
     loanStatusList.innerHTML = list.map(item=>
-      `<div class="expert">
-         <div>状态代码：${item.status_code ?? item.statusCode ?? '—'}</div>
-         <div>名称：${item.status_name ?? item.statusName ?? '—'}</div>
-         <div>说明：${item.description || '—'}</div>
+      `<div class="list-card loan-status-card">
+         <div class="name">${item.status_name ?? item.statusName ?? '—'} <span style="font-weight:normal; color:#999; font-size:12px; margin-left:4px;">#${item.status_code ?? item.statusCode ?? '—'}</span></div>
+         <div class="desc">${item.description || '暂无说明'}</div>
        </div>`
     ).join('');
     msgLoanStatus.textContent = list.length ? '' : (json?.message || '暂无状态数据');
@@ -2040,6 +2038,34 @@ if (formPurchaseModal) {
           : action === 'cart-checkout'
             ? '购买成功'
             : '订单创建成功');
+
+      // 如果是直接购买并且后端返回了 alipay 字符串（支付宝支付页面HTML），在新窗口打开支付页
+      if (action === 'purchase' && json && json.data && json.data.alipay) {
+        const payHtml = json.data.alipay;
+        const payWindow = window.open('', '_blank');
+        if (payWindow) {
+          // 在新窗口写入支付宝返回的表单或页面（通常包含自动提交表单）
+          payWindow.document.open();
+          payWindow.document.write(payHtml);
+          payWindow.document.close();
+        } else {
+          // 若弹窗被拦截，则把返回的表单插入当前页面并提交（隐藏）作为回退方案
+          const tempDiv = document.createElement('div');
+          tempDiv.style.display = 'none';
+          tempDiv.innerHTML = payHtml;
+          document.body.appendChild(tempDiv);
+          const form = tempDiv.querySelector('form');
+          if (form) {
+            try { form.submit(); } catch (e) { console.warn('提交支付表单失败', e); }
+          }
+        }
+        purchaseModalMsg.textContent = '';
+        closePurchaseModal();
+        // 加载订单列表（通常会显示待付款订单）
+        loadOrdersDisplay(false);
+        return;
+      }
+
       alert(message);
       purchaseModalMsg.textContent = '';
       closePurchaseModal();
