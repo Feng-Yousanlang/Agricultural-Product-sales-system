@@ -1,5 +1,5 @@
 // 后端API基础地址
-const API_BASE = 'http://10.61.12.174:8080';
+const API_BASE = 'http://10.61.57.87:8080';
 
 // 标签切换登录方式
 const tabPwd = document.getElementById('tab-pwd');

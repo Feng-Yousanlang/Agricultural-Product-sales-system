@@ -1,5 +1,5 @@
 // 后端API基础地址
-const API_BASE = 'http://10.61.12.174:8080';
+const API_BASE = 'http://10.61.57.87:8080';
 // 挂载到 window 对象，供其他脚本文件使用
 if (typeof window !== 'undefined') {
   window.API_BASE = API_BASE;
@@ -75,6 +75,7 @@ document.getElementById('btn-logout').onclick = function() {
 };
 
 // 根据用户身份显示/隐藏功能模块
+//基于角色的前端显示控制。读取 localStorage 中的 user_identity ，遍历页面元素的 data-identity 属性，决定显示/隐藏模块。
 (function setupRoleBasedUI() {
   try {
     const identity = localStorage.getItem('user_identity') || '1'; // 默认为农户
@@ -112,6 +113,9 @@ document.getElementById('btn-logout').onclick = function() {
 // ---------------- 新闻轮播 ----------------
 const slidesEl = document.getElementById('news-slides');
 const dotsEl = document.getElementById('news-dots');
+const newsPrevBtn = document.getElementById('news-prev');
+const newsNextBtn = document.getElementById('news-next');
+const newsTitleLink = document.getElementById('news-title-link');
 const msgNews = document.getElementById('msg-news');
 let news = [];
 let idx = 0, timer = null;
@@ -142,7 +146,7 @@ async function fetchNews() {
     }
     
     if (Array.isArray(newsList) && newsList.length > 0) {
-      news = newsList;
+      news = sanitizeNewsList(newsList);
       renderNews();
       startAuto();
       msgNews.textContent = '';
@@ -164,28 +168,73 @@ async function fetchNews() {
 }
 
 function renderNews(){
-  slidesEl.innerHTML = news.map(n=>
-    `<a class="slide" href="${n.newsUrl}" target="_blank" rel="noopener">
-       <img src="${n.imgUrl}" alt="${n.title}">
-       <div class="title">${n.title}</div>
-     </a>`).join('');
+  const html = news.map(n=>{
+    const href = n.newsUrl || n.url || '#';
+    const title = n.title || n.name || '资讯';
+    const imgSrc = resolveProductImage(n.imgUrl || n.imageUrl || '');
+    const fallback = escapeAttr(DEFAULT_PRODUCT_IMAGE);
+    return `<a class="slide" href="${escapeAttr(href)}" target="_blank" rel="noopener">
+       <img src="${imgSrc}" alt="${escapeAttr(title)}" onerror="this.onerror=null;this.src='${fallback}'">
+     </a>`;
+  }).join('');
+  slidesEl.innerHTML = html;
   dotsEl.innerHTML = news.map((_,i)=>`<span class="dot ${i===idx?'active':''}" data-i="${i}"></span>`).join('');
   updateSlide();
+}
+
+function sanitizeNewsList(list) {
+  if (!Array.isArray(list)) return [];
+  const out = [];
+  const seen = new Map();
+  for (const item of list) {
+    const titleRaw = String(item.title || item.name || '').trim();
+    if (!titleRaw) { out.push(item); continue; }
+    const key = titleRaw.replace(/\s+/g, ' ').toLowerCase();
+    const imgSrc = resolveProductImage(item.imgUrl || item.imageUrl || '');
+    const isValidImg = imgSrc && imgSrc !== DEFAULT_PRODUCT_IMAGE;
+    if (!seen.has(key)) {
+      seen.set(key, { idx: out.length, valid: isValidImg });
+      out.push(item);
+    } else {
+      const state = seen.get(key);
+      if (!state.valid && isValidImg) {
+        out[state.idx] = item;
+        state.valid = true;
+      }
+    }
+  }
+  return out;
 }
 
 function updateSlide(){
   slidesEl.style.transform = `translateX(-${idx*100}%)`;
   [...dotsEl.children].forEach((d,i)=>d.classList.toggle('active', i===idx));
+  if (newsTitleLink) {
+    const item = news[idx] || {};
+    const title = item.title || item.name || '';
+    const href = item.newsUrl || item.url || '#';
+    newsTitleLink.textContent = title || '';
+    newsTitleLink.href = href;
+  }
 }
 function startAuto(){ stopAuto(); timer = setInterval(()=>{ idx = (idx+1) % news.length; updateSlide(); }, 3500); }
 function stopAuto(){ if(timer){ clearInterval(timer); timer=null; } }
 
-dotsEl.addEventListener('click', e=>{
-  const t = e.target; if(!t.classList.contains('dot')) return; idx = parseInt(t.getAttribute('data-i'),10)||0; updateSlide();
-});
+if (dotsEl) {
+  dotsEl.addEventListener('click', e=>{
+    const t = e.target; if(!t.classList.contains('dot')) return; idx = parseInt(t.getAttribute('data-i'),10)||0; updateSlide();
+  });
+}
 const newsRefreshBtn = document.getElementById('news-refresh');
 if (newsRefreshBtn) {
   newsRefreshBtn.onclick = ()=>{ idx=0; fetchNews(); };
+}
+
+if (newsPrevBtn) {
+  newsPrevBtn.addEventListener('click', ()=>{ stopAuto(); idx = (idx - 1 + news.length) % news.length; updateSlide(); startAuto(); });
+}
+if (newsNextBtn) {
+  newsNextBtn.addEventListener('click', ()=>{ stopAuto(); idx = (idx + 1) % news.length; updateSlide(); startAuto(); });
 }
 
 // ---------------- 金融产品 ----------------
@@ -275,8 +324,12 @@ if (productsNextBtn) {
 }
 
 // 初始化
-fetchNews();
-fetchProducts();
+if (slidesEl && msgNews) {
+  fetchNews();
+}
+if (productsGrid && msgProducts) {
+  fetchProducts();
+}
 
 // ---------------- 农业知识 ----------------
 const btnLoadKnowledge = document.getElementById('btn-load-knowledge');
@@ -1064,6 +1117,8 @@ const modalProductInfo = document.getElementById('modal-product-info');
 const modalProductMsg = document.getElementById('modal-product-msg');
 const modalCommentList = document.getElementById('modal-comment-list');
 const modalCommentMsg = document.getElementById('modal-comment-msg');
+const productCommentBlock = document.getElementById('product-comment-block');
+const btnToggleComments = document.getElementById('btn-toggle-comments');
 const commentInputField = document.getElementById('comment-content-input');
 const commentStatusMsg = document.getElementById('msg-comment');
 const btnSubmitComment = document.getElementById('btn-submit-comment');
@@ -1087,6 +1142,11 @@ const purchaseAddressSelect = document.getElementById('purchase-modal-address-se
 const btnRefreshAddress = document.getElementById('btn-refresh-address');
 const purchaseModalMsg = document.getElementById('msg-purchase-modal');
 const btnPurchaseCancel = document.getElementById('btn-purchase-cancel');
+const productModalCartAmount = document.getElementById('product-modal-cart-amount');
+const btnCartAmountDec = document.getElementById('btn-cart-amount-dec');
+const btnCartAmountInc = document.getElementById('btn-cart-amount-inc');
+const modalUnitPriceEl = document.getElementById('modal-unit-price');
+const modalTotalPriceEl = document.getElementById('modal-total-price');
 
 const PRODUCT_ID_INPUTS = [
   'comment-productId',
@@ -1098,6 +1158,7 @@ let selectedProductCard = null;
 const childCommentCache = new Map();
 let activeProductId = null;
 let activeProductName = '';
+let activeProductPrice = null;
 let activeCartId = null;
 let pendingPurchaseAction = 'purchase';
 let savedAddresses = [];
@@ -1246,6 +1307,13 @@ if (btnSubmitComment) {
   btnSubmitComment.addEventListener('click', ()=>submitInlineProductComment());
 }
 
+if (btnToggleComments && productCommentBlock) {
+  btnToggleComments.addEventListener('click', ()=>{
+    const collapsed = productCommentBlock.classList.toggle('collapsed');
+    btnToggleComments.textContent = collapsed ? '展开评论' : '收起评论';
+  });
+}
+
 function populateProductIdInputs(productId) {
   if (!productId) return;
   PRODUCT_ID_INPUTS.forEach(id=>{
@@ -1263,7 +1331,17 @@ function clearProductSelection() {
   }
   activeProductId = null;
   activeProductName = '';
+  activeProductPrice = null;
   activeCartId = null;
+}
+
+function updateModalPriceSummary() {
+  if (!modalUnitPriceEl || !modalTotalPriceEl) return;
+  const unit = Number.isFinite(Number(activeProductPrice)) ? Number(activeProductPrice) : null;
+  const amount = parseInt(productModalCartAmount?.value, 10);
+  const qty = Number.isFinite(amount) && amount > 0 ? amount : 1;
+  modalUnitPriceEl.textContent = unit !== null ? `¥${unit}` : '—';
+  modalTotalPriceEl.textContent = unit !== null ? `¥${(unit * qty).toFixed(2)}` : '—';
 }
 
 function normalizeSavedAddressData(data) {
@@ -1433,6 +1511,16 @@ function openProductModal(productId) {
   }
   resetCommentComposer(false);
   setCommentComposerEnabled(false);
+  if (productModalCartAmount) {
+    productModalCartAmount.value = '1';
+  }
+  if (productCommentBlock) {
+    productCommentBlock.classList.remove('collapsed');
+  }
+  if (btnToggleComments) {
+    btnToggleComments.textContent = '收起评论';
+  }
+  updateModalPriceSummary();
   loadProductDetailAndComments(productId);
 }
 
@@ -1911,6 +1999,11 @@ if (productCatalogList) {
     highlightProductCard(card);
     activeProductId = productId;
     activeProductName = card.getAttribute('data-product-name') || '';
+    {
+      const priceAttr = card.getAttribute('data-product-price');
+      const parsedPrice = Number(priceAttr);
+      activeProductPrice = Number.isFinite(parsedPrice) ? parsedPrice : null;
+    }
     populateProductIdInputs(productId);
     openProductModal(productId);
   });
@@ -1930,11 +2023,19 @@ if (productModal) {
 }
 
 if (btnModalAddCart) {
-  btnModalAddCart.addEventListener('click', ()=>openPurchaseModal('cart'));
+  btnModalAddCart.addEventListener('click', ()=>{
+    const amount = parseInt(productModalCartAmount?.value, 10);
+    const validAmount = Number.isFinite(amount) && amount > 0 ? amount : 1;
+    openPurchaseModal('cart', { amount: validAmount });
+  });
 }
 
 if (btnModalPurchase) {
-  btnModalPurchase.addEventListener('click', ()=>openPurchaseModal('purchase'));
+  btnModalPurchase.addEventListener('click', ()=>{
+    const amount = parseInt(productModalCartAmount?.value, 10);
+    const validAmount = Number.isFinite(amount) && amount > 0 ? amount : 1;
+    openPurchaseModal('purchase', { amount: validAmount });
+  });
 }
 
 if (purchaseAddressSelect) {
@@ -1952,6 +2053,32 @@ if (btnRefreshAddress) {
 
 if (btnPurchaseCancel) {
   btnPurchaseCancel.addEventListener('click', closePurchaseModal);
+}
+
+if (btnCartAmountDec) {
+  btnCartAmountDec.addEventListener('click', ()=>{
+    const current = parseInt(productModalCartAmount?.value || '1', 10);
+    const next = Math.max(1, (Number.isFinite(current) ? current : 1) - 1);
+    if (productModalCartAmount) productModalCartAmount.value = String(next);
+    updateModalPriceSummary();
+  });
+}
+if (btnCartAmountInc) {
+  btnCartAmountInc.addEventListener('click', ()=>{
+    const current = parseInt(productModalCartAmount?.value || '1', 10);
+    const next = Math.max(1, (Number.isFinite(current) ? current : 1) + 1);
+    if (productModalCartAmount) productModalCartAmount.value = String(next);
+    updateModalPriceSummary();
+  });
+}
+
+if (productModalCartAmount) {
+  productModalCartAmount.addEventListener('input', ()=>{
+    const value = parseInt(productModalCartAmount.value, 10);
+    const valid = Number.isFinite(value) && value > 0 ? value : 1;
+    productModalCartAmount.value = String(valid);
+    updateModalPriceSummary();
+  });
 }
 
 if (purchaseModal) {
@@ -2610,4 +2737,3 @@ if (formReplyComment) {
     }
   });
 }
-
