@@ -88,20 +88,66 @@
                     </div>
                     <div class="msg" id="msg-expert-appointment"></div>
                 </form>
+                <div id="expert-ai-chat-panel" class="card" style="grid-column: span 2; padding:16px; border:1px solid var(--border-color); border-radius:4px; background:#fff;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <h3 style="margin:0; font-size:16px;">AI 专家问答</h3>
+                        <small style="color:var(--text-secondary);">接口：POST /api/expert/ask/api</small>
+                    </div>
+                    <div style="display:flex; gap:10px; align-items:center; margin-top:10px; flex-wrap:wrap;">
+                        <label for="expert-ai-chat-expert-id" style="font-size:13px; color:#374151;">专家ID</label>
+                        <input id="expert-ai-chat-expert-id" type="number" placeholder="自动填充，亦可手填" style="width:140px; padding:6px 8px; border:1px solid #ddd; border-radius:4px;">
+                        <div id="expert-ai-chat-expert-name" style="font-size:13px; color:var(--text-secondary);">当前：未选择</div>
+                    </div>
+                    <div id="expert-ai-chat-thread" style="margin-top:12px; max-height:200px; overflow:auto; background:#fafafa; border:1px solid #eee; border-radius:4px; padding:10px; font-size:14px; line-height:1.5;"></div>
+                    <form id="expert-ai-chat-form" style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
+                        <textarea id="expert-ai-question" rows="3" placeholder="向该专家的 AI 助手提问，例如：这类病害应该如何防治？" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:4px; resize:vertical;" maxlength="300"></textarea>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <button type="submit" id="btn-expert-ai-send" class="btn" style="min-width:120px;">发送</button>
+                            <div class="msg" id="msg-expert-ai" style="flex:1; color:var(--text-secondary);"></div>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- 查看我的预约记录（农户端，identity=1或2） -->
     <section id="user-appointments-section" class="card col-span-12" data-identity="1,2">
-        <div class="card-header">
-            <h2>我的预约记录</h2>
-            <button id="btn-load-user-appointments" class="btn btn-secondary" style="color:var(--text-secondary); border-color:var(--border-color);">刷新我的预约</button>
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+            <h2 style="margin:0;">我的预约记录</h2>
+            <button id="btn-load-user-appointments" class="btn btn-secondary" style="color:var(--text-secondary); border-color:var(--border-color);">刷新</button>
         </div>
-        <div class="list" id="user-appointments-list"></div>
-        <div class="msg" id="msg-user-appointments"></div>
+        <div style="color:var(--text-secondary); margin-bottom:10px;">列表与专家卡片同样样式，支持滚动浏览。</div>
+        <div style="max-height:420px; overflow:auto; border:1px solid #eee; border-radius:6px; padding:10px; background:#fff;">
+            <div class="list" id="user-appointments-list"></div>
+            <div class="msg" id="msg-user-appointments"></div>
+        </div>
     </section>
 </main>
+
+<!-- 专家 AI 固定对话窗口 -->
+<div id="expert-ai-fixed" style="position:fixed; right:20px; bottom:20px; width:360px; max-width:90vw; background:#fff; border:1px solid #e5e7eb; box-shadow:0 10px 30px rgba(0,0,0,0.12); border-radius:10px; z-index:1180; overflow:hidden;">
+    <div id="expert-ai-fixed-header" style="padding:10px 12px; background:var(--primary-color); color:#fff; display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+        <div>
+            <div style="font-weight:700;">AI 专家问答</div>
+            <div id="expert-ai-fixed-expert" style="font-size:12px; opacity:0.9;">请选择专家后提问</div>
+        </div>
+        <span id="expert-ai-fixed-toggle" style="font-size:18px;">−</span>
+    </div>
+    <div id="expert-ai-fixed-body" style="padding:10px 12px; display:flex; flex-direction:column; gap:8px; max-height:420px;">
+        <div style="font-size:12px; color:var(--text-secondary);">接口：POST /api/expert/ask/api</div>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <label for="expert-ai-fixed-expert-id" style="font-size:12px; color:#374151;">专家ID</label>
+            <input id="expert-ai-fixed-expert-id" type="number" placeholder="自动/手动填写" style="flex:1; min-width:140px; padding:6px 8px; border:1px solid #ddd; border-radius:6px;">
+        </div>
+        <div id="expert-ai-fixed-thread" style="flex:1; min-height:120px; max-height:220px; overflow:auto; background:#fafafa; border:1px solid #eee; border-radius:6px; padding:10px; font-size:14px; line-height:1.5;"></div>
+        <textarea id="expert-ai-fixed-question" rows="3" placeholder="向该专家的 AI 助手提问" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; resize:vertical; min-height:70px;" maxlength="300"></textarea>
+        <div style="display:flex; gap:8px; align-items:center;">
+            <button id="btn-expert-ai-fixed-send" class="btn" style="min-width:110px;">发送</button>
+            <div class="msg" id="msg-expert-ai-fixed" style="flex:1; color:var(--text-secondary);"></div>
+        </div>
+    </div>
+</div>
 
 <script src="appointment.js"></script>
 </body>
