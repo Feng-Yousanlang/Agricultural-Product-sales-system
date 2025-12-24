@@ -198,6 +198,86 @@ body {
     line-height: 1.2;
 }
 
+/* 聊天记录样式 */
+.chat-thread {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 0;
+    max-height: 400px;
+}
+
+.chat-message {
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    max-width: 85%;
+}
+
+.user-message {
+    align-self: flex-end;
+    align-items: flex-end;
+}
+
+.expert-message {
+    align-self: flex-start;
+    align-items: flex-start;
+}
+
+.chat-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+    font-size: 12px;
+}
+
+.chat-role {
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+.user-message .chat-role {
+    background-color: var(--primary-color);
+    color: #fff;
+}
+
+.expert-message .chat-role {
+    background-color: #e5e6eb;
+    color: var(--text-primary);
+}
+
+.chat-time {
+    color: var(--text-secondary);
+}
+
+.chat-content {
+    padding: 10px 16px;
+    border-radius: 8px;
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+
+.user-message .chat-content {
+    background-color: var(--primary-color);
+    color: #fff;
+    border-bottom-right-radius: 0;
+}
+
+.expert-message .chat-content {
+    background-color: var(--secondary-bg);
+    color: var(--text-primary);
+    border-bottom-left-radius: 0;
+}
+
+.chat-empty {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 40px 20px;
+    font-style: italic;
+}
+
 /* 核心功能区 (Feature Cards) */
 .features-grid {
     display: grid;

@@ -82,6 +82,17 @@
             <div class="msg" id="msg-knowledge"></div>
         </section>
         
+        <!-- 聊天记录 -->
+        <section id="chat-records" class="card" style="flex: 1;">
+            <div class="card-header">
+                <h2>专家聊天记录</h2>
+                <button id="btn-refresh-chat-records" class="btn btn-secondary" style="color: #666; border-color: #ddd; font-size: 12px; padding: 4px 10px;">刷新</button>
+            </div>
+            <div class="chat-thread" id="chat-thread">
+                <!-- 聊天记录由JS填充 -->
+            </div>
+            <div class="msg" id="msg-chat-records"></div>
+        </section>
 
     </div>
 
@@ -314,7 +325,7 @@
     </div>
 </div>
 
-<script src="index.js"></script>
 <script src="appointment.js"></script>
+    <script src="index.js"></script>
 </body>
 </html>
