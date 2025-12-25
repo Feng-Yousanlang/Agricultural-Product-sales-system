@@ -36,9 +36,10 @@
             <h2>农业知识库</h2>
             <p class="subtle">搜索农业相关知识，获取专业指导</p>
         </div>
-        <div class="search-bar" style="margin: 20px 0;">
-            <input type="text" id="search-query" placeholder="请输入关键词搜索">
+        <div class="search-bar" style="margin: 20px 0; display: flex; gap: 12px;">
+            <input type="text" id="search-query" placeholder="请输入关键词搜索" class="form-input" style="flex: 1;">
             <button id="search-btn" class="btn">搜索</button>
+            <button id="add-knowledge-btn" class="btn" onclick="addKnowledge()" data-identity="3">添加知识</button>
         </div>
         <div class="loading" id="loading" style="display: none; text-align: center; padding: 20px;">
             <i class="fa-solid fa-circle-notch fa-spin"></i> 加载中...
@@ -51,13 +52,53 @@
             <p>暂无相关知识内容</p>
         </div>
         <div class="msg" id="msg-knowledge"></div>
-        <div class="pagination" id="pagination" style="display: flex; justify-content: center; align-items: center; margin: 20px 0; gap: 10px;">
-            <button id="prev-page" class="btn btn-secondary" disabled>上一页</button>
-            <span id="page-info">第 <span id="current-page">1</span> 页，共 <span id="total-pages">1</span> 页</span>
-            <button id="next-page" class="btn btn-secondary" disabled>下一页</button>
+        <div class="pagination" id="pagination" style="display: flex; justify-content: center; align-items: center; margin: 20px 0; gap: 16px;">
+            <button id="prev-page" class="btn btn-secondary" disabled style="color:#666; border-color:#ddd;">上一页</button>
+            <span id="page-info" style="color: var(--text-secondary); font-size: 14px;">第 <span id="current-page">1</span> 页，共 <span id="total-pages">1</span> 页</span>
+            <div id="page-numbers" style="display: flex; gap: 4px;">
+                <!-- 页码将通过JavaScript动态生成 -->
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="color: var(--text-secondary); font-size: 14px;">跳转到</span>
+                <input type="number" id="page-jump-input" min="1" max="1" value="1" style="width: 60px; padding: 6px; border: 1px solid #ddd; border-radius: 4px; text-align: center;">
+                <button id="page-jump-btn" class="btn btn-secondary" style="padding: 6px 12px;">跳转</button>
+            </div>
+            <button id="next-page" class="btn btn-secondary" disabled style="color:#666; border-color:#ddd;">下一页</button>
         </div>
     </section>
 </main>
+<!-- 新增 / 编辑知识 Modal -->
+<div id="knowledge-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:999;">
+  <div style="
+    background:#fff;
+    width:420px;
+    margin:100px auto;
+    padding:20px;
+    border-radius:8px;
+  ">
+    <h3 id="modal-title">新增知识</h3>
+
+    <div class="form-group">
+      <label>标题</label>
+      <input id="km-title" class="form-input" />
+    </div>
+
+    <div class="form-group">
+      <label>来源</label>
+      <input id="km-source" class="form-input" />
+    </div>
+
+    <div class="form-group">
+      <label>链接</label>
+      <input id="km-url" class="form-input" />
+    </div>
+
+    <div style="margin-top:16px; text-align:right">
+      <button class="btn btn-secondary" onclick="closeKnowledgeModal()">取消</button>
+      <button class="btn" onclick="submitKnowledge()">保存</button>
+    </div>
+  </div>
+</div>
 
 <script src="index.js"></script>
 <script src="knowledge.js"></script>
