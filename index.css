@@ -717,6 +717,94 @@ body {
     }
 }
 
+/* 贷款产品卡片样式 */
+.loan-product-card {
+    border: 1px solid var(--border-color);
+    border-radius: 2px;
+    padding: 20px;
+    background: #fff;
+    transition: all 0.3s ease;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+}
+
+.loan-product-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background-color: var(--primary-color);
+}
+
+.loan-product-card:hover {
+    box-shadow: var(--card-hover-shadow);
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+.loan-product-category {
+    font-size: 12px;
+    color: var(--primary-color);
+    background-color: rgba(199, 0, 11, 0.08);
+    padding: 2px 8px;
+    border-radius: 2px;
+    display: inline-block;
+    margin-bottom: 10px;
+}
+
+.loan-product-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.loan-product-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.loan-product-meta {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+    font-size: 13px;
+}
+
+.loan-product-meta div {
+    display: flex;
+    flex-direction: column;
+}
+
+.loan-product-meta small {
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.loan-product-meta strong {
+    color: var(--text-primary);
+}
+
+.loan-product-tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.loan-product-tags .tag {
+    font-size: 12px;
+    color: var(--primary-color);
+    background-color: rgba(199, 0, 11, 0.08);
+    padding: 2px 8px;
+    border-radius: 2px;
+}
+
 /* 表单通用样式 */
 .form-group {
     margin-bottom: 16px;

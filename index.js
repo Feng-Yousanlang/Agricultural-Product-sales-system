@@ -498,15 +498,15 @@ function bankRenderLoanProducts(list) {
     const id = bankResolveLoanProductId(product);
     const name = product.name || product.productName || product.fpName || `产品#${id || index + 1}`;
     const desc = product.description || product.fpDescription || '暂无描述';
-    const category = product.category || product.type || '未分类';
+    const category = product.category || product.type || '';
     const amountRange = bankFormatAmountRange(product);
     const rateText = bankFormatRate(product);
     const termText = bankFormatTerm(product);
     const tagsHtml = bankRenderLoanProductTags(
-      product.tags || product.tagList || product.labels || product.category || product.type
+      product.tags || product.tagList || product.labels || (category ? [category] : [])
     );
     return `<div class="loan-product-card" data-bank-product-index="${index}" data-bank-product-id="${escapeHtml(String(id ?? ''))}">
-      <div class="loan-product-category">${escapeHtml(category)}</div>
+      ${category ? `<div class="loan-product-category">${escapeHtml(category)}</div>` : ''}
       <div class="loan-product-name">${escapeHtml(name)}</div>
       <p class="loan-product-desc">${escapeHtml(desc)}</p>
       <div class="loan-product-meta">
@@ -561,29 +561,20 @@ function bankRenderLoanProductTags(tags) {
     ? tags
     : String(tags).split(/[,，]/).map((item) => item.trim()).filter(Boolean);
   if (!arr.length) return '';
-  return arr.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('');
+  // 过滤掉"未分类"标签
+  const filteredTags = arr.filter(tag => tag !== '未分类');
+  if (!filteredTags.length) return '';
+  return filteredTags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('');
 }
 
 function bankOpenLoanProductModal(product, index) {
-  if (!bankLoanProductModal || !bankLoanProductModalBody || !product) return;
+  if (!bankLoanProductModal || !product) return;
   bankCurrentLoanProductIndex = index;
-  const name = product.name || product.productName || '未命名产品';
-  const manager = product.fpManagerName || product.managerName || product.contactName || '—';
-  const managerPhone = product.fpManagerPhone || product.managerPhone || product.contactPhone || '—';
-  const managerEmail = product.fpManagerEmail || product.managerEmail || product.contactEmail || '—';
-  bankLoanProductModalBody.innerHTML = `
-    <div class="line"><span>产品名称</span><div>${escapeHtml(name)}</div></div>
-    <div class="line"><span>类别</span><div>${escapeHtml(product.category || product.type || '—')}</div></div>
-    <div class="line"><span>额度范围</span><div>${bankFormatAmountRange(product)}</div></div>
-    <div class="line"><span>年化利率</span><div>${bankFormatRate(product)}</div></div>
-    <div class="line"><span>期限(月)</span><div>${bankFormatTerm(product)}</div></div>
-    <div class="line"><span>产品ID</span><div>${escapeHtml(String(bankResolveLoanProductId(product) ?? '—'))}</div></div>
-    <div class="line"><span>负责人</span><div>${escapeHtml(manager)}</div></div>
-    <div class="line"><span>联系电话</span><div>${escapeHtml(managerPhone)}</div></div>
-    <div class="line"><span>邮箱</span><div>${escapeHtml(managerEmail)}</div></div>
-    <div class="line"><span>产品亮点</span><div>${escapeHtml(product.description || product.fpDescription || '—')}</div></div>
-  `;
+  // 清空模态框内容，不显示详细信息
+  if (bankLoanProductModalBody) bankLoanProductModalBody.innerHTML = '';
+  // 清空消息提示
   if (bankMsgLoanProductModal) bankMsgLoanProductModal.textContent = '';
+  // 显示模态框
   bankLoanProductModal.classList.remove('hidden');
 }
 

@@ -178,7 +178,7 @@ function renderLoanProductsPage(page = 1) {
     const id = resolveLoanProductId(product);
     const name = product.name || product.productName || product.fpName || `产品#${id || index + 1}`;
     const desc = product.description || product.fpDescription || '暂无描述';
-    const category = product.category || product.type || '未分类';
+    const category = product.category || product.type || '';
     const amountRange = formatAmountRange(product);
     const rateText = formatRate(product);
     const termText = formatTerm(product);
@@ -245,8 +245,9 @@ function renderLoanProductTags(tags) {
   const arr = Array.isArray(tags)
     ? tags
     : String(tags).split(/[,，]/).map((item) => item.trim()).filter(Boolean);
-  if (!arr.length) return '';
-  return arr.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('');
+  const filteredTags = arr.filter(tag => tag !== '未分类');
+  if (!filteredTags.length) return '';
+  return filteredTags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('');
 }
 
 function openLoanProductModal(product, index) {
@@ -518,6 +519,16 @@ async function loadApplications(){
   }
 }
 
+// 贷款申请状态映射
+function getLoanStatusText(status) {
+  const statusMap = {
+    1: '已提交',
+    2: '已打回',
+    3: '已审核'
+  };
+  return statusMap[status] || status || '';
+}
+
 function renderApplications(list){
   applicationsList.innerHTML = list.map(a=>
     `<div class="list-card">
@@ -525,7 +536,7 @@ function renderApplications(list){
        <div>产品：${a.productName||''}</div>
        <div>金额：${a.amount||''}</div>
        <div>期限(月)：${a.term||''}</div>
-       <div>状态：${a.status||''}</div>
+       <div>状态：${getLoanStatusText(a.status)}</div>
      </div>`
   ).join('');
 }

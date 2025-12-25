@@ -124,7 +124,6 @@
         <div class="card-header">
             <div>
                 <h2>贷款产品管理</h2>
-                <p style="font-size:12px; color:#666; margin-top:4px;">银行端快速维护贷款产品，实时展示给农户</p>
             </div>
             <div class="loan-product-toolbar" style="display:flex; gap:8px;">
                 <input type="text" id="loan-product-search-q" placeholder="搜索产品" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 2px;">
@@ -189,24 +188,24 @@
         
         <div class="divider" style="height:1px; background:#eee; margin:24px 0;"></div>
         
-        <div class="card-header">
+        <!-- <div class="card-header">
             <h2>我的审批历史</h2>
             <button id="btn-load-approval-history" class="btn btn-secondary" style="color:#666; border-color:#ddd;">刷新</button>
         </div>
         <div class="list" id="approval-history-list"></div>
-        <div class="msg" id="msg-approval-history"></div>
+        <div class="msg" id="msg-approval-history"></div> -->
     </section>
 </main>
 
 <!-- 模态框保持不变，样式会自动继承 -->
 <div id="loan-product-modal" class="modal-backdrop hidden">
-    <div class="modal card" style="max-width:600px; margin: 100px auto;">
+    <div class="modal card" style="max-width:350px; max-height:200px; margin: 150px auto;">
         <div class="card-header">
-            <h3 id="loan-product-modal-title">贷款产品详情</h3>
+            <h3 id="loan-product-modal-title">产品操作</h3>
             <span class="modal-close" id="loan-product-modal-close" style="cursor:pointer; font-size:20px;">&times;</span>
         </div>
         <div id="loan-product-modal-body" style="padding:16px 0;"></div>
-        <div class="modal-actions" style="display:flex; justify-content:flex-end; gap:12px; margin-top:16px;">
+        <div class="modal-actions" style="display:flex; justify-content:center; gap:12px; margin-top:16px;">
             <button type="button" class="btn btn-danger" id="btn-delete-loan-product" style="background:#ff4d4f; border:none;">删除该产品</button>
             <button type="button" class="btn btn-secondary" id="loan-product-modal-cancel" style="color:#666; border-color:#ddd;">关闭</button>
         </div>
