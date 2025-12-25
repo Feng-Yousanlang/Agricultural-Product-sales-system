@@ -6,316 +6,170 @@
     <title>个人中心</title>
     <link rel="stylesheet" href="index.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- 移除原有 style 块，统一使用 index.css -->
 </head>
 <body>
-<header class="topbar">
-    <div class="brand">
-        <i class="fa-solid fa-seedling"></i>
-        <span>三农服务平台</span>
-    </div>
-    <nav class="nav">
-        <a href="index.html">首页</a>
-        <a href="loans.html" data-identity="1">融资服务</a>
-        <a href="appointment.html" data-identity="1">专家预约</a>
-        <a href="buy.html" data-identity="all">农产品商城</a>
-        <a href="knowledge.html" data-identity="all">知识库</a>
-        <a href="products.html" data-identity="1">农产品管理</a>
-        <a href="need.html" data-identity="all">求购平台</a>
-        <a href="price.html" data-identity="all">物价预测</a>
-    </nav>
-    <div class="user">
-        <span id="user-id-display" class="user-id"></span>
-        <button id="btn-logout" class="btn-secondary" style="border:none; color: rgba(255,255,255,0.7);">退出</button>
-    </div>
-</header>
-
-<main class="container">
-    <div class="col-span-12" style="margin-bottom:24px; border-bottom:1px solid #eee; padding-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
-        <h1 style="font-size:24px; color:var(--text-primary);">个人中心</h1>
-        <a href="index.html" class="btn btn-outline">返回首页</a>
-    </div>
-
-    <!-- 1. 基础信息管理（所有角色可见） -->
-    <section id="profile-basic" class="card col-span-12">
-        <div class="card-header">
-            <h2>基础信息管理</h2>
+    <!-- 顶部导航栏 -->
+    <header class="topbar">
+        <div class="brand">
+            <i class="fa-solid fa-seedling"></i>
+            <span>三农服务平台</span>
         </div>
-        <div id="profile-display" class="profile-info" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:20px; margin-bottom:24px;">
-            <div class="info-item">
-                <label style="font-weight:bold; color:#666; font-size:13px; display:block; margin-bottom:4px;">用户ID</label>
-                <span id="display-userId" style="color:var(--text-primary);">—</span>
-            </div>
-            <div class="info-item avatar-display">
-                <label style="font-weight:bold; color:#666; font-size:13px; display:block; margin-bottom:4px;">头像</label>
-                <span id="display-avatar"><span class="form-hint" style="color:#999; font-size:12px;">尚未上传头像</span></span>
-            </div>
-            <div class="info-item">
-                <label style="font-weight:bold; color:#666; font-size:13px; display:block; margin-bottom:4px;">用户名</label>
-                <span id="display-username" style="color:var(--text-primary);">—</span>
-            </div>
-            <div class="info-item">
-                <label style="font-weight:bold; color:#666; font-size:13px; display:block; margin-bottom:4px;">身份</label>
-                <span id="display-identity" style="color:var(--text-primary);">—</span>
-            </div>
-            <div class="info-item">
-                <label style="font-weight:bold; color:#666; font-size:13px; display:block; margin-bottom:4px;">真实姓名</label>
-                <span id="display-realName" style="color:var(--text-primary);">—</span>
-            </div>
-            <div class="info-item">
-                <label style="font-weight:bold; color:#666; font-size:13px; display:block; margin-bottom:4px;">手机号</label>
-                <span id="display-phone" style="color:var(--text-primary);">—</span>
-            </div>
-            <div class="info-item">
-                <label style="font-weight:bold; color:#666; font-size:13px; display:block; margin-bottom:4px;">邮箱</label>
-                <span id="display-email" style="color:var(--text-primary);">—</span>
-            </div>
-            <div class="info-item">
-                <label style="font-weight:bold; color:#666; font-size:13px; display:block; margin-bottom:4px;">注册时间</label>
-                <span id="display-createTime" style="color:var(--text-primary);">—</span>
-            </div>
+        <nav class="nav">
+            <a href="index.html">首页</a>
+            <a href="loans.html" data-identity="1">融资服务</a>
+            <a href="appointment.html" data-identity="1">专家预约</a>
+            <a href="buy.html" data-identity="all">农产品商城</a>
+            <a href="knowledge.html" data-identity="all">知识库</a>
+            <a href="products.html" data-identity="1">农产品管理</a>
+            <a href="need.html" data-identity="all">求购平台</a>
+            <a href="price.html" data-identity="all">物价预测</a>
+        </nav>
+        <div class="user">
+            <span id="user-id-display" class="user-id"></span>
+            <button id="btn-logout" class="btn-secondary">退出</button>
         </div>
-        <button id="btn-edit-profile" class="btn">编辑个人信息</button>
-        <div id="profile-edit-form" class="hidden" style="margin-top: 20px; border-top:1px dashed #eee; padding-top:20px; display:none;">
-            <form id="form-edit-profile" style="max-width:400px;">
-                <div class="form-group">
-                    <label for="edit-realName" class="form-label">真实姓名</label>
-                    <input type="text" id="edit-realName" class="form-input">
+    </header>
+
+    <!-- 主内容区域 -->
+    <main class="container">
+        <!-- 个人中心头部 -->
+        <div class="header-section">
+            <h1>个人中心</h1>
+            <a href="index.html" class="btn btn-outline">返回首页</a>
+        </div>
+
+        <!-- 个人信息管理 -->
+        <section id="profile-basic" class="card">
+            <div class="card-header">
+                <h2>基础信息管理</h2>
+            </div>
+            <div id="profile-display" class="profile-info">
+                <div class="info-item">
+                    <label>用户ID</label>
+                    <span id="display-userId">—</span>
                 </div>
-                <div class="form-group">
-                    <label for="edit-phone" class="form-label">手机号</label>
-                    <input type="text" id="edit-phone" class="form-input">
+                <div class="info-item avatar-display">
+                    <label>头像</label>
+                    <span id="display-avatar">
+                        <span class="form-hint">尚未上传头像</span>
+                    </span>
                 </div>
-                <div class="form-group">
-                    <label for="edit-email" class="form-label">邮箱</label>
-                    <input type="email" id="edit-email" class="form-input">
+                <div class="info-item">
+                    <label>用户名</label>
+                    <span id="display-username">—</span>
                 </div>
-                <div class="form-group">
-                    <label for="edit-avatarFile" class="form-label">上传头像</label>
-                    <input type="hidden" id="edit-avatarUrl">
-                    <div class="avatar-upload">
-                        <input type="file" id="edit-avatarFile" accept="image/*">
-                        <span class="form-hint" id="avatar-file-hint" style="font-size:12px; color:#999; display:block; margin-top:4px;">支持 JPG/PNG，单张不超过 5MB</span>
-                        <div class="avatar-preview" id="avatar-preview" style="margin-top:8px;"></div>
+                <div class="info-item">
+                    <label>身份</label>
+                    <span id="display-identity">—</span>
+                </div>
+                <div class="info-item">
+                    <label>真实姓名</label>
+                    <span id="display-realName">—</span>
+                </div>
+                <div class="info-item">
+                    <label>手机号</label>
+                    <span id="display-phone">—</span>
+                </div>
+                <div class="info-item">
+                    <label>邮箱</label>
+                    <span id="display-email">—</span>
+                </div>
+                <div class="info-item">
+                    <label>注册时间</label>
+                    <span id="display-createTime">—</span>
+                </div>
+            </div>
+            <button id="btn-edit-profile" class="btn">编辑个人信息</button>
+
+            <!-- 编辑个人信息表单 -->
+            <div id="profile-edit-form" class="hidden">
+                <form id="form-edit-profile">
+                    <div class="form-group">
+                        <label for="edit-realName">真实姓名</label>
+                        <input type="text" id="edit-realName" class="form-input">
                     </div>
+                    <div class="form-group">
+                        <label for="edit-phone">手机号</label>
+                        <input type="text" id="edit-phone" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-email">邮箱</label>
+                        <input type="email" id="edit-email" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-avatarFile">上传头像</label>
+                        <input type="file" id="edit-avatarFile" accept="image/*" class="form-input">
+                        <div class="avatar-preview" id="avatar-preview"></div>
+                    </div>
+                    <div class="btn-group">
+                        <button type="submit" class="btn">保存</button>
+                        <button type="button" id="btn-cancel-edit" class="btn btn-secondary">取消</button>
+                    </div>
+                    <div class="msg" id="msg-profile-edit"></div>
+                </form>
+            </div>
+        </section>
+
+        <!-- 收货地址管理（仅买家可见） -->
+        <section id="profile-addresses" class="card hidden" data-identity="all">
+            <div class="card-header">
+                <h2>收货地址管理</h2>
+            </div>
+            <div class="address-card-grid">
+                <form id="form-address-add" class="form">
+                    <h3>新增地址</h3>
+                    <div class="form-group">
+                        <label for="add-address-newAddress">新地址</label>
+                        <textarea id="add-address-newAddress" placeholder="请输入详细地址" required></textarea>
+                    </div>
+                    <button type="submit" class="btn">新增地址</button>
+                    <div class="msg" id="msg-add-address"></div>
+                </form>
+                <div class="form">
+                    <h3>我的地址</h3>
+                    <div id="address-list-display"></div>
+                    <div class="msg" id="msg-list-address"></div>
                 </div>
-                <div class="btn-group" style="display:flex; gap:10px;">
-                    <button type="submit" class="btn">保存</button>
-                    <button type="button" class="btn btn-secondary" id="btn-cancel-edit" style="color:var(--text-secondary); border-color:var(--border-color);">取消</button>
+            </div>
+        </section>
+
+        <!-- 密码管理 -->
+        <section id="profile-password" class="card">
+            <div class="card-header">
+                <h2>密码管理</h2>
+            </div>
+            <form id="form-change-password">
+                <div class="form-group">
+                    <label for="old-password">原密码</label>
+                    <input type="password" id="old-password" required class="form-input">
                 </div>
-                <div class="msg" id="msg-profile-edit"></div>
+                <div class="form-group">
+                    <label for="new-password">新密码</label>
+                    <input type="password" id="new-password" required class="form-input">
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password">确认新密码</label>
+                    <input type="password" id="confirm-password" required class="form-input">
+                </div>
+                <button type="submit" class="btn">修改密码</button>
+                <div class="msg" id="msg-password"></div>
             </form>
-        </div>
-    </section>
+        </section>
+    </main>
 
-    <!-- 2. 收货地址管理（仅买家可见） -->
-    <section id="profile-addresses" class="card col-span-12 hidden" data-identity="2" style="display:none;">
-        <div class="card-header">
-            <h2>收货地址管理</h2>
-        </div>
-        <div class="address-card-grid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:24px;">
-            <form id="form-address-add" class="form">
-                <h3 style="font-size:16px; margin-bottom:12px;">新增地址</h3>
-                <div class="form-group" style="margin-bottom:16px;">
-                    <label for="add-address-newAddress" style="display:block; margin-bottom:6px; font-size:13px;">新地址</label>
-                    <textarea id="add-address-newAddress" rows="3" placeholder="请输入详细地址" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:2px;"></textarea>
-                </div>
-                <button type="submit" class="btn">新增地址</button>
-                <div class="msg" id="msg-add-address"></div>
-            </form>
-
-            <div class="form" style="min-height:100%;">
-                <h3 style="font-size:16px; margin-bottom:12px;">我的地址</h3>
-                <div class="list" id="address-list-display" style="margin-top:15px;"></div>
-                <div class="msg" id="msg-list-address"></div>
+    <!-- 修改地址模态框 -->
+    <div id="address-edit-modal" class="modal-backdrop hidden">
+        <div class="modal">
+            <h3>修改地址</h3>
+            <textarea id="address-edit-input" placeholder="请输入新的详细地址"></textarea>
+            <div class="modal-actions">
+                <button id="address-edit-cancel" class="btn btn-secondary">取消</button>
+                <button id="address-edit-save" class="btn">保存</button>
             </div>
-        </div>
-    </section>
-    
-    <!-- 3. 密码管理（所有角色可见） -->
-    <section id="profile-password" class="card col-span-12">
-        <div class="card-header">
-            <h2>密码管理</h2>
-        </div>
-        <form id="form-change-password" style="max-width:400px;">
-            <div class="form-group" style="margin-bottom:16px;">
-                <label for="old-password" style="display:block; margin-bottom:6px; font-size:13px;">原密码</label>
-                <input type="password" id="old-password" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:2px;">
-            </div>
-            <div class="form-group" style="margin-bottom:16px;">
-                <label for="new-password" style="display:block; margin-bottom:6px; font-size:13px;">新密码</label>
-                <input type="password" id="new-password" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:2px;">
-            </div>
-            <div class="form-group" style="margin-bottom:16px;">
-                <label for="confirm-password" style="display:block; margin-bottom:6px; font-size:13px;">确认新密码</label>
-                <input type="password" id="confirm-password" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:2px;">
-            </div>
-            <button type="submit" class="btn">修改密码</button>
-            <div class="msg" id="msg-password"></div>
-        </form>
-    </section>
-
-    <!-- 4. 融资相关管理（仅农户可见） -->
-    <section id="profile-financing" class="card col-span-12 hidden" data-identity="-1" style="display:none;">
-        <div class="card-header">
-            <h2>融资相关管理</h2>
-        </div>
-        <div class="form-inline" style="margin-bottom: 15px;">
-            <select id="financing-status-filter" style="padding:6px; border:1px solid #ddd; border-radius:2px;">
-                <option value="">全部状态</option>
-                <option value="1">已提交</option>
-                <option value="2">已打回</option>
-                <option value="3">已审核</option>
-                <option value="4">已还款</option>
-                <option value="5">已逾期</option>
-            </select>
-            <button id="btn-load-financing" class="btn btn-secondary" style="color:var(--text-secondary); border-color:var(--border-color);">查询</button>
-        </div>
-        <div id="financing-list"></div>
-        <div class="msg" id="msg-financing"></div>
-    </section>
-
-    <!-- 5. 订单管理 -->
-    <section id="profile-orders-purchased" class="card col-span-12 hidden" data-identity="-1" style="display:none;">
-        <div class="card-header">
-            <h2>我买到的订单</h2>
-        </div>
-        <div class="form-inline" style="margin-bottom: 15px;">
-            <select id="purchased-status-filter" style="padding:6px; border:1px solid #ddd; border-radius:2px;">
-                <option value="">全部状态</option>
-                <option value="1">待支付</option>
-                <option value="2">待发货</option>
-                <option value="3">待收货</option>
-                <option value="4">已完成</option>
-                <option value="5">已取消</option>
-            </select>
-            <button id="btn-load-purchased" class="btn btn-secondary" style="color:var(--text-secondary); border-color:var(--border-color);">查询</button>
-        </div>
-        <div id="purchased-list"></div>
-        <div class="msg" id="msg-purchased"></div>
-    </section>
-
-    <section id="profile-orders-sold" class="card col-span-12 hidden" data-identity="-1" style="display:none;">
-        <div class="card-header">
-            <h2>我卖出的订单</h2>
-        </div>
-        <div class="form-inline" style="margin-bottom: 15px;">
-            <select id="sold-status-filter" style="padding:6px; border:1px solid #ddd; border-radius:2px;">
-                <option value="">全部状态</option>
-                <option value="1">待付款</option>
-                <option value="2">待发货</option>
-                <option value="3">待收货</option>
-                <option value="4">已完成</option>
-                <option value="5">已取消</option>
-            </select>
-            <button id="btn-load-sold" class="btn btn-secondary" style="color:var(--text-secondary); border-color:var(--border-color);">查询</button>
-        </div>
-        <div id="sold-list"></div>
-        <div class="msg" id="msg-sold"></div>
-    </section>
-
-    <!-- 6. 发布管理（仅农户可见） -->
-    <section id="profile-releases" class="card col-span-12 hidden" data-identity="-1" style="display:none;">
-        <div class="card-header">
-            <h2>发布管理</h2>
-        </div>
-        <div class="form-inline" style="margin-bottom: 15px; display:flex; gap:12px;">
-            <select id="release-type-filter" style="padding:6px; border:1px solid #ddd; border-radius:2px;">
-                <option value="1">农产品商品</option>
-                <option value="2">求购需求</option>
-            </select>
-            <select id="release-status-filter" style="padding:6px; border:1px solid #ddd; border-radius:2px;">
-                <option value="">全部状态</option>
-                <option value="1">上架</option>
-                <option value="2">下架</option>
-            </select>
-            <button id="btn-load-releases" class="btn btn-secondary" style="color:var(--text-secondary); border-color:var(--border-color);">查询</button>
-        </div>
-        <div id="releases-list"></div>
-        <div class="msg" id="msg-releases"></div>
-    </section>
-
-    <!-- 7. 专家预约管理（仅农户可见） -->
-    <section id="profile-appointments" class="card col-span-12 hidden" data-identity="-1" style="display:none;">
-        <div class="card-header">
-            <h2>专家预约管理</h2>
-        </div>
-        <div class="form-inline" style="margin-bottom: 15px;">
-            <select id="appointment-status-filter" style="padding:6px; border:1px solid #ddd; border-radius:2px;">
-                <option value="">全部状态</option>
-                <option value="1">待审核</option>
-                <option value="2">已通过</option>
-                <option value="3">已拒绝</option>
-                <option value="4">已完成</option>
-                <option value="5">已取消</option>
-            </select>
-            <button id="btn-load-appointments" class="btn btn-secondary" style="color:var(--text-secondary); border-color:var(--border-color);">查询</button>
-        </div>
-        <div id="appointments-list"></div>
-        <div class="msg" id="msg-appointments"></div>
-    </section>
-
-    <!-- 8. 权限专属功能 -->
-    <section id="profile-bank-records" class="card col-span-12 hidden" data-identity="-1" style="display:none;">
-        <div class="card-header">
-            <h2>贷款审批记录</h2>
-        </div>
-        <div class="form-inline" style="margin-bottom: 15px;">
-            <input type="text" id="bank-time-range" placeholder="时间范围（可选）" style="padding:6px; border:1px solid #ddd; border-radius:2px;">
-            <button id="btn-load-bank-records" class="btn btn-secondary" style="color:var(--text-secondary); border-color:var(--border-color);">查询</button>
-        </div>
-        <div id="bank-records-list"></div>
-        <div class="msg" id="msg-bank-records"></div>
-    </section>
-
-    <section id="profile-admin-users" class="card col-span-12 hidden" data-identity="-1" style="display:none;">
-        <div class="card-header">
-            <h2>用户管理（管理员）</h2>
-        </div>
-        <div class="form-inline" style="margin-bottom: 15px;">
-            <select id="admin-user-identity-filter" style="padding:6px; border:1px solid #ddd; border-radius:2px;">
-                <option value="">全部角色</option>
-                <option value="1">农户</option>
-                <option value="2">买家</option>
-                <option value="3">专家</option>
-                <option value="4">银行</option>
-                <option value="5">管理员</option>
-            </select>
-            <button id="btn-load-admin-users" class="btn btn-secondary" style="color:var(--text-secondary); border-color:var(--border-color);">查询</button>
-        </div>
-        <div id="admin-users-list"></div>
-        <div class="msg" id="msg-admin-users"></div>
-    </section>
-
-    <section id="profile-admin-products" class="card col-span-12 hidden" data-identity="-1" style="display:none;">
-        <div class="card-header">
-            <h2>商品管理（管理员）</h2>
-        </div>
-        <div class="form-inline" style="margin-bottom: 15px;">
-            <select id="admin-product-status-filter" style="padding:6px; border:1px solid #ddd; border-radius:2px;">
-                <option value="">全部状态</option>
-                <option value="1">待审核</option>
-                <option value="2">已审核</option>
-                <option value="3">已下架</option>
-            </select>
-            <button id="btn-load-admin-products" class="btn btn-secondary" style="color:var(--text-secondary); border-color:var(--border-color);">查询</button>
-        </div>
-        <div id="admin-products-list"></div>
-        <div class="msg" id="msg-admin-products"></div>
-    </section>
-</main>
-
-<div id="address-edit-modal" class="modal-backdrop hidden" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1100; align-items:center; justify-content:center;">
-    <div class="modal card" style="width:400px; padding:24px;">
-        <h3 style="margin-top:0; margin-bottom:16px;">修改地址</h3>
-        <textarea id="address-edit-input" rows="4" placeholder="请输入新的详细地址" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:2px; margin-bottom:16px;"></textarea>
-        <div class="modal-actions" style="display:flex; justify-content:flex-end; gap:8px;">
-            <button type="button" class="btn btn-secondary" id="address-edit-cancel" style="color:var(--text-secondary); border-color:var(--border-color);">取消</button>
-            <button type="button" class="btn" id="address-edit-save">保存</button>
         </div>
     </div>
-</div>
 
-<script src="profile.js"></script>
+    <!-- 引入外部 JS -->
+    <script src="profile.js"></script>
 </body>
 </html>
