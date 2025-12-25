@@ -149,6 +149,77 @@ body {
     align-items: start;
 }
 
+/* 左侧固定栏样式 */
+.left-sidebar {
+    grid-column: span 4;
+    position: sticky;
+    top: 84px; /* 顶部导航栏高度 + 间距 */
+    max-height: calc(100vh - 108px); /* 视口高度 - 顶部导航栏高度 - 间距 */
+    overflow-y: auto;
+    padding-right: 12px;
+}
+
+/* 左侧栏内卡片样式优化 */
+.left-sidebar .card {
+    margin-bottom: 20px;
+    padding: 20px;
+}
+
+/* 左侧栏内标题样式优化 */
+.left-sidebar .card h2 {
+    font-size: 16px;
+    margin-bottom: 16px;
+    padding-left: 10px;
+}
+
+/* 左侧栏内表单元素样式优化 */
+.left-sidebar .form-input,
+.left-sidebar .form-select {
+    margin-bottom: 16px;
+    padding: 10px 12px;
+    font-size: 14px;
+    border-radius: 2px;
+}
+
+/* 左侧栏内文本域样式优化 */
+.left-sidebar textarea.form-input {
+    min-height: 100px;
+    resize: vertical;
+    margin-bottom: 16px;
+}
+
+/* 左侧栏内按钮样式优化 */
+.left-sidebar .btn {
+    width: 100%;
+    padding: 12px 20px;
+    font-size: 15px;
+    font-weight: 600;
+    margin-top: 8px;
+}
+
+/* 主内容区域样式 */
+.main-content {
+    grid-column: span 8;
+}
+
+/* 左侧栏滚动条样式 */
+.left-sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.left-sidebar::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.left-sidebar::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 3px;
+}
+
+.left-sidebar::-webkit-scrollbar-thumb:hover {
+    background: #999;
+}
+
 /* 默认让页面中的卡片占满一行，避免窄列导致内容不可见（如 buy.html） */
 .container > .card {
     grid-column: span 12;
@@ -601,6 +672,148 @@ body {
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
 
+/* 求购列表样式 */
+#buyRequestList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* 优化求购列表项样式 */
+#buyRequestList .list-card {
+    border: 1px solid var(--border-color);
+    padding: 20px;
+    margin-bottom: 0;
+    border-radius: 2px;
+    background: #fff;
+    transition: all 0.3s ease;
+    position: relative;
+    box-shadow: var(--card-shadow);
+}
+
+#buyRequestList .list-card:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 8px 24px rgba(199, 0, 11, 0.08);
+    transform: translateY(-2px);
+}
+
+#buyRequestList .list-card strong {
+    display: block;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+#buyRequestList .list-card small.subtle {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-left: 0;
+    margin-right: 12px;
+    vertical-align: middle;
+}
+
+#buyRequestList .list-card br {
+    display: none;
+}
+
+#buyRequestList .list-card > div {
+    margin-bottom: 16px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+#buyRequestList .list-card > div:last-child {
+    margin-bottom: 0;
+}
+
+/* 联系方式样式优化 */
+#buyRequestList .list-card > div:nth-child(3) {
+    color: var(--primary-color);
+    font-weight: 500;
+    margin-bottom: 16px;
+}
+
+/* 删除按钮样式优化 */
+#buyRequestList .list-card .btn.btn-outline {
+    margin-bottom: 16px;
+}
+
+/* 评论区域样式优化 */
+#buyRequestList .comments {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+#buyRequestList .comments h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    padding-left: 0;
+    border-left: none;
+}
+
+#buyRequestList .comments .form-input {
+    margin-bottom: 12px;
+    width: calc(100% - 100px);
+    display: inline-block;
+    vertical-align: middle;
+}
+
+#buyRequestList .comments .btn.btn-outline {
+    margin-bottom: 0;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+#buyRequestList .comment {
+    margin-left: 20px;
+    padding-left: 16px;
+    border-left: 2px solid var(--primary-color);
+    margin-top: 12px;
+    padding-bottom: 12px;
+}
+
+#buyRequestList .comment:last-child {
+    padding-bottom: 0;
+}
+
+#buyRequestList .comment small.subtle {
+    margin-left: 8px;
+}
+
+/* 评论区域样式 */
+.comments {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed #eee;
+}
+
+.comments h4 {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.comment {
+    margin-left: 16px;
+    padding-left: 16px;
+    border-left: 2px solid var(--border-color);
+    margin-top: 8px;
+}
+
+.comment .form-input {
+    width: calc(100% - 80px);
+    margin-right: 8px;
+}
+
 .list-card .name {
     font-weight: 600;
     font-size: 15px;
@@ -686,8 +899,15 @@ body {
     }
     
     .col-span-12, .col-span-9, .col-span-8, .col-span-6, .col-span-4, .col-span-3,
-    #news, .sidebar-col, .features-grid {
+    #news, .sidebar-col, .features-grid, .left-sidebar, .main-content {
         grid-column: span 1;
+    }
+
+    /* 响应式布局下左侧栏不再固定 */
+    .left-sidebar {
+        position: static;
+        max-height: none;
+        padding-right: 0;
     }
 
     .features-grid {

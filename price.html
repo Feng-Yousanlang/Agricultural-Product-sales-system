@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>菜价预测</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .loading {
+            font-size: 18px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <h1>菜价预测 - 土豆</h1>
+    <div id="loading" class="loading">正在加载菜价预测数据...</div>
+    <table id="priceTable">
+        <thead>
+            <tr>
+                <th>日期</th>
+                <th>价格 (元/kg)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- 数据将插入在这里 -->
+        </tbody>
+    </table>
+
+    <script>
+        // API 地址
+        const API_BASE = 'http://10.61.57.87:8080/api/products/forecast';
+
+        // 请求菜价数据
+        fetch(API_BASE)
+            .then(response => response.json())
+            .then(data => {
+                if (data.code === 200) {
+                    // 隐藏加载提示
+                    document.getElementById('loading').style.display = 'none';
+
+                    // 获取数据
+                    const forecastData = data.data;
+                    const tableBody = document.querySelector('#priceTable tbody');
+                    
+                    // 渲染表格
+                    forecastData.forEach(item => {
+                        const row = document.createElement('tr');
+                        const dateCell = document.createElement('td');
+                        const priceCell = document.createElement('td');
+                        
+                        dateCell.textContent = item.date;
+                        priceCell.textContent = item.price;
+                        
+                        row.appendChild(dateCell);
+                        row.appendChild(priceCell);
+                        tableBody.appendChild(row);
+                    });
+                } else {
+                    alert('获取数据失败：' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('请求失败：', error);
+                alert('无法获取菜价预测数据');
+            });
+    </script>
+</body>
+</html>

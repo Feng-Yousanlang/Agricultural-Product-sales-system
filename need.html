@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>求购平台 - 三农服务平台</title>
+    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<header class="topbar">
+    <div class="brand">
+        <i class="fa-solid fa-seedling"></i>
+        <span>三农服务平台</span>
+    </div>
+    <nav class="nav">
+        <a href="index.html" class="all">首页</a>
+        <a href="loans.html" data-identity="1">融资服务</a>
+        <a href="appointment.html" data-identity="1">专家预约</a>
+        <a href="buy.html" data-identity="all">农产品商城</a>
+        <a href="knowledge.html" data-identity="all">知识库</a>
+        <a href="products.html" data-identity="1">农产品管理</a>
+        <a href="need.html" data-identity="all"  class="current">求购平台</a>
+    </nav>
+    <div class="user">
+        <span id="user-id-display" class="user-id"></span>
+        <a href="profile.html" class="btn btn-secondary"><i class="fa-regular fa-user" style="margin-right: 6px;"></i>个人中心</a>
+        <button id="btn-logout" class="btn-secondary" style="border:none; color: rgba(255,255,255,0.7);">退出</button>
+    </div>
+</header>
+
+<main class="container">
+    <!-- 左侧固定栏 -->
+    <aside class="left-sidebar">
+        <!-- 发布求购 -->
+        <div class="publish-section card">
+            <h2>发布求购需求</h2>
+            <input type="text" id="title" class="form-input" placeholder="标题">
+            <textarea id="content" class="form-input" placeholder="内容"></textarea>
+            <input type="text" id="contact" class="form-input" placeholder="联系方式（可选）">
+            <button class="btn" onclick="publishBuyRequest()">发布</button>
+        </div>
+
+        <!-- 搜索求购 -->
+        <div class="search-section card">
+            <h2>搜索求购需求</h2>
+            <input type="text" id="keyword" class="form-input" placeholder="输入关键字">
+            <select id="sort" class="form-select">
+                <option value="time_desc">按时间降序</option>
+                <option value="time_asc">按时间升序</option>
+            </select>
+            <button class="btn" onclick="searchBuyRequest()">搜索</button>
+        </div>
+    </aside>
+
+    <!-- 右侧求购需求列表 -->
+    <section class="main-content">
+        <!-- 求购需求列表 -->
+        <div class="list-section card">
+            <h2>求购需求列表</h2>
+            <ul id="buyRequestList"></ul>
+        </div>
+    </section>
+</main>
+
+<script src="need.js"></script>
+<script src="index.js"></script>
+</body>
+</html>
