@@ -52,17 +52,23 @@ function formatMultilineText(value) {
 })();
 
 // 显示用户ID
-(function displayUserId() {
-  try {
-    const userId = localStorage.getItem('user_id');
-    const userIdDisplay = document.getElementById('user-id-display');
-    if (userIdDisplay && userId) {
-      userIdDisplay.textContent = `用户ID: ${userId}`;
+// 调用auth.js中的统一显示用户名函数
+if (typeof window.Auth !== 'undefined' && window.Auth.displayUserId) {
+  window.Auth.displayUserId();
+} else {
+  // 降级方案：如果auth.js未加载，则尝试显示用户ID
+  (function displayUserIdFallback() {
+    try {
+      const userId = localStorage.getItem('user_id');
+      const userIdDisplay = document.getElementById('user-id-display');
+      if (userIdDisplay && userId) {
+        userIdDisplay.textContent = `用户ID: ${userId}`;
+      }
+    } catch (e) {
+      console.error('显示用户ID失败:', e);
     }
-  } catch (e) {
-    console.error('显示用户ID失败:', e);
-  }
-})();
+  })();
+}
 
 // 退出登录
 document.getElementById('btn-logout').onclick = function() {

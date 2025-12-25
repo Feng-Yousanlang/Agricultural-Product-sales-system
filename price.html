@@ -1,84 +1,290 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>菜价预测</title>
+    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            padding: 10px;
-            border: 1px solid #ddd;
-            text-align: center;
-        }
-        th {
-            background-color: #f2f2f2;
-        }
+        /* Loading animation */
         .loading {
             font-size: 18px;
             color: #888;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .loading::after {
+            content: " . . .";
+            animation: dots 1.5s infinite steps(5, end);
+        }
+
+        @keyframes dots {
+
+            0%,
+            20% {
+                content: " .";
+            }
+
+            40% {
+                content: " . .";
+            }
+
+            60% {
+                content: " . . .";
+            }
+
+            80% {
+                content: " . . . .";
+            }
+
+            100% {
+                content: " . . . . .";
+            }
+        }
+
+        /* Chart.js Container */
+        #chart-container {
+            width: 80%;
+            height: 400px;
+            /* Set the desired height */
+            margin: 30px auto;
+        }
+
+        .select-container {
+            margin: 20px 0;
+        }
+
+        select,
+        button {
+            padding: 10px;
+            margin-right: 10px;
+            font-size: 16px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #333;
+            padding: 10px 20px;
+            color: #fff;
+        }
+
+        .brand {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .brand i {
+            margin-right: 8px;
+        }
+
+        .nav a {
+            color: #fff;
+            margin: 0 15px;
+            text-decoration: none;
+        }
+
+        .nav a:hover,
+        .nav a.current {
+            text-decoration: underline;
+        }
+
+        .user {
+            display: flex;
+            align-items: center;
+        }
+
+        .user .user-id {
+            margin-right: 15px;
+        }
+
+        .user button {
+            background-color: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
         }
     </style>
 </head>
+
 <body>
-    <h1>菜价预测 - 土豆</h1>
+    <!-- Header Section -->
+    <header class="topbar">
+        <div class="brand">
+            <i class="fa-solid fa-seedling"></i>
+            <span>三农服务平台</span>
+        </div>
+        <nav class="nav">
+            <a href="index.html">首页</a>
+            <a href="loans.html" data-identity="1">融资服务</a>
+            <a href="appointment.html" data-identity="1">专家预约</a>
+            <a href="buy.html" data-identity="all">农产品商城</a>
+            <a href="knowledge.html" data-identity="all">知识库</a>
+            <a href="products.html" data-identity="1">农产品管理</a>
+            <a href="need.html" data-identity="all">求购平台</a>
+            <a href="price.html" data-identity="all" class="current">物价预测</a>
+        </nav>
+        <div class="user">
+            <span id="user-id-display" class="user-id">用户123</span> <!-- Replace with dynamic user ID -->
+            <button id="btn-logout" class="btn-secondary">退出</button>
+        </div>
+    </header>
+
+    <h1>菜价预测</h1>
+
+    <!-- 商品选择 -->
+    <div class="select-container">
+        <label for="productSelect">选择商品：</label>
+        <select id="productSelect">
+            <option value="南瓜">南瓜</option>
+            <option value="土豆">土豆</option>
+            <option value="大白菜">大白菜</option>
+            <option value="大葱">大葱</option>
+            <option value="大蒜">大蒜</option>
+            <option value="富士苹果">富士苹果</option>
+            <option value="巨峰葡萄">巨峰葡萄</option>
+            <option value="平菇">平菇</option>
+            <option value="油菜">油菜</option>
+            <option value="洋白菜">洋白菜</option>
+            <option value="活草鱼">活草鱼</option>
+            <option value="活鲤鱼">活鲤鱼</option>
+            <option value="活鲫鱼">活鲫鱼</option>
+            <option value="牛肉">牛肉</option>
+            <option value="猪肉(白条猪)">猪肉(白条猪)</option>
+            <option value="生姜">生姜</option>
+            <option value="生菜">生菜</option>
+            <option value="白条鸡">白条鸡</option>
+            <option value="白萝卜">白萝卜</option>
+            <option value="白鲢活鱼">白鲢活鱼</option>
+            <option value="羊肉">羊肉</option>
+            <option value="胡萝卜">胡萝卜</option>
+            <option value="花鲢活鱼">花鲢活鱼</option>
+            <option value="芹菜">芹菜</option>
+            <option value="茄子">茄子</option>
+            <option value="莲藕">莲藕</option>
+            <option value="莴笋">莴笋</option>
+            <option value="菜花">菜花</option>
+            <option value="菠菜">菠菜</option>
+            <option value="菠萝">菠萝</option>
+            <option value="葱头">葱头</option>
+            <option value="西瓜">西瓜</option>
+            <option value="西红柿">西红柿</option>
+            <option value="西葫芦">西葫芦</option>
+            <option value="豆角">豆角</option>
+            <option value="青椒">青椒</option>
+            <option value="韭菜">韭菜</option>
+            <option value="香菇">香菇</option>
+            <option value="香蕉">香蕉</option>
+            <option value="鸡蛋">鸡蛋</option>
+            <option value="鸭梨">鸭梨</option>
+            <option value="黄瓜">黄瓜</option>
+
+        </select>
+        <button id="predictBtn">预测</button>
+    </div>
+
     <div id="loading" class="loading">正在加载菜价预测数据...</div>
-    <table id="priceTable">
-        <thead>
-            <tr>
-                <th>日期</th>
-                <th>价格 (元/kg)</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- 数据将插入在这里 -->
-        </tbody>
-    </table>
+    <div id="chart-container">
+        <canvas id="priceChart"></canvas>
+    </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // API 地址
-        const API_BASE = 'http://10.61.57.87:8080/api/products/forecast';
+        const ctx = document.getElementById('priceChart').getContext('2d');
+        let priceChart;
 
-        // 请求菜价数据
-        fetch(API_BASE)
-            .then(response => response.json())
-            .then(data => {
-                if (data.code === 200) {
-                    // 隐藏加载提示
+        // 获取菜价数据并渲染折线图
+        function getPriceData(productName) {
+            const API_BASE = 'http://10.61.57.87:8080/api/products/forecast';
+            const url = `${API_BASE}?productName=${productName}`;
+
+            // 显示加载提示
+            document.getElementById('loading').style.display = 'block';
+
+            // 请求菜价数据
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.code === 200) {
+                        // 隐藏加载提示
+                        document.getElementById('loading').style.display = 'none';
+
+                        // 获取数据
+                        const forecastData = data.data;
+                        const dates = forecastData.map(item => item.date);
+                        const prices = forecastData.map(item => item.price);
+
+                        // 渲染折线图
+                        if (priceChart) {
+                            priceChart.destroy(); // 销毁旧图表
+                        }
+
+                        priceChart = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: dates,
+                                datasets: [{
+                                    label: `价格预测 (${productName})`,
+                                    data: prices,
+                                    borderColor: 'rgba(75, 192, 192, 1)',
+                                    borderWidth: 2,
+                                    fill: false
+                                }]
+                            },
+                            options: {
+                                responsive: true, // 自适应
+                                maintainAspectRatio: false, // 禁止保持宽高比
+                                scales: {
+                                    x: {
+                                        ticks: {
+                                            maxRotation: 45,
+                                            minRotation: 30
+                                        }
+                                    },
+                                    y: {
+                                        beginAtZero: true,
+                                        ticks: {
+                                            // 设置纵坐标刻度格式
+                                            callback: function (value) {
+                                                return value + ' 元/kg'; // 添加单位
+                                            },
+                                            stepSize: 0.5, // 设置刻度间隔
+                                            font: {
+                                                size: 12, // 字体大小
+                                                family: 'Arial', // 字体
+                                                weight: 'bold' // 字体加粗
+                                            },
+                                            color: '#333' // 字体颜色
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    } else {
+                        alert('获取数据失败：' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('请求失败：', error);
+                    alert('无法获取菜价预测数据');
                     document.getElementById('loading').style.display = 'none';
+                });
+        }
 
-                    // 获取数据
-                    const forecastData = data.data;
-                    const tableBody = document.querySelector('#priceTable tbody');
-                    
-                    // 渲染表格
-                    forecastData.forEach(item => {
-                        const row = document.createElement('tr');
-                        const dateCell = document.createElement('td');
-                        const priceCell = document.createElement('td');
-                        
-                        dateCell.textContent = item.date;
-                        priceCell.textContent = item.price;
-                        
-                        row.appendChild(dateCell);
-                        row.appendChild(priceCell);
-                        tableBody.appendChild(row);
-                    });
-                } else {
-                    alert('获取数据失败：' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('请求失败：', error);
-                alert('无法获取菜价预测数据');
-            });
+        // 点击预测按钮时获取选择的商品的预测数据
+        document.getElementById('predictBtn').addEventListener('click', function () {
+            const selectedProduct = document.getElementById('productSelect').value;
+            getPriceData(selectedProduct);
+        });
+
+        // 默认加载土豆的预测数据
+        getPriceData('土豆');
     </script>
 </body>
+
 </html>
