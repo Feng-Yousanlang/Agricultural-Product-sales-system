@@ -81,18 +81,6 @@
             </div>
             <div class="msg" id="msg-knowledge"></div>
         </section>
-        
-        <!-- 聊天记录 -->
-        <section id="chat-records" class="card" style="flex: 1;">
-            <div class="card-header">
-                <h2>专家聊天记录</h2>
-                <button id="btn-refresh-chat-records" class="btn btn-secondary" style="color: #666; border-color: #ddd; font-size: 12px; padding: 4px 10px;">刷新</button>
-            </div>
-            <div class="chat-thread" id="chat-thread">
-                <!-- 聊天记录由JS填充 -->
-            </div>
-            <div class="msg" id="msg-chat-records"></div>
-        </section>
 
     </div>
 
@@ -160,7 +148,7 @@
                     <label style="display:block; margin-bottom:6px; font-size:13px;">年化利率(%)</label>
                     <input type="number" id="loan-product-rate" step="0.01" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:2px;">
                 </div>
-                 <div class="row">
+                <div class="row">
                     <label style="display:block; margin-bottom:6px; font-size:13px;">最低额度(元)</label>
                     <input type="number" id="loan-product-min" step="1000" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:2px;">
                 </div>
@@ -202,45 +190,12 @@
         <div class="divider" style="height:1px; background:#eee; margin:24px 0;"></div>
         
         <div class="card-header">
-             <h2>我的审批历史</h2>
-             <button id="btn-load-approval-history" class="btn btn-secondary" style="color:#666; border-color:#ddd;">刷新</button>
+            <h2>我的审批历史</h2>
+            <button id="btn-load-approval-history" class="btn btn-secondary" style="color:#666; border-color:#ddd;">刷新</button>
         </div>
         <div class="list" id="approval-history-list"></div>
         <div class="msg" id="msg-approval-history"></div>
     </section>
-
-    
-
-    <!-- 农产品商城展示 (买家端)
-    <section id="agricultural-products" class="card" data-identity="2">
-        <div class="card-header">
-            <h2>农产品商城</h2>
-            <button id="btn-refresh-products" class="btn btn-secondary" style="color:#666; border-color:#ddd;">刷新</button>
-        </div>
-        <div class="product-grid" id="product-catalog-list"></div>
-        <div class="msg" id="msg-product-catalog"></div>
-    </section>
-
-    购物车 (买家端) 
-    <section id="buyer-cart" class="card" data-identity="2">
-        <div class="card-header">
-            <h2>我的购物车</h2>
-            <button id="btn-refresh-cart" class="btn btn-secondary" style="color:#666; border-color:#ddd;">刷新</button>
-        </div>
-        <div class="list" id="cart-display-list"></div>
-        <div class="msg" id="msg-cart-display"></div>
-    </section>
-
-    购买记录 (买家端) 
-    <section id="buyer-orders" class="card" data-identity="2">
-        <div class="card-header">
-            <h2>我的购买记录</h2>
-            <button id="btn-refresh-orders" class="btn btn-secondary" style="color:#666; border-color:#ddd;">刷新</button>
-        </div>
-        <div class="list" id="orders-display-list"></div>
-        <div class="msg" id="msg-orders-display"></div>
-    </section> -->
-
 </main>
 
 <!-- 模态框保持不变，样式会自动继承 -->

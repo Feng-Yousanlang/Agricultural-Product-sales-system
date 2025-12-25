@@ -98,105 +98,6 @@ if (logoutBtn) {
 // ---------------- 农户端预约功能（identity=1或2） ----------------
 // 提交预约申请功能已移至专家详情弹窗的预约按钮
 
-// 获取专家与用户聊天记录接口
-async function fetchChatRecords(expertId, userId) {
-  if (!expertId || !userId) {
-    throw new Error('专家ID和用户ID不能为空');
-  }
-  try {
-    const payload = {
-      expertId: expertId,
-      userId: userId
-    };
-    const res = await fetch(`${API_BASE_REF}/api/expert/chat-records`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
-    if (!res.ok) {
-      const errText = await res.text().catch(() => res.statusText);
-      throw new Error(`HTTP ${res.status}: ${errText}`);
-    }
-    const json = await res.json();
-    return json;
-  } catch (err) {
-    console.error('获取聊天记录失败:', err);
-    throw err;
-  }
-}
-
-// 加载聊天记录到聊天面板
-// async function loadChatRecords(expertId, userId, chatThreadElement) {
-async function loadChatRecords(expertId, userId) {
-  if (!chatThreadElement) return;
-  
-  try {
-    const response = await fetchChatRecords(expertId, userId);
-    if (response.code === 200 && Array.isArray(response.data)) {
-      // 清空现有聊天记录
-      chatThreadElement.innerHTML = '';
-      
-      // 渲染聊天记录
-      response.data.forEach(record => {
-        // 用户消息
-        const userMessage = document.createElement('div');
-        userMessage.style.cssText = `
-          margin-bottom: 15px;
-          display: flex;
-          justify-content: flex-start;
-        `;
-        userMessage.innerHTML = `
-          <div style="
-            background: white;
-            color: #333;
-            padding: 10px 15px;
-            border-radius: 15px 15px 15px 0;
-            max-width: 70%;
-            word-wrap: break-word;
-          ">
-            <p style="margin: 0;">${escapeAttr(record.question)}</p>
-            <p style="margin: 5px 0 0 0; font-size: 11px; text-align: right;">用户</p>
-            <p style="margin: 5px 0 0 0; font-size: 10px; text-align: right; color: #666;">${formatChatTime(record.time)}</p>
-          </div>
-        `;
-        chatThreadElement.appendChild(userMessage);
-        
-        // 专家回复
-        const expertMessage = document.createElement('div');
-        expertMessage.style.cssText = `
-          margin-bottom: 15px;
-          display: flex;
-          justify-content: flex-end;
-        `;
-        expertMessage.innerHTML = `
-          <div style="
-            background: #007bff;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 15px 15px 0 15px;
-            max-width: 70%;
-            word-wrap: break-word;
-          ">
-            <p style="margin: 0;">${escapeAttr(record.answer)}</p>
-            <p style="margin: 5px 0 0 0; font-size: 11px; text-align: right;">专家</p>
-            <p style="margin: 5px 0 0 0; font-size: 10px; text-align: right; color: rgba(255, 255, 255, 0.7);">${formatChatTime(record.time)}</p>
-          </div>
-        `;
-        chatThreadElement.appendChild(expertMessage);
-      });
-      
-      // 滚动到底部
-      chatThreadElement.scrollTop = chatThreadElement.scrollHeight;
-    } else {
-      chatThreadElement.innerHTML = '<div style="text-align: center; color: #666; margin: 20px 0;">暂无聊天记录</div>';
-    }
-  } catch (err) {
-    chatThreadElement.innerHTML = `<div style="text-align: center; color: #dc3545; margin: 20px 0;">加载聊天记录失败: ${err.message}</div>`;
-  }
-}
-
 // 格式化聊天时间
 function formatChatTime(timeStr) {
   if (!timeStr) return '';
@@ -668,6 +569,8 @@ async function loadSchedule(showLoading = true) {
     const json = await res.json().catch(()=>({}));
     const list = extractScheduleList(json);
     scheduleDataList = list; // 保存预约数据
+    console.log(scheduleDataList);
+    
     renderSchedule(list);
     if (list.length) {
       setScheduleMessage('', false);
@@ -698,6 +601,7 @@ function renderSchedule(list) {
     const topic = item.topic || '—';
     const status = item.status || '';
     const statusText = status === 'approved' ? '已批准' : status === 'pending' ? '待审批' : status === 'completed' ? '已完成' : status === 'no_show' ? '未到场' : status === 'rejected' ? '已拒绝' : status;
+    const expertId = item.expert?.id || item.expertId || '';
     // 只有已批准状态的预约可以更新状态
     const canUpdate = status === 'approved';
     // 判断是否在预约时间内
@@ -714,9 +618,9 @@ function renderSchedule(list) {
         ${status === 'approved' && isWithinTime ? `<button class="btn btn-primary btn-open-chat" 
           data-appointment-id="${appointmentId}"
           data-user-id="${escapeAttr(userId)}"
-          data-euc-id="3"
           data-date="${escapeAttr(dateStr)}"
-          data-time="${escapeAttr(timeStr)}">
+          data-time="${escapeAttr(timeStr)}"
+          data-expert-id="${escapeAttr(expertId)}">
           <i class="fa-solid fa-comments" style="margin-right:6px;"></i>打开聊天室
         </button>` : ''}
       </div>
@@ -752,15 +656,15 @@ if (scheduleList) {
       const eucId = chatBtn.getAttribute('data-euc-id');
       const date = chatBtn.getAttribute('data-date');
       const time = chatBtn.getAttribute('data-time');
-      
+      const expertId = chatBtn.getAttribute('data-expert-id');
       // 打开聊天室
-      openChatRoom(appointmentId, userId, eucId, date, time);
+      openChatRoom(appointmentId, userId, expertId, eucId, date, time);
     }
   });
 }
 
 // 打开聊天室函数
-function openChatRoom(appointmentId, userId, eucId, date, time) {
+function openChatRoom(appointmentId, userId, expertId, eucId, date, time) {
   // 创建聊天窗口
   const chatWindow = document.createElement('div');
   chatWindow.className = 'chat-window';
@@ -803,24 +707,20 @@ function openChatRoom(appointmentId, userId, eucId, date, time) {
   // 聊天消息区域
   const chatMessages = document.createElement('div');
   chatMessages.className = 'chat-messages';
+  chatMessages.id = 'chat-messages';
   chatMessages.style.cssText = `
     flex: 1;
     padding: 15px;
     overflow-y: auto;
     background: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   `;
-  chatMessages.innerHTML = '<div style="text-align: center; color: #666; margin: 20px 0;">加载聊天记录中...</div>';
+  chatMessages.innerHTML = '<div class="chat-empty">加载聊天记录中...</div>';
   
   // 加载历史聊天记录
-  const currentUserId = getCurrentUserId();
-  const userIdentity = localStorage.getItem('user_identity');
-  if (userIdentity === '3') {
-    // 专家端：currentUserId是专家ID，传入的userId是农户ID
-    loadChatRecords(currentUserId, userId);
-  } else {
-    // 农户端：currentUserId是农户ID，传入的userId是专家ID
-    loadChatRecords(userId, currentUserId);
-  }
+  loadChatRecords(expertId, userId);
 
   // 聊天输入区域
   const chatInputArea = document.createElement('div');
@@ -899,25 +799,35 @@ function openChatRoom(appointmentId, userId, eucId, date, time) {
       return;
     }
 
-    // 显示专家回答
+    sendBtn.disabled = true;
+    const prevText = sendBtn.textContent;
+    sendBtn.textContent = '发送中...';
+
+    // 获取当前用户身份，判断消息应该显示在左侧还是右侧
+    const currentUserId = getCurrentUserId();
+    const currentIdentity = parseInt(localStorage.getItem('user_identity') || '0', 10);
+    const isCurrentUserExpert = currentIdentity === 3;
+    const isCurrentUser = isCurrentUserExpert && parseInt(expertId) === currentUserId;
+    
+    // 本人发送的消息在右侧，他人发送的消息在左侧
+    const messageClass = isCurrentUser ? 'expert-message' : 'user-message';
+    const roleText = isCurrentUserExpert ? '专家' : '农户';
+    const alignStyle = isCurrentUser ? 'align-self: flex-end; align-items: flex-end;' : 'align-self: flex-start; align-items: flex-start;';
+    const contentBgStyle = isCurrentUser 
+      ? 'background-color: var(--secondary-bg); color: var(--text-primary); border-bottom-right-radius: 0;'
+      : 'background-color: var(--primary-color); color: #fff; border-bottom-left-radius: 0;';
+    const roleBgStyle = roleText === '专家' ? 'background-color: blue; color: #fff;' : (isCurrentUser ? 'background-color: #e5e6eb; color: var(--text-primary);' : 'background-color: var(--primary-color); color: #fff;');
+
+    
     const expertMessage = document.createElement('div');
-    expertMessage.style.cssText = `
-      margin-bottom: 15px;
-      display: flex;
-      justify-content: flex-end;
-    `;
+    expertMessage.className = messageClass;
+    expertMessage.style.cssText = `display: flex; flex-direction: column; max-width: 85%; ${alignStyle}`;
     expertMessage.innerHTML = `
-      <div style="
-        background: #007bff;
-        color: white;
-        padding: 10px 15px;
-        border-radius: 15px 15px 0 15px;
-        max-width: 70%;
-        word-wrap: break-word;
-      ">
-        <p style="margin: 0;">${escapeAttr(answer)}</p>
-        <p style="margin: 5px 0 0 0; font-size: 11px; text-align: right;">专家</p>
+      <div class="chat-header" style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 12px;">
+        <span class="chat-role" style="font-weight: 600; padding: 2px 8px; border-radius: 4px; font-size: 11px; ${roleBgStyle}">${roleText}</span>
+        <span class="chat-time" style="color: var(--text-secondary);">${formatChatTime(new Date().toISOString())}</span>
       </div>
+      <div class="chat-content" style="padding: 10px 16px; border-radius: 8px; line-height: 1.5; word-wrap: break-word; ${contentBgStyle}">${escapeAttr(answer)}</div>
     `;
     chatMessages.appendChild(expertMessage);
     chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -927,19 +837,36 @@ function openChatRoom(appointmentId, userId, eucId, date, time) {
 
     // 调用专家回答接口
     try {
+      // 构造请求体，只包含必要的字段：expertId, userId, answer
+      const requestBody = {
+        expertId: expertId,
+        userId: userId,
+        answer: answer
+      };
+      
+      // 获取认证 token
+      const token = getAuthToken();
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      // 如果存在 token，添加到请求头
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
       const res = await fetch(`${API_BASE_REF}/api/expert/answer`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          euc_id: eucId,
-          answer: answer
-        })
+        headers: headers,
+        body: JSON.stringify(requestBody)
       });
 
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(json?.message || res.statusText || '发送失败');
+        throw new Error(json?.message || json?.msg || res.statusText || '发送失败');
       }
+
+      await loadChatRecords(expertId, userId);
 
       // 显示发送成功提示
       const successMessage = document.createElement('div');
@@ -963,6 +890,9 @@ function openChatRoom(appointmentId, userId, eucId, date, time) {
     } catch (err) {
       console.error('发送回答失败:', err);
       alert(`发送失败：${err.message}`);
+    } finally {
+      sendBtn.disabled = false;
+      sendBtn.textContent = prevText || '发送';
     }
   }
 
@@ -975,63 +905,6 @@ function openChatRoom(appointmentId, userId, eucId, date, time) {
       e.preventDefault();
       sendAnswer();
     }
-  });
-}
-async function submitAppointmentStatus(appointmentId, status, dateStr, timeStr) {
-  const userId = getCurrentUserId();
-  if (!userId) {
-    setScheduleMessage('未获取到用户ID，请重新登录后再试');
-    return;
-  }
-  if (!appointmentId || !status) {
-    setScheduleMessage('缺少必要的预约信息');
-    return;
-  }
-  // 根据文档，使用meetTime（只传开始时间）
-  const meetTime = buildMeetTime(dateStr, timeStr);
-  if (!meetTime) {
-    setScheduleMessage('缺少预约时间信息');
-    return;
-  }
-  const payload = {
-    appointmentId: parseInt(appointmentId, 10),
-    status,
-    meetTime: meetTime
-  };
-  setScheduleMessage('提交更新中...', false);
-  try {
-    const res = await fetch(`${API_BASE_REF}/api/expert-appointment/update-status`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const json = await res.json().catch(()=>({}));
-    if (!res.ok) {
-      throw new Error(json?.message || res.statusText);
-    }
-    const successMsg = json?.message || '状态已更新';
-    setScheduleMessage(successMsg);
-    setTimeout(()=>loadSchedule(false), SCHEDULE_REFRESH_DELAY_MS);
-  } catch (err) {
-    const errorMsg = `更新失败：${err.message || '网络错误'}`;
-    setScheduleMessage(errorMsg);
-  }
-}
-
-if (scheduleList) {
-  scheduleList.addEventListener('click', (e)=>{
-    const actionBtn = e.target.closest('.btn-update-status');
-    if (!actionBtn) return;
-    const appointmentId = actionBtn.getAttribute('data-appointment-id');
-    const status = actionBtn.getAttribute('data-status');
-    const dateStr = actionBtn.getAttribute('data-date');
-    const timeStr = actionBtn.getAttribute('data-time');
-    if (status === 'completed') {
-      if (!confirm('确认将该预约标记为"已完成"？')) return;
-    } else if (status === 'no_show') {
-      if (!confirm('确认记录"农户未到场"？')) return;
-    }
-    submitAppointmentStatus(appointmentId, status, dateStr, timeStr);
   });
 }
 
@@ -1835,14 +1708,19 @@ function formatChatTime(timeStr) {
 }
 
 // 聊天记录渲染函数
-function renderChatMessages(messages) {
+function renderChatMessages(messages, expertId, userId) {
   const chatMessages = document.getElementById('chat-messages');
   if (!chatMessages) return;
   
   if (!Array.isArray(messages) || messages.length === 0) {
-    chatMessages.innerHTML = '<div style="text-align: center; color: var(--text-secondary); margin-top: 50px;">暂无聊天记录</div>';
+    chatMessages.innerHTML = '<div class="chat-empty">暂无聊天记录</div>';
     return;
   }
+  
+  // 获取当前用户ID和身份
+  const currentUserId = getCurrentUserId();
+  const currentIdentity = parseInt(localStorage.getItem('user_identity') || '0', 10);
+  const isCurrentUserExpert = currentIdentity === 3;
   
   // 处理问答对格式的消息，将每条问答对拆分为用户问题和专家回答
   const flattenedMessages = [];
@@ -1854,6 +1732,7 @@ function renderChatMessages(messages) {
         id: `question-${item.euc_id}`,
         content: item.question,
         senderType: 'user',
+        senderId: userId,
         createTime: item.time
       });
     }
@@ -1864,6 +1743,7 @@ function renderChatMessages(messages) {
         id: `answer-${item.euc_id}`,
         content: item.answer,
         senderType: 'expert',
+        senderId: expertId,
         createTime: item.time
       });
     }
@@ -1877,17 +1757,22 @@ function renderChatMessages(messages) {
   });
   
   chatMessages.innerHTML = flattenedMessages.map(message => {
-    const isUser = message.senderType === 'user';
-    const messageClass = isUser ? 'user-message' : 'expert-message';
-    const messageAlignment = isUser ? 'style="margin-left: auto; background-color: var(--primary-color); color: white;"' : 'style="margin-right: auto; background-color: white;"';
-    const avatar = isUser ? '👤' : '👨‍🔬';
+    // 判断消息是否是当前用户发送的
+    const isCurrentUser = isCurrentUserExpert 
+      ? (message.senderType === 'expert' && parseInt(message.senderId) === currentUserId)
+      : (message.senderType === 'user' && parseInt(message.senderId) === currentUserId);
     
-    return `<div class="message-wrapper" style="display: flex; flex-direction: ${isUser ? 'row-reverse' : 'row'}; gap: 8px; max-width: 100%;">
-      <div class="message-avatar" style="width: 36px; height: 36px; border-radius: 50%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">${avatar}</div>
-      <div class="message-content" style="max-width: 70%;">
-        <div class="message-text" ${messageAlignment} style="padding: 10px 14px; border-radius: 18px; word-wrap: break-word;">${escapeAttr(message.content)}</div>
-        <div class="message-time" style="font-size: 12px; color: var(--text-secondary); margin-top: 4px; text-align: ${isUser ? 'right' : 'left'};">${formatChatTime(message.createTime) || ''}</div>
+    // 本人发送的消息在右侧，他人发送的消息在左侧
+    const messageClass = isCurrentUser ? 'expert-message' : 'user-message';
+    const roleText = message.senderType === 'user' ? '农户' : '专家';
+    const timeText = formatChatTime(message.createTime) || '';
+    
+    return `<div class="${messageClass}" style="display: flex; flex-direction: column; max-width: 85%; ${isCurrentUser ? 'align-self: flex-end; align-items: flex-end;' : 'align-self: flex-start; align-items: flex-start;'}">
+      <div class="chat-header" style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 12px;">
+        <span class="chat-role" style="font-weight: 600; padding: 2px 8px; border-radius: 4px; font-size: 11px; ${roleText === '专家' ? 'background-color: blue; color: #fff;' : (isCurrentUser ? 'background-color: #e5e6eb; color: var(--text-primary);' : 'background-color: var(--primary-color); color: #fff;')}">${roleText}</span>
+        <span class="chat-time" style="color: var(--text-secondary);">${timeText}</span>
       </div>
+      <div class="chat-content" style="padding: 10px 16px; border-radius: 8px; line-height: 1.5; word-wrap: break-word; ${isCurrentUser ? 'background-color: var(--secondary-bg); color: var(--text-primary); border-bottom-right-radius: 0;' : 'background-color: var(--primary-color); color: #fff; border-bottom-left-radius: 0;'}">${escapeAttr(message.content)}</div>
     </div>`;
   }).join('');
   
@@ -1895,18 +1780,93 @@ function renderChatMessages(messages) {
   chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
+function renderChatMessagesTo(containerOrSelector, messages, expertId, userId) {
+  const el = typeof containerOrSelector === 'string' ? document.querySelector(containerOrSelector) : containerOrSelector;
+  if (!el) return;
+  const list = Array.isArray(messages) ? messages : [];
+  if (!list.length) {
+    el.innerHTML = '<div class="chat-empty">暂无聊天记录</div>';
+    return;
+  }
+  
+  // 获取当前用户ID和身份
+  const currentUserId = getCurrentUserId();
+  const currentIdentity = parseInt(localStorage.getItem('user_identity') || '0', 10);
+  const isCurrentUserExpert = currentIdentity === 3;
+  
+  const flattened = [];
+  for (let i = 0; i < list.length; i++) {
+    const item = list[i];
+    if (item && item.question) {
+      flattened.push({ 
+        id: 'question-' + (item.euc_id || ''), 
+        content: item.question, 
+        senderType: 'user', 
+        senderId: userId,
+        createTime: item.time 
+      });
+    }
+    if (item && item.answer) {
+      flattened.push({ 
+        id: 'answer-' + (item.euc_id || ''), 
+        content: item.answer, 
+        senderType: 'expert',
+        senderId: expertId,
+        createTime: item.time 
+      });
+    }
+  }
+  flattened.sort(function(a, b){
+    var ta = new Date(a.createTime).getTime() || 0;
+    var tb = new Date(b.createTime).getTime() || 0;
+    return ta - tb;
+  });
+  el.innerHTML = flattened.map(function(message){
+    // 判断消息是否是当前用户发送的
+    var isCurrentUser = isCurrentUserExpert 
+      ? (message.senderType === 'expert' && parseInt(message.senderId) === currentUserId)
+      : (message.senderType === 'user' && parseInt(message.senderId) === currentUserId);
+    
+    // 本人发送的消息在右侧，他人发送的消息在左侧
+    var messageClass = isCurrentUser ? 'expert-message' : 'user-message';
+    var roleText = message.senderType === 'user' ? '农户' : '专家';
+    var timeText = formatChatTime(message.createTime) || '';
+    var alignStyle = isCurrentUser ? 'align-self: flex-end; align-items: flex-end;' : 'align-self: flex-start; align-items: flex-start;';
+    var contentBgStyle = isCurrentUser 
+      ? 'background-color: var(--secondary-bg); color: var(--text-primary); border-bottom-right-radius: 0;'
+      : 'background-color: var(--primary-color); color: #fff; border-bottom-left-radius: 0;';
+    var roleBgStyle = isCurrentUser 
+      ? 'background-color: #e5e6eb; color: var(--text-primary);'
+      : 'background-color: var(--primary-color); color: #fff;';
+    
+    return '<div class="' + messageClass + '" style="display: flex; flex-direction: column; max-width: 85%; ' + alignStyle + '">' +
+      '<div class="chat-header" style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 12px;">' +
+        '<span class="chat-role" style="font-weight: 600; padding: 2px 8px; border-radius: 4px; font-size: 11px; ' + roleBgStyle + '">' + roleText + '</span>' +
+        '<span class="chat-time" style="color: var(--text-secondary);">' + timeText + '</span>' +
+      '</div>' +
+      '<div class="chat-content" style="padding: 10px 16px; border-radius: 8px; line-height: 1.5; word-wrap: break-word; ' + contentBgStyle + '">' + escapeAttr(message.content) + '</div>' +
+    '</div>';
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
 // 加载聊天记录
 async function loadChatRecords(expertId, userId) {
+  console.log("loadChatRecords2:" + "expertId:{}", expertId + " userId:{}", userId);
   const chatMessages = document.getElementById('chat-messages');
   const chatMsg = document.getElementById('chat-msg');
-  
-  if (!chatMessages) return;
-  
-  chatMessages.innerHTML = '<div style="text-align: center; color: var(--text-secondary); margin-top: 50px;">加载中...</div>';
-  
+  console.log("step1");
+  // if (!chatMessages) {
+  //   console.log("end");
+  //   return;
+  // }
+  console.log("step2");
+  // chatMessages.innerHTML = '<div style="text-align: center; color: var(--text-secondary); margin-top: 50px;">加载中...</div>';
+  console.log("step3");
   try {
+    console.log("step4");
     const url = `${API_BASE_REF}/api/expert/chat-records`;
-    
+    console.log("step5");
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -1917,21 +1877,23 @@ async function loadChatRecords(expertId, userId) {
         userId
       })
     });
-    
+    console.log("step6");
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
-    
+    console.log("step7");
     const data = await response.json();
     
+    console.log("step8");
     // 检查接口返回状态
     if (data?.code !== 200) {
+      console.log("step error");
       throw new Error(data?.message || '获取聊天记录失败');
     }
     
     const messages = Array.isArray(data?.data) ? data.data : [];
-    
-    renderChatMessages(messages);
+    console.log(messages);
+    renderChatMessages(messages, expertId, userId);
     
     if (chatMsg) {
       chatMsg.textContent = '';
@@ -1991,17 +1953,25 @@ async function sendChatMessage() {
       if (!isExpert) {
         requestBody.question = content;
       } 
-      // 专家回答使用answer字段（与聊天记录接口保持一致）
+      // 专家回答使用answer字段，只包含 expertId, userId, answer
       else {
         requestBody.answer = content;
-        requestBody.appointmentId = appointmentId;
+      }
+      
+      // 获取认证 token
+      const token = getAuthToken();
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      // 如果存在 token，添加到请求头
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
       
       const response = await fetch(`${API_BASE_REF}${endpoint}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: headers,
         body: JSON.stringify(requestBody)
       });
     
@@ -2100,7 +2070,7 @@ function closeChatWindow() {
 }
 
 // 聊天功能初始化
-(function initChatFunctionality() {
+function initChatFunctionality() {
   // 打开聊天窗口按钮事件监听
   const userAppointmentsList = document.getElementById('user-appointments-list');
   if (userAppointmentsList) {
@@ -2152,5 +2122,9 @@ function closeChatWindow() {
       }
     });
   }
-})();
+}
 
+// 等待DOM完全加载后初始化聊天功能
+document.addEventListener('DOMContentLoaded', () => {
+  initChatFunctionality();
+});

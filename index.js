@@ -174,8 +174,8 @@ function renderNews(){
     const imgSrc = resolveProductImage(n.imgUrl || n.imageUrl || '');
     const fallback = escapeAttr(DEFAULT_PRODUCT_IMAGE);
     return `<a class="slide" href="${escapeAttr(href)}" target="_blank" rel="noopener">
-       <img src="${imgSrc}" alt="${escapeAttr(title)}" onerror="this.onerror=null;this.src='${fallback}'">
-     </a>`;
+      <img src="${imgSrc}" alt="${escapeAttr(title)}" onerror="this.onerror=null;this.src='${fallback}'">
+    </a>`;
   }).join('');
   slidesEl.innerHTML = html;
   dotsEl.innerHTML = news.map((_,i)=>`<span class="dot ${i===idx?'active':''}" data-i="${i}"></span>`).join('');
@@ -295,11 +295,11 @@ function renderProductsPage(page = 1){
   const pageList = productsData.slice(start, start + PRODUCTS_PAGE_SIZE);
   productsGrid.innerHTML = pageList.map(p=>
     `<div class="product">
-       <div class="name">${p.fpName}</div>
-       <div class="desc">${p.fpDescription||''}</div>
-       <div class="rate">${p.annualRate? ('年化 ' + p.annualRate + '%') : '—'}</div>
-       <div class="tags">${(p.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}</div>
-     </div>`
+      <div class="name">${p.fpName}</div>
+      <div class="desc">${p.fpDescription||''}</div>
+      <div class="rate">${p.annualRate? ('年化 ' + p.annualRate + '%') : '—'}</div>
+      <div class="tags">${(p.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+    </div>`
   ).join('');
   if (productsPageInfo) {
     productsPageInfo.textContent = total ? `${productsPage}/${totalPages}` : '0/0';
@@ -354,9 +354,9 @@ async function loadKnowledgeList(){
     const list = Array.isArray(json?.data) ? json.data : [];
     knowledgeList.innerHTML = list.map(item=>
       `<a href="${item.url || '#'}" class="knowledge-item" target="_blank" rel="noopener">
-         <span class="knowledge-title" title="${item.title || ''}">${item.title || '未命名'}</span>
-         <span class="knowledge-date">${item.publish || ''}</span>
-       </a>`
+        <span class="knowledge-title" title="${item.title || ''}">${item.title || '未命名'}</span>
+        <span class="knowledge-date">${item.publish || ''}</span>
+      </a>`
     ).join('');
     if (msgKnowledge) msgKnowledge.textContent = list.length ? '' : (json?.message || '暂无数据');
   } catch (err) {
@@ -389,11 +389,11 @@ if (btnSearchKnowledge) {
       const list = Array.isArray(json?.data) ? json.data : [];
       knowledgeSearchList.innerHTML = list.map(item=>
         `<div class="list-card">
-           <div class="name">${item.title || '未命名'}</div>
-           <div>来源：${item.source || '—'}</div>
-           <div>发布日期：${item.publish || '—'}</div>
-           <a href="${item.url}" target="_blank" rel="noopener">查看原文</a>
-         </div>`
+          <div class="name">${item.title || '未命名'}</div>
+          <div>来源：${item.source || '—'}</div>
+          <div>发布日期：${item.publish || '—'}</div>
+          <a href="${item.url}" target="_blank" rel="noopener">查看原文</a>
+        </div>`
       ).join('');
       msgKnowledgeSearch.textContent = list.length ? '' : (json?.message || '暂无匹配结果');
     } catch (err) {
@@ -552,118 +552,7 @@ function bankFormatTerm(product = {}) {
   return term;
 }
 
-// ---------------- 聊天记录功能 ----------------
-const chatThreadEl = document.getElementById('chat-thread');
-const msgChatRecordsEl = document.getElementById('msg-chat-records');
-const btnRefreshChatRecordsEl = document.getElementById('btn-refresh-chat-records');
 
-// 渲染聊天记录
-function renderChatRecords(chatRecords) {
-  if (!chatThreadEl) return;
-  
-  if (!Array.isArray(chatRecords) || chatRecords.length === 0) {
-    chatThreadEl.innerHTML = '<div class="chat-empty">暂无聊天记录</div>';
-    return;
-  }
-  
-  // 按时间排序，最新的在最下面
-  const sortedRecords = [...chatRecords].sort((a, b) => {
-    const timeA = new Date(a.time || '').getTime();
-    const timeB = new Date(b.time || '').getTime();
-    return timeA - timeB;
-  });
-  
-  // 渲染聊天记录
-  chatThreadEl.innerHTML = sortedRecords.map(record => {
-    const questionHtml = `
-      <div class="chat-message user-message">
-        <div class="chat-header">
-          <span class="chat-role">用户</span>
-          <span class="chat-time">${formatDate(record.time)}</span>
-        </div>
-        <div class="chat-content">
-          ${escapeAttr(record.question || '')}
-        </div>
-      </div>
-    `;
-    
-    const answerHtml = record.answer ? `
-      <div class="chat-message expert-message">
-        <div class="chat-header">
-          <span class="chat-role">专家</span>
-          <span class="chat-time">${formatDate(record.time)}</span>
-        </div>
-        <div class="chat-content">
-          ${escapeAttr(record.answer || '')}
-        </div>
-      </div>
-    ` : '';
-    
-    return questionHtml + answerHtml;
-  }).join('');
-}
-
-// 格式化日期时间
-function formatDate(dateString) {
-  if (!dateString) return '';
-  
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
-  } catch (e) {
-    return dateString;
-  }
-}
-
-// 获取聊天记录
-async function loadChatRecords() {
-  if (!chatThreadEl || !msgChatRecordsEl) return;
-  
-  msgChatRecordsEl.textContent = '加载中...';
-  
-  try {
-    // 获取当前用户ID
-    const userId = getCurrentUserId();
-    if (!userId) {
-      throw new Error('用户ID获取失败');
-    }
-    
-    // 这里使用固定的专家ID，实际应用中应该根据需要获取
-    const expertId = 17;
-    
-    // 调用fetchChatRecords函数获取聊天记录
-    const response = await fetchChatRecords(expertId, userId);
-    
-    if (response.code === 200 && Array.isArray(response.data)) {
-      renderChatRecords(response.data);
-      msgChatRecordsEl.textContent = '';
-    } else {
-      msgChatRecordsEl.textContent = response.message || '获取聊天记录失败';
-      chatThreadEl.innerHTML = '<div class="chat-empty">暂无聊天记录</div>';
-    }
-  } catch (err) {
-    console.error('获取聊天记录失败:', err);
-    msgChatRecordsEl.textContent = `加载失败：${err.message || '网络错误'}`;
-    chatThreadEl.innerHTML = '<div class="chat-empty">暂无聊天记录</div>';
-  }
-}
-
-// 添加刷新按钮事件
-if (btnRefreshChatRecordsEl) {
-  btnRefreshChatRecordsEl.addEventListener('click', loadChatRecords);
-}
-
-// 页面加载时自动获取聊天记录
-if (chatThreadEl && msgChatRecordsEl) {
-  loadChatRecords();
-}
 
 // ---------------- 银行贷款产品标签渲染 ----------------
 function bankRenderLoanProductTags(tags) {

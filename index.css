@@ -214,13 +214,13 @@ body {
 }
 
 .user-message {
-    align-self: flex-end;
-    align-items: flex-end;
+    align-self: flex-start;
+    align-items: flex-start;
 }
 
 .expert-message {
-    align-self: flex-start;
-    align-items: flex-start;
+    align-self: flex-end;
+    align-items: flex-end;
 }
 
 .chat-header {
@@ -262,13 +262,13 @@ body {
 .user-message .chat-content {
     background-color: var(--primary-color);
     color: #fff;
-    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
 }
 
 .expert-message .chat-content {
     background-color: var(--secondary-bg);
     color: var(--text-primary);
-    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
 }
 
 .chat-empty {
