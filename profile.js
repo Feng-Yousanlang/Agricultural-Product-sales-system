@@ -166,6 +166,10 @@ async function handleEditProfileSubmit(event) {
     formData.append('file', avatarFile);
   }
 
+  const formData_avatar = new FormData();
+  formData_avatar.append("userId", userId);
+  formData_avatar.append("file", avatarFile);
+
   try {
     // 更新个人信息请求
     const res = await fetch(`${API_BASE}/api/user/profile/update`, {
@@ -176,9 +180,21 @@ async function handleEditProfileSubmit(event) {
       body: formData,  // 使用 FormData 以支持文件上传
     });
 
-    const json = await res.json();
+    console.log("res:" + res.json);
+
+    const res2 = await fetch(`${API_BASE}/api/user/upload/avatar`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData_avatar,  //
+    });
+
+    console.log("res2:" + res2.json);
+
+    const json = await res2.json();
     
-    if (!res.ok) {
+    if (!res2.ok) {
       throw new Error(json.message || `HTTP ${res.status}`);
     }
 

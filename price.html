@@ -130,8 +130,11 @@
             <a href="price.html" data-identity="all" class="current">物价预测</a>
         </nav>
         <div class="user">
-            <span id="user-id-display" class="user-id">用户123</span> <!-- Replace with dynamic user ID -->
-            <button id="btn-logout" class="btn-secondary">退出</button>
+            <span id="user-id-display" class="user-id"></span>
+            <a href="profile.html" class="btn btn-secondary">
+                <i class="fa-regular fa-user" style="margin-right: 6px;"></i>个人中心
+            </a>
+            <button id="btn-logout" class="btn-secondary" style="border:none; color: rgba(255,255,255,0.7);">退出</button>
         </div>
     </header>
 
@@ -285,6 +288,6 @@
         // 默认加载土豆的预测数据
         getPriceData('土豆');
     </script>
+    <script src="index.js"></script>
 </body>
-
 </html>

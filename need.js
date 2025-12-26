@@ -1,5 +1,6 @@
 // 如果API_BASE已存在（从index.js导入），则使用它；否则声明新的
-const API_BASE = window.API_BASE ? window.API_BASE + '/api/buyRequest' : 'http://10.61.57.87:8080/api/buyRequest';
+// const API_BASE = window.API_BASE ? window.API_BASE + '/api/buyRequest' : 'http://10.61.57.87:8080/api/buyRequest';
+// const API_BASE = 'http://10.61.57.87:8080';
 
 /* ================= 发布求购 ================= */
 function publishBuyRequest() {
@@ -19,7 +20,7 @@ function publishBuyRequest() {
         return;
     }
 
-    fetch(`${API_BASE}/publish`, {
+    fetch(`${API_BASE}/api/buyRequest/publish`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, content, contact, userId }) // 传递userid
@@ -45,7 +46,7 @@ function deleteBuyRequest(id) {
 
     const userId = localStorage.getItem('user_id'); // 假设用户ID存在localStorage中
 
-    fetch(`${API_BASE}/delete?buyRequestId=${id}&userId=${userId}`, { method: 'DELETE' })
+    fetch(`${API_BASE}/api/buyRequest/delete?buyRequestId=${id}&userId=${userId}`, { method: 'DELETE' })
     .then(res => res.json())
     .then(res => {
         if (res.code === 200) {
@@ -69,7 +70,7 @@ function searchBuyRequest() {
     };
 
     // 发送 POST 请求
-    fetch(`${API_BASE}/search`, {
+    fetch(`${API_BASE}/api/buyRequest/search`, {
         method: 'POST',  // 请求方式改为 POST
         headers: {
             'Content-Type': 'application/json'  // 设置请求头为 JSON
@@ -92,7 +93,7 @@ function searchBuyRequest() {
 
 /* ================= 获取求购列表 ================= */
 function loadBuyRequestList() {
-    fetch(`${API_BASE}/list`)
+    fetch(`${API_BASE}/api/buyRequest/list`)
     .then(res => res.json())
     .then(res => {
         if (res.code === 200) {

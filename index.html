@@ -61,6 +61,29 @@
             </a>
         </section>
 
+                <section class="features-grid" data-identity="2">
+            <a href="price.html" class="feature-card">
+                <div class="feature-icon"><i class="fa-solid fa-sack-dollar"></i></div>
+                <div class="feature-content">
+                    <h3>菜价预测</h3>
+                    <p>基于历史数据和模型预测，帮助农民及时调整生产计划。</p>
+                </div>
+            </a>
+            <a href="need.html" class="feature-card">
+                <div class="feature-icon"><i class="fa-solid fa-user-doctor"></i></div>
+                <div class="feature-content">
+                    <h3>求购平台</h3>
+                    <p>帮助农民及时获取市场需求，增加销售渠道。</p>
+                </div>
+            </a>
+            <a href="buy.html" class="feature-card">
+                <div class="feature-icon"><i class="fa-solid fa-basket-shopping"></i></div>
+                <div class="feature-content">
+                    <h3>农产商城</h3>
+                    <p>优质农产品直供直销，拓宽销售渠道，增加农民收入。</p>
+                </div>
+            </a>
+        </section>
         <!-- 新闻轮播区 -->
         <section id="news" class="card" data-identity="1">
             <div class="carousel" id="news-carousel">
@@ -73,6 +96,17 @@
             <div class="msg" id="msg-news"></div>
         </section>
 
+        <!-- 修改为 data-identity="2" -->
+<section id="news" class="card" data-identity="2">
+    <div class="carousel" id="news-carousel">
+        <div class="slides" id="news-slides"></div>
+        <div class="dots" id="news-dots"></div>
+        <button class="carousel-arrow prev" id="news-prev" aria-label="上一条">‹</button>
+        <button class="carousel-arrow next" id="news-next" aria-label="下一条">›</button>
+        <div class="news-title"><a id="news-title-link" target="_blank" rel="noopener"></a></div>
+    </div>
+    <div class="msg" id="msg-news"></div>
+</section>
         <!-- 右侧侧边栏：知识库与快捷入口 -->
         <div class="sidebar-col" data-identity="1">
             <section id="knowledge" class="card" style="flex: 1;">
@@ -88,9 +122,22 @@
                 </div>
                 <div class="msg" id="msg-knowledge"></div>
             </section>
-
         </div>
-
+        <div class="sidebar-col" data-identity="2">
+            <section id="knowledge" class="card" style="flex: 1;">
+                <div class="card-header">
+                    <h2>农业知识库</h2>
+                    <a href="knowledge.html" class="btn btn-secondary"
+                        style="color: #666; border-color: #ddd; font-size: 12px; padding: 4px 10px;">更多</a>
+                </div>
+                <div class="list" id="knowledge-list">
+                    农业知识库是整合农业生产技术、政策标准、市场动态、病虫害防治、品种选育等多维度信息的数字化知识服务平台，旨在为农户、农业合作社、基层农技人员及农业企业提供系统、精准、可落地的知识支撑。
+                    <br>
+                    平台以科学性和实用性为核心，涵盖从产前规划（土壤改良、品种选择）、产中管理（田间作业、水肥调控、绿色防控）到产后加工（保鲜存储、分级包装）的全产业链知识，既收录权威农技规程、专家经验总结，也整合实时市场行情、政策补贴指南与典型案例解析。
+                </div>
+                <div class="msg" id="msg-knowledge"></div>
+            </section>
+        </div>
         <!-- 推荐金融产品 -->
         <section id="products" class="card" data-identity="1">
             <div class="card-header">
@@ -106,7 +153,6 @@
             <div class="msg" id="msg-products"></div>
         </section>
 
-        <!-- 专家端/银行端专属模块 (保持原ID以便JS兼容) -->
 
         <!-- 专家审批预约 -->
         <section id="expert-appointment-review" class="card" data-identity="3">
