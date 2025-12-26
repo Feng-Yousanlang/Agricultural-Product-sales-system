@@ -61,7 +61,7 @@
             </a>
         </section>
 
-                <section class="features-grid" data-identity="2">
+        <section class="features-grid" data-identity="2">
             <a href="price.html" class="feature-card">
                 <div class="feature-icon"><i class="fa-solid fa-sack-dollar"></i></div>
                 <div class="feature-content">
@@ -85,7 +85,7 @@
             </a>
         </section>
         <!-- 新闻轮播区 -->
-        <section id="news" class="card" data-identity="1">
+        <section id="news" class="card" (data-identity="1"|| data-identity="2")>
             <div class="carousel" id="news-carousel">
                 <div class="slides" id="news-slides"></div>
                 <div class="dots" id="news-dots"></div>
@@ -96,17 +96,6 @@
             <div class="msg" id="msg-news"></div>
         </section>
 
-        <!-- 修改为 data-identity="2" -->
-<section id="news" class="card" data-identity="2">
-    <div class="carousel" id="news-carousel">
-        <div class="slides" id="news-slides"></div>
-        <div class="dots" id="news-dots"></div>
-        <button class="carousel-arrow prev" id="news-prev" aria-label="上一条">‹</button>
-        <button class="carousel-arrow next" id="news-next" aria-label="下一条">›</button>
-        <div class="news-title"><a id="news-title-link" target="_blank" rel="noopener"></a></div>
-    </div>
-    <div class="msg" id="msg-news"></div>
-</section>
         <!-- 右侧侧边栏：知识库与快捷入口 -->
         <div class="sidebar-col" data-identity="1">
             <section id="knowledge" class="card" style="flex: 1;">
@@ -261,23 +250,23 @@
         </section>
 
         <!-- 用户列表 -->
-<section id="user-management-section" class="card" data-identity="5">
-    <div class="card-header">
-        <h2>用户管理</h2>
-    </div>
+        <section id="user-management-section" class="card" data-identity="5">
+            <div class="card-header">
+                <h2>用户管理</h2>
+            </div>
 
-    <!-- 用户列表部分 -->
-    <div class="form-inline" style="gap:8px;">
-        <input type="number" id="input-user-id" placeholder="输入用户ID"
-            style="padding:8px; border:1px solid #ddd; border-radius:2px; width:150px;">
-        <button id="btn-load-user-list" class="btn btn-secondary" style="color:#666; border-color:#ddd;">
-            获取用户列表
-        </button>
-    </div>
-    <div class="list" id="user-list"></div>
-    <div class="msg" id="msg-user-list"></div>
+            <!-- 用户列表部分 -->
+            <div class="form-inline" style="gap:8px;">
+                <input type="number" id="input-user-id" placeholder="输入用户ID"
+                    style="padding:8px; border:1px solid #ddd; border-radius:2px; width:150px;">
+                <button id="btn-load-user-list" class="btn btn-secondary" style="color:#666; border-color:#ddd;">
+                    获取用户列表
+                </button>
+            </div>
+            <div class="list" id="user-list"></div>
+            <div class="msg" id="msg-user-list"></div>
 
-</section>
+        </section>
 
     </main>
 
